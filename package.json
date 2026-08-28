@@ -1,19 +1,21 @@
 {
   "name": "kotakas",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js && node --check src/api.js && node --check src/roles.js && node --check public/assets/app.js",
+    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js && node --check src/api.js && node --check src/roles.js && node --check src/authz.js && node --check src/session.js && node --check src/user-adapter.js && node --check src/auth-status.js && node --check src/legacy-contract.js && node --check public/assets/app.js",
     "test": "node --test"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1"
   }
