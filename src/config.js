@@ -17,14 +17,18 @@ export const config = {
   financeWritesEnabled: envFlag('FINANCE_WRITES_ENABLED', false),
   commissionRate: Number(process.env.COMMISSION_RATE || 0),
   traderDebtLimitGb: Number(process.env.TRADER_DEBT_LIMIT_GB || 0),
-  googleClientIdPresent: Boolean(process.env.GOOGLE_CLIENT_ID),
-  googleClientSecretPresent: Boolean(process.env.GOOGLE_CLIENT_SECRET),
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || '',
+  googleAutoRegisterEnabled: envFlag('GOOGLE_AUTO_REGISTER_ENABLED', false),
+  googleStateCookieName: process.env.GOOGLE_STATE_COOKIE_NAME || 'kotakas_google_oauth_state',
 };
 
+config.googleClientIdPresent = Boolean(config.googleClientId);
+config.googleClientSecretPresent = Boolean(config.googleClientSecret);
 config.googleOAuthReady = Boolean(
-  config.googleClientIdPresent &&
-  config.googleClientSecretPresent &&
+  config.googleClientId &&
+  config.googleClientSecret &&
   config.googleCallbackUrl,
 );
 
