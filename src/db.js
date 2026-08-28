@@ -1,0 +1,25 @@
+import pg from 'pg';
+import { config } from './config.js';
+
+const { Pool } = pg;
+
+export const pool = config.databaseUrl
+  ? new Pool({
+      connectionString: config.databaseUrl,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    })
+  : null;
+
+export async function pingDatabase() {
+  if (!pool) return { ok: false, skipped: true, reason: 'DATABASE_URL missing' };
+
+  const client = await pool.connect();
+  try {
+    const result = await client.query('select now() as now');
+    return { ok: true, now: result.rows[0]?.now || null };
+  } finally {
+    client.release();
+  }
+}
