@@ -1,38 +1,36 @@
-# KOTAKAS Source Migration
-
-Bu dalin amaci Railway Variables icine parca parca yazilan hot-patch zincirini kaldirip KOTAKAS'i normal kaynak kod projesine tasimaktir.
+# KOTAKAS Kaynak Migrasyonu
 
 ## Guvenlik kurali
+Bu dal production degildir. `source-migration` dalindaki kod canli `kotakas-live` servisine baglanmadan once CI ve staging testlerinden gececek.
 
-- `source-migration` production'a bagli degildir.
-- Canli `kotakas-live` servisine bu dal hazir olmadan deploy yapilmaz.
-- Mevcut ACTIVE/SUCCESS Railway deployment korunur.
-- Secret degerler GitHub'a yazilmaz.
-- Veritabaninda silme/degistirme yapan migration, tablo semasi dogrulanmadan eklenmez.
+## Tamamlananlar
+- Node 20 + Express + Socket.IO kaynak agaci
+- PostgreSQL baglanti katmani ve `/api/health`
+- Rol/yetki matrisi ve backend 401/403 korumasi
+- Canli API route kontrati
+- Responsive mobil/masaustu uygulama kabugu
+- Sag ust mobil hamburger menu
+- Google OAuth config hazirligi
+- KVKK / Iletisim / Kopazar.com piyasa referansi
+- JWT session okuma/dogrulama katmani
+- Mevcut kullanici tablosunu read-only `information_schema` ile algilayan uyumluluk adaptoru
+- Bcrypt parola hash uyumluluk kontrolu
+- `/api/me` ve `/api/auth/status` kaynak route'lari
+- Bakiye / transaction / komisyon / order tablolarini read-only algilayan finans adaptoru
+- Komisyon hesaplama fonksiyonu ve testleri
+- Syntax, rol/yetki, session, finans ve source smoke CI testleri
 
-## Fazlar
+## Henuz production'a alinmayacaklar
+- Legacy giris endpointinin yeni session katmanina baglanmasi
+- Kayit ve sifre sifirlama akisi
+- Gercek Google OAuth credentials
+- Bakiye/komisyon yazma islemleri ve escrow
+- Eski Railway hot-patch degiskenlerinin temizlenmesi
 
-1. Temel Node/Express/Socket.IO/Postgres kaynak agaci.
-2. Canli frontend dosyalarinin kaynak agacina alinmasi.
-3. Mevcut auth route/API uyumlulugu.
-4. Admin rolleri: `admin_owner`, `admin_full`, `admin_limited`.
-5. Kullanici/pazarci paneli ve bakiye API'leri.
-6. Guvenli satis + komisyon + settlement akisi.
-7. Google OAuth.
-8. KVKK, Iletisim ve Kopazar piyasa referansi footer'i.
-9. Staging smoke testleri.
-10. Yalniz tum kontroller gecerse Railway production gecisi.
-
-## Production'a gecis kontrol listesi
-
-- `/api/health` 200
-- Veritabani baglantisi OK
-- Ana sayfa 200
-- Login/register smoke test
-- Admin owner erisimi
-- Limited admin icin finans endpointleri 403
-- Trader paneli
-- Bakiye ve transaction listeleme
-- Socket.IO baglantisi
-- Mobil menu
-- Rollback noktasi hazir
+## Gecis plani
+1. Eski DB semasi staging benzeri ortamda read-only algilanir.
+2. Login/session uyumlulugu test edilir.
+3. Bakiye ve komisyon tablolari mevcut semaya gore baglanir.
+4. Escrow/komisyon hareketleri transaction icinde atomik uygulanir.
+5. `/api/health`, auth, admin, trader ve finans smoke testleri SUCCESS olmadan production degismez.
+6. Yeni kaynak surum SUCCESS olduktan sonra eski V18xx hot-patch zinciri arsivlenir.
