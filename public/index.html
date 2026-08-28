@@ -1,15 +1,16 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>KOTAKAS Source Migration</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>KOTAKAS</title>
+  <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
-  <main>
-    <h1>KOTAKAS</h1>
-    <p>Bu sayfa sadece <strong>source-migration</strong> gelistirme dalindadir.</p>
-    <p>Canli Railway production servisi bu dal tarafindan degistirilmemistir.</p>
-  </main>
+  <div id="app" class="app-shell"></div>
+  <noscript>KOTAKAS'ı kullanmak için JavaScript'i etkinleştirin.</noscript>
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="/assets/app.js" defer></script>
 </body>
 </html>

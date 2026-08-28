@@ -1,15 +1,14 @@
 {
   "name": "kotakas",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js"
+    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js && node --check src/api.js && node --check src/roles.js && node --check public/assets/app.js",
+    "test": "node --test"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
