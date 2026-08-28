@@ -39,7 +39,7 @@ Tamamlanan ana katmanlar:
 5. Gizli bilgiler (DB URL, JWT secret, OAuth secret, admin sifresi) GitHub'a yazilmayacak; sadece Railway Variables kullanilacak.
 
 ## Siradaki isler
-- [ ] Legacy login/session akisini yeni session katmanina baglama
+- [ ] Legacy login endpointinin mevcut DB semasi dogrulandiktan sonra yeni JWT session katmanina baglanmasi
 - [ ] Bakiye ve komisyon yazma/escrow islemlerini mevcut DB semasina baglama
 - [ ] Google ile Giris/Kayit (OAuth)
 - [ ] Kayit ve sifre sifirlama uyumlulugu
