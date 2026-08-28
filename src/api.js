@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { config } from './config.js';
 import { publicRoleMatrix } from './roles.js';
+import { LIVE_API_CONTRACT } from './legacy-contract.js';
 
 export const apiRouter = Router();
 
@@ -28,13 +29,15 @@ apiRouter.get('/migration-status', (_req, res) => {
       'role/permission matrix',
       'responsive application shell',
       'footer/legal navigation',
+      'live API route contract',
+      'CI syntax/role/smoke tests',
     ],
     next: [
-      'live API compatibility adapter',
+      'database model compatibility adapter',
       'existing auth/session migration',
       'wallet/commission data adapter',
       'google oauth',
-      'staging smoke tests',
+      'railway staging smoke tests',
     ],
   });
 });
@@ -47,43 +50,11 @@ apiRouter.get('/compatibility', (_req, res) => {
   res.json({
     ok: true,
     pages: [
-      '/',
-      '/login.html',
-      '/register.html',
-      '/market.html',
-      '/buy.html',
-      '/sell.html',
-      '/dashboard.html',
-      '/deals.html',
-      '/notifications.html',
-      '/profile.html',
-      '/trader-apply.html',
-      '/trader.html',
-      '/support.html',
-      '/admin.html',
-      '/admin-access.html',
-      '/kvkk.html',
-      '/contact.html',
+      '/', '/login.html', '/register.html', '/market.html', '/buy.html', '/sell.html',
+      '/dashboard.html', '/deals.html', '/notifications.html', '/profile.html',
+      '/trader-apply.html', '/trader.html', '/support.html', '/admin.html',
+      '/admin-access.html', '/kvkk.html', '/contact.html',
     ],
-    liveApiEndpointsObserved: [
-      '/api/me',
-      '/api/notifications',
-      '/api/requests',
-      '/api/listings',
-      '/api/stats',
-      '/api/transactions',
-      '/api/tickets',
-      '/api/admin/overview',
-      '/api/admin/users',
-      '/api/admin/traders',
-      '/api/admin/trader-applications',
-      '/api/admin/listings',
-      '/api/admin/wallets',
-      '/api/admin/commissions',
-      '/api/admin/disputes',
-      '/api/admin/security-events',
-      '/api/admin/settings',
-      '/api/admin/market-rates',
-    ],
+    liveApiContract: LIVE_API_CONTRACT,
   });
 });
