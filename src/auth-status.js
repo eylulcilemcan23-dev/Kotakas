@@ -14,6 +14,7 @@ authStatusRouter.get('/auth/status', (_req, res) => {
     ok: true,
     sessionReady: Boolean(config.jwtSecret),
     databaseConfigured: Boolean(config.databaseUrl),
+    legacyLoginEnabled: config.legacyLoginEnabled,
     googleEnabled: config.googleOAuthReady,
     sourceMode: true,
   });
