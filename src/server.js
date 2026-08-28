@@ -9,6 +9,7 @@ import { config } from './config.js';
 import { pingDatabase } from './db.js';
 import { apiRouter } from './api.js';
 import { authStatusRouter } from './auth-status.js';
+import { financeStatusRouter } from './finance-status.js';
 import { optionalSession } from './session.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -36,6 +37,7 @@ app.get('/api/health', async (_req, res) => {
 });
 
 app.use('/api', authStatusRouter);
+app.use('/api', financeStatusRouter);
 app.use('/api', apiRouter);
 app.use(express.static(publicDir));
 
