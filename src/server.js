@@ -8,6 +8,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config.js';
 import { pingDatabase } from './db.js';
 import { apiRouter } from './api.js';
+import { authRouter } from './auth.js';
 import { authStatusRouter } from './auth-status.js';
 import { financeStatusRouter } from './finance-status.js';
 import { optionalSession } from './session.js';
@@ -36,6 +37,7 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.use('/api', authRouter);
 app.use('/api', authStatusRouter);
 app.use('/api', financeStatusRouter);
 app.use('/api', apiRouter);
