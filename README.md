@@ -27,9 +27,13 @@ Tamamlanan ana katmanlar:
 - KVKK / Iletisim / Kopazar.com piyasa referansi
 - JWT session okuma/dogrulama
 - read-only kullanici sema uyumluluk adaptoru
+- bcrypt tabanli legacy parola dogrulama adaptoru
+- `/api/login` ve `/api/logout` kaynak route'lari; `LEGACY_LOGIN_ENABLED=false` ile varsayilan kapali
 - read-only bakiye/komisyon sema uyumluluk adaptoru
-- komisyon hesaplama testleri
-- GitHub CI syntax + rol + session + finans + smoke testleri
+- escrow release/refund ve komisyon uzlasma cekirdegi
+- `FINANCE_WRITES_ENABLED=false` ile finans yazmalarinin varsayilan kapali tutulmasi
+- tam yetkili admin icin salt sema metadata raporu: `/api/admin/schema-compatibility`
+- GitHub CI syntax + rol + session + login + finans + escrow + smoke testleri
 
 ## Kural
 1. Vercel canli KOTAKAS'in parcasi degildir; sadece eski testler icin kullanildi.
@@ -37,10 +41,12 @@ Tamamlanan ana katmanlar:
 3. Railway environment icine yeni `V18xx` hot-patch zinciri eklenmeyecek.
 4. Her degisiklikten once mevcut canli surum korunacak ve healthcheck gecmeden trafik yeni deploy'a alinmayacak.
 5. Gizli bilgiler (DB URL, JWT secret, OAuth secret, admin sifresi) GitHub'a yazilmayacak; sadece Railway Variables kullanilacak.
+6. Login ve finans yazma feature flagleri staging semasi dogrulanmadan acilmayacak.
 
 ## Siradaki isler
-- [ ] Legacy login endpointinin mevcut DB semasi dogrulandiktan sonra yeni JWT session katmanina baglanmasi
-- [ ] Bakiye ve komisyon yazma/escrow islemlerini mevcut DB semasina baglama
+- [ ] `/api/admin/schema-compatibility` ile staging DB semasini dogrulamak
+- [ ] Dogrulanan tablo/kolonlara gore bakiye hold/release/refund SQL islemlerini transaction icinde baglamak
+- [ ] Legacy login'i staging'de gercek kullanici ile dogrulayip `LEGACY_LOGIN_ENABLED` flagini kontrollu acmak
 - [ ] Google ile Giris/Kayit (OAuth)
 - [ ] Kayit ve sifre sifirlama uyumlulugu
 - [ ] Staging smoke testi icin Railway kaynak limiti acildiginda ayri test servisi
