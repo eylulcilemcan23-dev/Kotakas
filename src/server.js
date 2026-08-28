@@ -8,6 +8,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import { config } from './config.js';
 import { pingDatabase } from './db.js';
 import { apiRouter } from './api.js';
+import { authStatusRouter } from './auth-status.js';
+import { optionalSession } from './session.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,6 +24,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(optionalSession);
 
 app.get('/api/health', async (_req, res) => {
   try {
@@ -32,6 +35,7 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
+app.use('/api', authStatusRouter);
 app.use('/api', apiRouter);
 app.use(express.static(publicDir));
 
