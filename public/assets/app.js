@@ -1,6 +1,6 @@
 (() => {
   const state = {
-    config: { environment: 'preview', googleEnabled: false, commissionRate: 0, traderDebtLimitGb: 0, marketReference: 'Kopazar.com' },
+    config: { environment: 'preview', googleEnabled: false, legacyLoginEnabled: false, commissionRate: 0, traderDebtLimitGb: 0, marketReference: 'Kopazar.com' },
     menuOpen: false,
   };
   const route = () => location.pathname === '/index.html' ? '/' : location.pathname;
@@ -21,14 +21,34 @@
   function sellPage() { return `${pageTitle('İlan Ver', 'Item veya GB satışını pazar listesine ekle.')}<div class="grid"><section class="card wide"><form class="form" data-preview-form><div class="field"><label>Sunucu</label><select><option>ZERO</option><option>AGARTHA</option><option>PANDORA</option><option>FELIS</option></select></div><div class="field"><label>İlan başlığı</label><input placeholder="Ürün / item adı"></div><div class="field"><label>Fiyat</label><input type="number" min="0" placeholder="TL"></div><div class="field"><label>Açıklama</label><textarea rows="4" placeholder="Teslimat ve ürün detayları"></textarea></div><button class="btn success" type="submit">İlanı Hazırla</button></form></section><aside class="card"><h3>Komisyon</h3><div class="kpi">%${Number(state.config.commissionRate || 0)} <small>yapılandırılmış oran</small></div><p>Canlıya geçmeden önce finans kuralları yeniden doğrulanacak.</p></aside></div>`; }
   function dashboardPage() { return `${pageTitle('Panelim', 'Bakiye, ilan, işlem ve bildirim özeti.')}<div class="grid"><article class="card"><h3>Kullanılabilir Bakiye</h3><div class="kpi">— <small>TL</small></div></article><article class="card"><h3>Aktif İlan</h3><div class="kpi">—</div></article><article class="card"><h3>Bekleyen İşlem</h3><div class="kpi">—</div></article><section class="card full"><div class="empty">Mevcut hesap verileri canlı API adaptörü bağlandığında gösterilecek.</div></section></div>`; }
   const dealsPage = () => `${pageTitle('İşlemlerim', 'Alım-satım, teslim ve ödeme geçmişi.')}<div class="card full"><div class="empty">İşlem verisi henüz kaynak migrasyonuna bağlanmadı.</div></div>`;
-  const notificationsPage = () => `${pageTitle('Bildirimler', 'Mesaj, işlem ve sistem bildirimleri.')}<div class="card full"><div class="empty">Canlı bildirim kanalı hazır; kullanıcı oturumu bağlandıktan sonra içerik burada görünecek.</div></div>`;
-  const profilePage = () => `${pageTitle('Profil', 'Hesap, rol ve güvenlik bilgileri.')}<div class="grid"><section class="card half"><h3>Hesap</h3><p>Oturum migrasyonu tamamlandığında e-posta ve rol bilgileri getirilecek.</p></section><section class="card half"><h3>Güvenlik</h3><p>Şifre ve bağlı Google hesabı işlemleri backend üzerinden doğrulanacak.</p></section></div>`;
+  const notificationsPage = () => `${pageTitle('Bildirimler', 'Mesaj, işlem ve sistem bildirimleri.')}<div class="card full"><div class="empty">Canlı bildirim kanalı hazır; kullanıcı oturumu bağlandığında içerik burada görünecek.</div></div>`;
+  const profilePage = () => `${pageTitle('Profil', 'Hesap, rol ve güvenlik bilgileri.')}<div class="grid"><section class="card half"><h3>Hesap</h3><p>JWT oturum katmanı hazır; staging doğrulamasından sonra gerçek hesap bilgileri gösterilecek.</p></section><section class="card half"><h3>Güvenlik</h3><p>Şifre ve bağlı Google hesabı işlemleri backend üzerinden doğrulanacak.</p></section></div>`;
   const traderApplyPage = () => `${pageTitle('Pazarcı Başvurusu', 'Doğrulanmış pazarcı rolü için başvuru.')}<div class="grid"><section class="card wide"><form class="form" data-preview-form><div class="field"><label>Mağaza / kullanıcı adı</label><input></div><div class="field"><label>İletişim</label><input></div><div class="field"><label>Açıklama</label><textarea rows="4"></textarea></div><button class="btn primary" type="submit">Başvuruyu Hazırla</button></form></section></div>`;
   const traderPage = () => `${pageTitle('Pazarcı Paneli', 'Onaylı pazarcı ilanları, satışlar ve hesap özeti.')}<div class="grid"><article class="card"><h3>Satış</h3><div class="kpi">—</div></article><article class="card"><h3>Komisyon</h3><div class="kpi">—</div></article><article class="card"><h3>Bakiye</h3><div class="kpi">—</div></article></div>`;
   const supportPage = () => `${pageTitle('Destek', 'İşlem, hesap veya anlaşmazlık için destek talebi aç.')}<div class="grid"><section class="card wide"><form class="form" data-preview-form><div class="field"><label>Konu</label><input></div><div class="field"><label>Mesaj</label><textarea rows="6"></textarea></div><button class="btn primary" type="submit">Talebi Hazırla</button></form></section></div>`;
   function adminPage() { return `${pageTitle('Admin Merkezi', 'Rol tabanlı yönetim ekranlarının kaynak kod taslağı.')}<div class="notice">Hassas finans ve admin yönetimi bölümleri yalnızca <strong>Ana Yönetici</strong> ve <strong>Tam Yetkili</strong> rollerine backend tarafından açılacak.</div><div class="grid"><article class="card"><h3>Üyeler</h3><div class="kpi">—</div></article><article class="card"><h3>Pazarcılar</h3><div class="kpi">—</div></article><article class="card"><h3>Başvurular</h3><div class="kpi">—</div></article><section class="card half"><h3>Finans</h3><p>Bakiye ve komisyon verileri sınırlı yöneticiden gizlenecek.</p></section><section class="card half"><h3>Güvenlik</h3><p>Admin işlemleri ve kritik ayarlar ayrı permission kontrolünden geçecek.</p></section></div>`; }
   function adminAccessPage() { return `${pageTitle('Yetki Seviyeleri', 'Admin rollerinin erişim sınırları.')}<section class="card full"><table class="role-table"><thead><tr><th>Rol</th><th>Standart Yönetim</th><th>Finans</th><th>Admin Yönetimi</th></tr></thead><tbody><tr><td><span class="badge green">Ana Yönetici</span></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><span class="badge">Tam Yetkili</span></td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td><span class="badge yellow">Sınırlı Yetkili</span></td><td>✓</td><td>—</td><td>—</td></tr></tbody></table></section>`; }
-  function authPage(register = false) { const googleLabel = state.config.googleEnabled ? 'Google ile devam et' : 'Google ile giriş — yapılandırma bekliyor'; return `<div class="auth-wrap"><section class="auth-card"><h1>${register ? 'Hesap Oluştur' : 'Giriş Yap'}</h1><div class="sub">KOTAKAS hesabınla devam et.</div><button class="google-btn" ${state.config.googleEnabled ? '' : 'disabled'}>${googleLabel}</button><div class="divider">veya</div><form class="form" data-preview-form><div class="field"><label>E-posta</label><input type="email" autocomplete="email" required></div><div class="field"><label>Şifre</label><input type="password" autocomplete="${register ? 'new-password' : 'current-password'}" required></div>${register ? '<div class="field"><label>Şifre tekrar</label><input type="password" required></div>' : ''}<button class="btn primary" type="submit">${register ? 'Kayıt Ol' : 'Giriş Yap'}</button></form><p style="color:var(--muted);font-size:13px;margin-top:18px">${register ? 'Zaten hesabın var mı? <a href="/login.html">Giriş yap</a>' : 'Hesabın yok mu? <a href="/register.html">Kayıt ol</a>'}</p></section></div>`; }
+  function authErrorMessage() {
+    const code = new URLSearchParams(location.search).get('error');
+    if (!code) return '';
+    const messages = {
+      google_account_not_registered: 'Bu Google e-postasıyla kayıtlı KOTAKAS hesabı bulunamadı.',
+      google_email_unverified: 'Google e-posta doğrulaması tamamlanamadı.',
+      google_state_invalid: 'Google giriş oturumu geçersiz veya süresi dolmuş.',
+      google_oauth_failed: 'Google girişinde geçici bir hata oluştu.',
+      google_oauth_not_ready: 'Google giriş yapılandırması henüz tamamlanmadı.',
+    };
+    return `<div class="notice">${esc(messages[code] || 'Giriş tamamlanamadı. Lütfen tekrar deneyin.')}</div>`;
+  }
+  function authPage(register = false) {
+    const googleControl = state.config.googleEnabled
+      ? '<a class="google-btn" href="/auth/google">Google ile devam et</a>'
+      : '<button class="google-btn" disabled>Google ile giriş — yapılandırma bekliyor</button>';
+    const loginReady = !register && state.config.legacyLoginEnabled;
+    const formAttr = loginReady ? 'data-login-form' : 'data-preview-form';
+    const status = !register && !state.config.legacyLoginEnabled ? '<div class="sub">E-posta girişi staging doğrulamasına kadar kapalı.</div>' : '';
+    return `<div class="auth-wrap"><section class="auth-card"><h1>${register ? 'Hesap Oluştur' : 'Giriş Yap'}</h1><div class="sub">KOTAKAS hesabınla devam et.</div>${authErrorMessage()}${googleControl}<div class="divider">veya</div>${status}<form class="form" ${formAttr}><div class="field"><label>E-posta</label><input name="email" type="email" autocomplete="email" required></div><div class="field"><label>Şifre</label><input name="password" type="password" autocomplete="${register ? 'new-password' : 'current-password'}" required></div>${register ? '<div class="field"><label>Şifre tekrar</label><input type="password" required></div>' : ''}<button class="btn primary" type="submit">${register ? 'Kayıt Ol' : 'Giriş Yap'}</button></form><p style="color:var(--muted);font-size:13px;margin-top:18px">${register ? 'Zaten hesabın var mı? <a href="/login.html">Giriş yap</a>' : 'Hesabın yok mu? <a href="/register.html">Kayıt ol</a>'}</p></section></div>`;
+  }
   const kvkkPage = () => `${pageTitle('KVKK', 'Kişisel verilerin işlenmesi ve korunması.')}<section class="card full"><h3>Kaynak migrasyon notu</h3><p>Bu sayfa için nihai aydınlatma metni, işletme bilgileri ve veri işleme süreçleri hukuk kontrolünden sonra yayımlanmalıdır. Şimdilik arayüz ve navigasyon hazırlandı.</p></section>`;
   const contactPage = () => `${pageTitle('İletişim', 'KOTAKAS destek ve işletme iletişim kanalları.')}<section class="card half"><h3>Destek</h3><p>Destek talepleri için sistem içi destek modülü kullanılacak. Resmî iletişim bilgileri yayına geçmeden önce eklenecek.</p></section>`;
   const pages = { '/': homePage, '/market.html': marketPage, '/buy.html': buyPage, '/sell.html': sellPage, '/dashboard.html': dashboardPage, '/deals.html': dealsPage, '/notifications.html': notificationsPage, '/profile.html': profilePage, '/trader-apply.html': traderApplyPage, '/trader.html': traderPage, '/support.html': supportPage, '/admin.html': adminPage, '/admin-access.html': adminAccessPage, '/login.html': () => authPage(false), '/register.html': () => authPage(true), '/kvkk.html': kvkkPage, '/contact.html': contactPage };
@@ -37,6 +57,26 @@
     document.querySelector('#menuButton')?.addEventListener('click', () => { state.menuOpen = !state.menuOpen; document.querySelector('#mobileMenu')?.classList.toggle('open', state.menuOpen); });
     document.querySelectorAll('[data-mobile-link]').forEach((link) => link.addEventListener('click', () => { state.menuOpen = false; }));
     document.querySelectorAll('[data-preview-form]').forEach((form) => form.addEventListener('submit', (event) => { event.preventDefault(); alert('Bu form kaynak migrasyon önizlemesinde veri yazmaz. Canlı sistem etkilenmedi.'); }));
+    document.querySelectorAll('[data-login-form]').forEach((form) => form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submit = form.querySelector('button[type="submit"]');
+      const data = new FormData(form);
+      if (submit) submit.disabled = true;
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ email: data.get('email'), password: data.get('password') }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'login_failed');
+        location.href = '/dashboard.html';
+      } catch (_) {
+        alert('Giriş yapılamadı. E-posta ve şifrenizi kontrol edin.');
+      } finally {
+        if (submit) submit.disabled = false;
+      }
+    }));
   }
   async function loadConfig() { try { const response = await fetch('/api/public-config', { headers: { Accept: 'application/json' } }); if (response.ok) state.config = { ...state.config, ...(await response.json()) }; } catch (_) {} render(); }
   window.addEventListener('DOMContentLoaded', loadConfig);
