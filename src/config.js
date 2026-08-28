@@ -22,6 +22,7 @@ export const config = {
   // E-posta teslim adaptoru henuz kaynak migrasyonuna eklenmedi; bu nedenle bilincli olarak kapali.
   passwordResetDeliveryEnabled: false,
   financeWritesEnabled: envFlag('FINANCE_WRITES_ENABLED', false),
+  escrowApiEnabled: envFlag('ESCROW_API_ENABLED', false),
   commissionRate: Number(process.env.COMMISSION_RATE || 0),
   traderDebtLimitGb: Number(process.env.TRADER_DEBT_LIMIT_GB || 0),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
