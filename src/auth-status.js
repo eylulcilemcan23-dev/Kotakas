@@ -15,6 +15,10 @@ authStatusRouter.get('/auth/status', (_req, res) => {
     sessionReady: Boolean(config.jwtSecret),
     databaseConfigured: Boolean(config.databaseUrl),
     legacyLoginEnabled: config.legacyLoginEnabled,
+    userWritesEnabled: config.userWritesEnabled,
+    registrationEnabled: config.registrationEnabled,
+    passwordResetEnabled: config.passwordResetEnabled,
+    passwordResetDeliveryReady: config.passwordResetDeliveryEnabled,
     googleEnabled: config.googleOAuthReady,
     sourceMode: true,
   });

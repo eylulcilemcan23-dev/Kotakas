@@ -14,6 +14,13 @@ export const config = {
   sessionTtl: process.env.SESSION_TTL || '7d',
   sessionCookieMaxAgeMs: Number(process.env.SESSION_COOKIE_MAX_AGE_MS || 7 * 24 * 60 * 60 * 1000),
   legacyLoginEnabled: envFlag('LEGACY_LOGIN_ENABLED', false),
+  userWritesEnabled: envFlag('USER_WRITES_ENABLED', false),
+  registrationEnabled: envFlag('REGISTRATION_ENABLED', false),
+  passwordResetEnabled: envFlag('PASSWORD_RESET_ENABLED', false),
+  passwordResetSecret: process.env.PASSWORD_RESET_SECRET || '',
+  passwordResetTtl: process.env.PASSWORD_RESET_TTL || '30m',
+  // E-posta teslim adaptoru henuz kaynak migrasyonuna eklenmedi; bu nedenle bilincli olarak kapali.
+  passwordResetDeliveryEnabled: false,
   financeWritesEnabled: envFlag('FINANCE_WRITES_ENABLED', false),
   commissionRate: Number(process.env.COMMISSION_RATE || 0),
   traderDebtLimitGb: Number(process.env.TRADER_DEBT_LIMIT_GB || 0),
