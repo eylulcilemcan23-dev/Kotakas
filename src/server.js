@@ -13,6 +13,7 @@ import { accountRouter } from './account.js';
 import { googleAuthRouter } from './google-auth.js';
 import { authStatusRouter } from './auth-status.js';
 import { financeStatusRouter } from './finance-status.js';
+import { escrowApiRouter } from './escrow-api.js';
 import { optionalSession } from './session.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +45,7 @@ app.use('/api', accountRouter);
 app.use('/', googleAuthRouter);
 app.use('/api', authStatusRouter);
 app.use('/api', financeStatusRouter);
+app.use('/api', escrowApiRouter);
 app.use('/api', apiRouter);
 app.use(express.static(publicDir));
 
