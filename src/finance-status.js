@@ -3,16 +3,18 @@ import { config } from './config.js';
 import { requirePermission } from './authz.js';
 import { PERMISSIONS } from './roles.js';
 import { detectFinanceSchema } from './finance-adapter.js';
+import { detectFinanceWriteCompatibility } from './finance-write-adapter.js';
 import { detectUserSchema } from './user-adapter.js';
 
 export const financeStatusRouter = Router();
 
 financeStatusRouter.get('/admin/finance-compatibility', requirePermission(PERMISSIONS.FINANCE), async (_req, res) => {
-  const status = await detectFinanceSchema();
-  const blockedBy = [];
-  if (!config.financeWritesEnabled) blockedBy.push('FINANCE_WRITES_ENABLED=false');
-  if (!status.ready) blockedBy.push('wallet/transaction schema not confirmed');
-  if (!status.orderReady) blockedBy.push('order/deal schema not confirmed');
+  const [status, writeStatus] = await Promise.all([
+    detectFinanceSchema(),
+    detectFinanceWriteCompatibility(),
+  ]);
+  const blockedBy = [...writeStatus.blockers];
+  if (!config.financeWritesEnabled) blockedBy.unshift('FINANCE_WRITES_ENABLED=false');
 
   res.json({
     ok: true,
@@ -20,16 +22,18 @@ financeStatusRouter.get('/admin/finance-compatibility', requirePermission(PERMIS
     commissionReady: status.commissionReady,
     orderReady: status.orderReady,
     writesEnabled: config.financeWritesEnabled,
-    escrowWriteReady: blockedBy.length === 0,
+    writeSchemaReady: writeStatus.ready,
+    escrowWriteReady: config.financeWritesEnabled && writeStatus.ready,
     blockedBy,
   });
 });
 
 financeStatusRouter.get('/admin/schema-compatibility', requirePermission(PERMISSIONS.FINANCE), async (_req, res) => {
   try {
-    const [userSchema, financeSchema] = await Promise.all([
+    const [userSchema, financeSchema, financeWriteSchema] = await Promise.all([
       detectUserSchema({ force: true }),
       detectFinanceSchema({ force: true }),
+      detectFinanceWriteCompatibility({ force: true }),
     ]);
 
     res.json({
@@ -37,6 +41,7 @@ financeStatusRouter.get('/admin/schema-compatibility', requirePermission(PERMISS
       note: 'Schema metadata only; no row data or secrets are returned.',
       userSchema,
       financeSchema,
+      financeWriteSchema,
       financeWritesEnabled: config.financeWritesEnabled,
     });
   } catch (error) {
