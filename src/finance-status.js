@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { requirePermission } from './authz.js';
 import { PERMISSIONS } from './roles.js';
 import { detectFinanceSchema } from './finance-adapter.js';
+import { detectUserSchema } from './user-adapter.js';
 
 export const financeStatusRouter = Router();
 
@@ -22,4 +23,23 @@ financeStatusRouter.get('/admin/finance-compatibility', requirePermission(PERMIS
     escrowWriteReady: blockedBy.length === 0,
     blockedBy,
   });
+});
+
+financeStatusRouter.get('/admin/schema-compatibility', requirePermission(PERMISSIONS.FINANCE), async (_req, res) => {
+  try {
+    const [userSchema, financeSchema] = await Promise.all([
+      detectUserSchema({ force: true }),
+      detectFinanceSchema({ force: true }),
+    ]);
+
+    res.json({
+      ok: true,
+      note: 'Schema metadata only; no row data or secrets are returned.',
+      userSchema,
+      financeSchema,
+      financeWritesEnabled: config.financeWritesEnabled,
+    });
+  } catch (error) {
+    res.status(503).json({ ok: false, error: 'schema_probe_failed', message: error?.message || 'unknown error' });
+  }
 });
