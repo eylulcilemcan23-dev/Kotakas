@@ -149,6 +149,64 @@ public static class PaymentEndpoints
             return Results.Ok(new { latest, availableCredit });
         }).RequireAuthorization();
 
+        payments.MapPost("/paid-listing/create-request", async (ClaimsPrincipal principal, SaleRequestInput input, AppDbContext db) =>
+        {
+            if (principal.IsInRole("trader") || ApiHelpers.IsFullAdmin(principal))
+                return Results.BadRequest(new { error = "paid_listing_not_required_for_role" });
+
+            var uid = ApiHelpers.UserId(principal);
+            var item = (input.ItemName ?? "").Trim();
+            var note = (input.Note ?? "").Trim();
+            if (item.Length < 2 || input.MinimumGb <= 0 || input.Quantity < 1 || ApiHelpers.HasExternalContact(item + " " + note))
+                return Results.BadRequest(new { error = "invalid_or_external_contact" });
+
+            var start = new DateTimeOffset(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
+            var used = await db.SaleRequests.CountAsync(x => x.UserId == uid && x.CreatedAt >= start);
+            if (used < 1) return Results.Conflict(new { error = "free_listing_quota_available" });
+
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var credit = await db.PaymentIntents
+                .Where(x => x.UserId == uid && x.Purpose == "paid_listing_credit" && x.Status == "paid" && x.ConsumedAt == null)
+                .OrderBy(x => x.Id)
+                .FirstOrDefaultAsync();
+            if (credit is null) return Results.Json(new { error = "paid_listing_credit_required" }, statusCode: 402);
+
+            var consumedAt = DateTimeOffset.UtcNow;
+            var claimed = await db.Database.ExecuteSqlInterpolatedAsync($@"
+                UPDATE PaymentIntents
+                SET Status = {'consumed'}, ConsumedAt = {consumedAt}
+                WHERE Id = {credit.Id} AND Status = {'paid'} AND ConsumedAt IS NULL");
+            if (claimed != 1) return Results.Conflict(new { error = "paid_listing_credit_already_consumed" });
+
+            var row = new SaleRequest
+            {
+                UserId = uid,
+                ItemName = item,
+                ServerCode = (input.ServerCode ?? "ZERO").Trim().ToUpperInvariant(),
+                Quantity = input.Quantity,
+                MinimumGb = input.MinimumGb,
+                Note = note
+            };
+            db.SaleRequests.Add(row);
+            await db.SaveChangesAsync();
+            var traders = await db.Users.AsNoTracking().Where(x => x.VerifiedTrader && x.AccountStatus == "active").Select(x => x.Id).ToListAsync();
+            db.Notifications.AddRange(traders.Select(id => new AppNotification
+            {
+                UserId = id,
+                Title = "Yeni satış talebi",
+                Body = $"{row.ServerCode} • {row.ItemName} • minimum {row.MinimumGb:0.##} GB"
+            }));
+            db.Notifications.Add(new AppNotification
+            {
+                UserId = uid,
+                Title = "Ücretli ilan hakkı kullanıldı",
+                Body = $"{row.ItemName} satış talebi iyzico ile doğrulanmış ilan hakkın kullanılarak yayınlandı."
+            });
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+            return Results.Json(new { ok = true, request = row, feeTry = credit.AmountTry, paymentMethod = "iyzico_credit" }, statusCode: 201);
+        }).RequireAuthorization();
+
         app.MapPost("/api/payments/iyzico/callback", async (HttpRequest request, IConfiguration configuration, AppDbContext db) =>
         {
             if (!IyzicoConfigured(configuration)) return Results.Redirect("/sell.html?payment=provider_disabled");
