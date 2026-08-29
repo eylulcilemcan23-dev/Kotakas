@@ -39,5 +39,35 @@ public static class StartupFeatureSeeder
                 UpdatedAt TEXT NOT NULL
             );
             """);
+
+        // Additive upgrades for existing SQLite databases. No existing data is removed.
+        await EnsureColumn(db, "AspNetUsers", "UserVerified", "INTEGER NOT NULL DEFAULT 0");
+        await EnsureColumn(db, "AspNetUsers", "UserVerifiedAt", "TEXT NULL");
+        await EnsureColumn(db, "AspNetUsers", "UserVerifiedByUserId", "TEXT NULL");
+        await EnsureColumn(db, "AspNetUsers", "LastSeenAt", "TEXT NULL");
+        await EnsureColumn(db, "AspNetUsers", "TraderAcceptingOffers", "INTEGER NOT NULL DEFAULT 1");
+    }
+
+    private static async Task EnsureColumn(AppDbContext db, string table, string column, string definition)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open) await conn.OpenAsync();
+        await using var check = conn.CreateCommand();
+        check.CommandText = $"PRAGMA table_info({table})";
+        await using var reader = await check.ExecuteReaderAsync();
+        var exists = false;
+        while (await reader.ReadAsync())
+        {
+            if (string.Equals(reader.GetString(1), column, StringComparison.OrdinalIgnoreCase))
+            {
+                exists = true;
+                break;
+            }
+        }
+        await reader.DisposeAsync();
+        if (exists) return;
+        await using var alter = conn.CreateCommand();
+        alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
+        await alter.ExecuteNonQueryAsync();
     }
 }
