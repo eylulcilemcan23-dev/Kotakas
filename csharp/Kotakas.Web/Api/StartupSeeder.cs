@@ -16,10 +16,16 @@ public static class StartupSeeder
         await EnsureColumn(db, "Deals", "Flow", "TEXT NOT NULL DEFAULT 'request_offer'");
         await EnsureColumn(db, "Deals", "Quantity", "INTEGER NOT NULL DEFAULT 1");
         await EnsureColumn(db, "Deals", "UnitPriceGb", "TEXT NOT NULL DEFAULT '0'");
+        await EnsureColumn(db, "AspNetUsers", "UserVerified", "INTEGER NOT NULL DEFAULT 0");
+        await EnsureColumn(db, "AspNetUsers", "UserVerifiedAt", "TEXT NULL");
+        await EnsureColumn(db, "AspNetUsers", "UserVerifiedByUserId", "TEXT NULL");
         await EnsurePaymentIntentTable(db);
         await EnsureTraderReviewTable(db);
         await EnsureFavoriteTable(db);
         await EnsureItemWatchTable(db);
+        await EnsureUserReportTable(db);
+        await EnsureNotificationPreferenceTable(db);
+        await EnsureVerificationRequestTable(db);
         await EnsureFavoriteNotificationTriggers(db);
         await EnsureItemWatchNotificationTriggers(db);
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -37,7 +43,7 @@ public static class StartupSeeder
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var admin = await users.FindByEmailAsync(email);
         if (admin is not null) return;
-        admin = new ApplicationUser { UserName = email, Email = email, DisplayName = "KOTAKAS Ana Yönetici", EmailConfirmed = true };
+        admin = new ApplicationUser { UserName = email, Email = email, DisplayName = "KOTAKAS Ana Yönetici", EmailConfirmed = true, UserVerified = true, UserVerifiedAt = DateTimeOffset.UtcNow };
         var created = await users.CreateAsync(admin, password);
         if (created.Succeeded) await users.AddToRoleAsync(admin, "admin_owner");
     }
@@ -112,6 +118,61 @@ public static class StartupSeeder
             """);
         await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_ItemWatches_UserId_ServerCode_Query ON ItemWatches (UserId, ServerCode, Query);");
         await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_ItemWatches_ServerCode_Query_CreatedAt ON ItemWatches (ServerCode, Query, CreatedAt);");
+    }
+
+    private static async Task EnsureUserReportTable(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS UserReports (
+                Id INTEGER NOT NULL CONSTRAINT PK_UserReports PRIMARY KEY AUTOINCREMENT,
+                ReporterUserId TEXT NOT NULL,
+                TargetType TEXT NOT NULL,
+                TargetId TEXT NOT NULL,
+                ReasonCode TEXT NOT NULL,
+                Details TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                AdminNote TEXT NOT NULL,
+                ResolvedByUserId TEXT NULL,
+                CreatedAt TEXT NOT NULL,
+                UpdatedAt TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_UserReports_Status_CreatedAt ON UserReports (Status, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_UserReports_Reporter_Target_Status ON UserReports (ReporterUserId, TargetType, TargetId, Status);");
+    }
+
+    private static async Task EnsureNotificationPreferenceTable(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS NotificationPreferences (
+                UserId TEXT NOT NULL CONSTRAINT PK_NotificationPreferences PRIMARY KEY,
+                OffersEnabled INTEGER NOT NULL DEFAULT 1,
+                DealsEnabled INTEGER NOT NULL DEFAULT 1,
+                FavoritesEnabled INTEGER NOT NULL DEFAULT 1,
+                ItemWatchesEnabled INTEGER NOT NULL DEFAULT 1,
+                MarketplaceEnabled INTEGER NOT NULL DEFAULT 1,
+                UpdatedAt TEXT NOT NULL
+            );
+            """);
+    }
+
+    private static async Task EnsureVerificationRequestTable(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS VerificationRequests (
+                Id INTEGER NOT NULL CONSTRAINT PK_VerificationRequests PRIMARY KEY AUTOINCREMENT,
+                UserId TEXT NOT NULL,
+                Kind TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Note TEXT NOT NULL,
+                AdminNote TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                DecidedAt TEXT NULL,
+                DecidedByUserId TEXT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_VerificationRequests_Status_CreatedAt ON VerificationRequests (Status, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_VerificationRequests_User_Kind_Status ON VerificationRequests (UserId, Kind, Status);");
     }
 
     private static async Task EnsureFavoriteNotificationTriggers(AppDbContext db)
