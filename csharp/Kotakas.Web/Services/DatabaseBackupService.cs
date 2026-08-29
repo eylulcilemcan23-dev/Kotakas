@@ -10,11 +10,19 @@ public sealed class DatabaseBackupService(
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private string BackupDirectory => Path.Combine(environment.ContentRootPath, "App_Data", "backups");
+    public string Provider => (configuration["Database:Provider"] ?? "sqlite").Trim().ToLowerInvariant();
+    public bool SupportsInAppBackup => Provider == "sqlite";
 
     public sealed record BackupInfo(string FileName, long SizeBytes, DateTimeOffset CreatedAt);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!SupportsInAppBackup)
+        {
+            logger.LogInformation("KOTAKAS uygulama içi DB backup devre dışı: provider={Provider}. PostgreSQL için pg_dump/managed snapshot kullanılmalı.", Provider);
+            return;
+        }
+
         Directory.CreateDirectory(BackupDirectory);
         try { await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken); } catch (OperationCanceledException) { return; }
         while (!stoppingToken.IsCancellationRequested)
@@ -28,14 +36,14 @@ public sealed class DatabaseBackupService(
 
     public async Task<BackupInfo> CreateBackupAsync(CancellationToken cancellationToken = default)
     {
+        if (!SupportsInAppBackup)
+            throw new NotSupportedException("PostgreSQL kullanılırken uygulama içi SQLite yedeği oluşturulmaz. pg_dump veya managed PostgreSQL snapshot yapılandırılmalıdır.");
+
         await _gate.WaitAsync(cancellationToken);
         try
         {
             Directory.CreateDirectory(BackupDirectory);
             var cs = configuration.GetConnectionString("Default") ?? "Data Source=App_Data/kotakas.db";
-            if (!cs.Contains("Data Source", StringComparison.OrdinalIgnoreCase))
-                throw new NotSupportedException("Uygulama içi backup yalnız SQLite içindir. Harici üretim DB'sinde sağlayıcı backup kullanılmalıdır.");
-
             var stamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd-HHmmss");
             var tempDb = Path.Combine(BackupDirectory, $".kotakas-{stamp}.db");
             var zipPath = Path.Combine(BackupDirectory, $"kotakas-backup-{stamp}.zip");
