@@ -1,6 +1,9 @@
 using System.Security.Claims;
+using Kotakas.Web.Data;
 using Kotakas.Web.Models;
+using Kotakas.Web.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kotakas.Web.Api;
 
@@ -24,12 +27,13 @@ public static class AccountEndpoints
                 : Results.BadRequest(new { error = "profile_update_failed", details = result.Errors.Select(x => x.Description) });
         });
 
-        account.MapPost("/password", async (ClaimsPrincipal principal, PasswordChangeInput input, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn) =>
+        account.MapPost("/password", async (ClaimsPrincipal principal, PasswordChangeInput input, HttpContext http, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, AppDbContext db) =>
         {
             var user = await users.GetUserAsync(principal);
             if (user is null) return Results.Unauthorized();
             var next = input.NewPassword ?? "";
-            if (next.Length < 8 || next.Length > 128) return Results.BadRequest(new { error = "invalid_new_password" });
+            if (next.Length < 10 || next.Length > 128 || !next.Any(char.IsDigit))
+                return Results.BadRequest(new { error = "invalid_new_password" });
 
             IdentityResult result;
             if (await users.HasPasswordAsync(user))
@@ -45,8 +49,16 @@ public static class AccountEndpoints
             if (!result.Succeeded)
                 return Results.BadRequest(new { error = "password_change_failed", details = result.Errors.Select(x => x.Description) });
 
+            var currentDevice = http.Items["KOTAKAS_DEVICE_ID"]?.ToString() ?? http.Request.Cookies[SessionSecurityMiddleware.DeviceCookie] ?? "";
+            var now = DateTimeOffset.UtcNow;
+            var otherSessions = await db.UserSessions
+                .Where(x => x.UserId == user.Id && x.RevokedAt == null && x.DeviceId != currentDevice)
+                .ToListAsync();
+            foreach (var session in otherSessions) session.RevokedAt = now;
+            await db.SaveChangesAsync();
+
             await signIn.RefreshSignInAsync(user);
-            return Results.Ok(new { ok = true });
+            return Results.Ok(new { ok = true, otherSessionsRevoked = otherSessions.Count });
         });
 
         return app;
