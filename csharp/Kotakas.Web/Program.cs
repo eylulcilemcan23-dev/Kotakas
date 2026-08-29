@@ -71,6 +71,7 @@ app.MapDealEndpoints();
 app.MapSupportEndpoints();
 app.MapAdminEndpoints();
 app.MapIntegrationEndpoints();
+app.MapPaymentEndpoints();
 app.MapFallbackToFile("index.html");
 app.Run();
 
