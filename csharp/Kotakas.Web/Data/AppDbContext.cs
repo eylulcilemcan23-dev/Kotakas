@@ -19,6 +19,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<DealMessage> DealMessages => Set<DealMessage>();
     public DbSet<PaymentIntent> PaymentIntents => Set<PaymentIntent>();
     public DbSet<TraderReview> TraderReviews => Set<TraderReview>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -57,5 +58,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<PaymentIntent>().HasIndex(x => x.ProviderToken);
         b.Entity<TraderReview>().HasIndex(x => x.DealId).IsUnique();
         b.Entity<TraderReview>().HasIndex(x => new { x.TraderUserId, x.CreatedAt });
+        b.Entity<Favorite>().HasIndex(x => new { x.UserId, x.TargetType, x.TargetId }).IsUnique();
+        b.Entity<Favorite>().HasIndex(x => new { x.TargetType, x.TargetId, x.CreatedAt });
     }
 }
