@@ -86,7 +86,15 @@ public sealed class SessionSecurityMiddleware(RequestDelegate next)
         }
 
         context.Items["KOTAKAS_DEVICE_ID"] = deviceId;
+        var isLogout = HttpMethods.IsPost(context.Request.Method) && string.Equals(context.Request.Path.Value, "/api/logout", StringComparison.OrdinalIgnoreCase);
         await next(context);
+
+        if (isLogout && session.RevokedAt is null)
+        {
+            session.RevokedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(CancellationToken.None);
+            context.Response.Cookies.Delete(DeviceCookie);
+        }
     }
 
     private static bool ValidDeviceId(string? value) => value?.Length == 32 && value.All(Uri.IsHexDigit);
