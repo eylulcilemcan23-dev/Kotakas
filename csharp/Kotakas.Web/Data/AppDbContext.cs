@@ -24,6 +24,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<UserReport> UserReports => Set<UserReport>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
+    public DbSet<AdminAuditEvent> AdminAuditEvents => Set<AdminAuditEvent>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -72,5 +73,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<UserReport>().HasIndex(x => new { x.ReporterUserId, x.TargetType, x.TargetId, x.Status });
         b.Entity<VerificationRequest>().HasIndex(x => new { x.Status, x.CreatedAt });
         b.Entity<VerificationRequest>().HasIndex(x => new { x.UserId, x.Kind, x.Status });
+        b.Entity<AdminAuditEvent>().HasIndex(x => new { x.AdminUserId, x.CreatedAt });
+        b.Entity<AdminAuditEvent>().HasIndex(x => new { x.Method, x.Path, x.CreatedAt });
     }
 }
