@@ -9,22 +9,52 @@ KOTAKAS'in tek canli ortami **Railway / production**'dir.
 - Veritabani: `Postgres`
 - Healthcheck: `/api/health`
 
-## Bilinen saglam surum
-- Son dogrulanmis SUCCESS deployment: `53727e2f-acd0-48ce-9f53-4a0152e27bf8`
-- Tarih: 2026-08-28 14:57 UTC
-- Bu surumde V18.40 Admin Yonetimi, V18.31 canli rol oturumu, V18.23 admin yap/kaldir ve sifre endpointleri calisiyordu.
+## Kaynak surum
+- Final kaynak agaci artik `main` branch'indedir.
+- Release adayi: `21.8.0-rc1`
+- Node 20 + Express + PostgreSQL.
+- Railway hot-patch degiskenleri yeni gelistirme kaynagi olarak kullanilmayacak.
 
-## Kural
-1. Vercel canli KOTAKAS'in parcasi degildir; sadece eski testler icin kullanildi.
-2. Yeni ozellikler once bu repoda kaynak kod olarak tutulacak.
-3. Railway environment icine yeni `V18xx` hot-patch zinciri eklenmeyecek.
-4. Her degisiklikten once mevcut canli surum korunacak ve healthcheck gecmeden trafik yeni deploy'a alinmayacak.
-5. Gizli bilgiler (DB URL, JWT secret, OAuth secret, admin sifresi) GitHub'a yazilmayacak; sadece Railway Variables kullanilacak.
+### Kaynaga tasinan temel ozellikler
+- Kullanici / Pazarcı / Admin panel ayrimi
+- `admin_owner`, `admin_full`, `admin_limited`, `trader`, `user` rolleri
+- E-posta/sifre giris + legacy sifreyi bcrypt'e tek seferlik gecis
+- Google OAuth kaynak akisi (Client ID/Secret Railway Variables ile etkinlesir)
+- Normal uyeye ayda 1 ucretsiz ilan
+- Pazarcı ve normal uye icin ayri komisyon
+- Wallet + ledger + admin bakiye ayarlama
+- Idempotent finans hareketleri
+- BUY/SELL deal akisi
+- KOTAKAS escrow: alici onayi olmadan saticiya odeme yok
+- Anlasmazlikta escrow kilidi ve admin cozum endpointleri
+- Serbest sohbet kapali; sadece hazir soru/cevap
+- Telefon/WhatsApp/Instagram/Discord/URL filtreleri
+- Bildirimler
+- Piyasa kurlari
+- Admin finans/uyeler/yetkiler/anlasmazliklar
+- KVKK ve Iletisim sayfalari
+- Mobil uyumlu sag-ust menu
+- Footer: KVKK, Iletisim, Piyasa Referansi: Kopazar.com
 
-## Siradaki isler
-- [ ] Mevcut Railway uygulamasini tek kaynak kod agacina tasima
-- [ ] Admin yetki seviyeleri: Ana Yonetici / Tam Yetkili / Sinirli Yetkili
-- [ ] Google ile Giris/Kayit (OAuth)
-- [ ] Footer: KVKK, Iletisim, Piyasa Referansi: Kopazar.com
-- [ ] KVKK ve Iletisim sayfalari
-- [ ] Eski hot-patch degiskenlerini yeni kaynak kod dogrulandiktan sonra arsivleme
+## Deploy guvenligi
+1. `npm run check`
+2. `npm test`
+3. Additive `npm run migrate` (DROP/TRUNCATE yok)
+4. `npm start`
+5. `/api/health` 200 olmadan yeni deployment saglikli kabul edilmez.
+
+## Mevcut production durumu — 29 Agustos 2026
+- Son dogrulanmis eski SUCCESS deployment: `53727e2f-acd0-48ce-9f53-4a0152e27bf5bc1f` degil; dogru ID `53727e2f-acd0-48ce-9f53-4a0152e27bf8`.
+- Kaynak gecisi icin `kotakas-live` start/health config hazirlandi.
+- Railway Free plan yeni container provision asamasinda deploylari uygulama logu olusmadan `FAILED` durumuna dusuruyor.
+- Ayri staging servisi olusturma denemesi de `Free plan resource provision limit exceeded` ile engellendi.
+- Bu nedenle eski saglam deployment trafikte korunurken final kaynak `main` branch'inde hazir bekliyor.
+
+## Harici gereksinimler
+- Google ile girisin gercekten calismasi icin Railway'e `GOOGLE_CLIENT_ID` ve `GOOGLE_CLIENT_SECRET` eklenmelidir.
+- Yetkili callback: `https://kotakas-live-production.up.railway.app/auth/google/callback`
+- Ikinci normal kullanici ilaninin ucret tutari/odeme saglayicisi henuz kararlastirilmadigi icin sistem bunu bedava yayinlamak yerine guvenli olarak `paid_listing_required` ile engeller.
+- KVKK metni teknik taslaktir; ticari/odeme faaliyeti oncesi hukuk danismani ile nihai kontrol onerilir.
+
+## Gizlilik kurali
+Gizli bilgiler (DB URL, JWT secret, OAuth secret, admin sifresi) GitHub'a yazilmaz; sadece Railway Variables kullanilir.
