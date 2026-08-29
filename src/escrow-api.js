@@ -4,6 +4,8 @@ import { pool } from './db.js';
 import { requireAuthenticated, requirePermission, roleCan } from './authz.js';
 import { PERMISSIONS } from './roles.js';
 import { holdEscrow, refundEscrow, releaseEscrow } from './finance-write-adapter.js';
+import { hasOpenDispute } from './disputes-api.js';
+import { writeAudit } from './audit-log.js';
 
 export const escrowApiRouter = Router();
 
@@ -74,8 +76,17 @@ escrowApiRouter.post('/escrow/:orderId/release', requireAuthenticated, requireEs
   try {
     const order = await readOrder(req.params.orderId);
     if (!order) return res.status(404).json({ ok: false, error: 'escrow_not_found' });
-    if (!canReleaseEscrow(req.user || req.auth, order)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    const user = req.user || req.auth;
+    if (!canReleaseEscrow(user, order)) return res.status(403).json({ ok: false, error: 'forbidden' });
+    const financeAdmin = roleCan(user.role, PERMISSIONS.FINANCE);
+    if (!financeAdmin && await hasOpenDispute(order.id)) {
+      return res.status(409).json({ ok: false, error: 'open_dispute' });
+    }
     const released = await releaseEscrow(order.id);
+    await writeAudit({
+      actorId: userId(user), actorRole: user.role, action: financeAdmin ? 'admin_escrow_release' : 'buyer_delivery_confirmed',
+      targetType: 'order', targetId: order.id, metadata: { amount: Number(order.amount || 0) },
+    }).catch((error) => console.error('[KOTAKAS] audit write failed:', error?.message || error));
     return res.json({ ok: true, order: released });
   } catch (error) {
     return sendEscrowError(res, error);
@@ -84,7 +95,12 @@ escrowApiRouter.post('/escrow/:orderId/release', requireAuthenticated, requireEs
 
 escrowApiRouter.post('/escrow/:orderId/refund', requireAuthenticated, requirePermission(PERMISSIONS.FINANCE), requireEscrowApiReady, async (req, res) => {
   try {
+    const user = req.user || req.auth;
     const refunded = await refundEscrow(req.params.orderId);
+    await writeAudit({
+      actorId: userId(user), actorRole: user.role, action: 'admin_escrow_refund',
+      targetType: 'order', targetId: req.params.orderId, metadata: {},
+    }).catch((error) => console.error('[KOTAKAS] audit write failed:', error?.message || error));
     return res.json({ ok: true, order: refunded });
   } catch (error) {
     return sendEscrowError(res, error);
