@@ -24,19 +24,28 @@ async function ensureWallet(client, userId) {
   );
 }
 
-async function lockWallet(client, userId) {
-  await ensureWallet(client, userId);
+async function lockWallets(client, userIds) {
+  const ids = [...new Set(userIds.map((id) => String(id)))].sort((a, b) => BigInt(a) < BigInt(b) ? -1 : 1);
+  for (const id of ids) await ensureWallet(client, id);
+
   const result = await client.query(
     `select user_id, balance_try
        from wallets
-      where user_id=$1
+      where user_id = any($1::bigint[])
+      order by user_id
       for update`,
-    [userId]
+    [ids]
   );
-  return {
-    userId: result.rows[0].user_id,
-    balance: Number(result.rows[0].balance_try)
-  };
+
+  return new Map(result.rows.map((row) => [String(row.user_id), {
+    userId: row.user_id,
+    balance: Number(row.balance_try)
+  }]));
+}
+
+async function lockWallet(client, userId) {
+  const wallets = await lockWallets(client, [userId]);
+  return wallets.get(String(userId));
 }
 
 async function ledgerExists(client, idempotencyKey) {
@@ -150,6 +159,7 @@ export function createFinanceRepository(pool) {
 
     async settleSale({ buyerUserId, sellerUserId, sellerRole, grossAmount, normalRate, traderRate, reference, idempotencyKey }) {
       if (!idempotencyKey) throw new Error('idempotency_key_required');
+      if (String(buyerUserId) === String(sellerUserId)) throw new Error('self_settlement_not_allowed');
       const settlement = calculateSettlement({ sellerRole, grossAmount, normalRate, traderRate });
 
       return withTransaction(pool, async (client) => {
@@ -169,8 +179,9 @@ export function createFinanceRepository(pool) {
           };
         }
 
-        const buyer = await lockWallet(client, buyerUserId);
-        const seller = await lockWallet(client, sellerUserId);
+        const locked = await lockWallets(client, [buyerUserId, sellerUserId]);
+        const buyer = locked.get(String(buyerUserId));
+        const seller = locked.get(String(sellerUserId));
         if (buyer.balance < settlement.gross) throw new Error('insufficient_balance');
 
         const buyerAfter = roundMoney(buyer.balance - settlement.gross);
