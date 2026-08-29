@@ -43,6 +43,11 @@ function publicImageUrl(value) {
   }
 }
 
+function hasColumns(tables, table, columns) {
+  const existing = tables.get(table);
+  return Boolean(existing && columns.every((column) => existing.has(column)));
+}
+
 function tableFeature(tables, table, columns) {
   if (!tables.has(table)) return { ready: false, blockers: [`missing_table:${table}`] };
   const blockers = columns.filter((column) => !tables.get(table).has(column)).map((column) => `missing_column:${table}.${column}`);
@@ -152,7 +157,6 @@ export async function getListingDetail(listingId) {
   ]);
   const seller = sellerResult.rows[0] || {};
   const parsedEnhancement = parseEnhancement(row.title);
-  const enhancement = metadata?.enhancement ?? parsedEnhancement;
 
   return {
     id: String(row.id),
@@ -162,7 +166,8 @@ export async function getListingDetail(listingId) {
     description: row.description || '',
     price: Number(row.price),
     status: row.status,
-    enhancement,
+    enhancement: enhancement == null ? null : `+${enhancement}`,
+    enhancementLevel: enhancement,
     enhancementLabel: enhancement == null ? null : `+${enhancement}`,
     reverse: metadata?.reverse ?? null,
     deliveryWindow: metadata?.deliveryWindow ?? null,
@@ -193,7 +198,7 @@ export async function getListingDetail(listingId) {
 
 function priceSummary(points, currentPrice) {
   const values = points.map((point) => Number(point.price)).filter(Number.isFinite);
-  if (!values.length) return { count: 0, min: null, max: null, average: null, changePercent: null, current: Number(currentPrice) };
+  if (!values.length) return { count: 0, min: null, max: null, average: null, changePercent: null };
   const first = values[0];
   const last = values[values.length - 1];
   const changePercent = first > 0 ? Math.round((((last - first) / first) * 100 + Number.EPSILON) * 100) / 100 : null;

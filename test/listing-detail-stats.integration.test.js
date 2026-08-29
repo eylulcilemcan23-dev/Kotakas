@@ -110,7 +110,8 @@ test('item metadata and real market statistics are returned without exposing off
     assert.equal(compatibility.features.offerStatsReady, true);
 
     const detail = await getListingDetail(10);
-    assert.equal(detail.enhancement, 10);
+    assert.equal(detail.enhancement, '+10');
+    assert.equal(detail.enhancementLevel, 10);
     assert.equal(detail.enhancementLabel, '+10');
     assert.equal(detail.reverse, false);
     assert.equal(detail.deliveryWindow, '09:00 - 18:00');
@@ -150,7 +151,8 @@ test('detail stays usable when optional item/stat tables are not migrated yet', 
     assert.equal(compatibility.features.offerStatsReady, false);
 
     const detail = await getListingDetail(20);
-    assert.equal(detail.enhancement, 8);
+    assert.equal(detail.enhancement, '+8');
+    assert.equal(detail.enhancementLevel, 8);
     assert.equal(detail.enhancementLabel, '+8');
     assert.equal(detail.item, null);
 
