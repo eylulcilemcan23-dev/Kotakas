@@ -1,53 +1,59 @@
 # KOTAKAS
 
-KOTAKAS'in tek canli ortami **Railway / production**'dir.
+KOTAKAS, Knight Online item/GB pazarı için geliştirilen güvenli işlem ve pazar altyapısıdır.
 
-## Canli sistem
-- Domain: `https://kotakas-live-production.up.railway.app`
-- Railway proje: `KOTAKAS`
-- Servis: `kotakas-live`
-- Veritabani: `Postgres`
-- Healthcheck: `/api/health`
+## Kaynak mimarisi
 
-## Bilinen saglam surum
-- Son dogrulanmis SUCCESS deployment: `53727e2f-acd0-48ce-9f53-4a0152e27bf8`
-- Tarih: 2026-08-28 14:57 UTC
-- Bu surumde V18.40 Admin Yonetimi, V18.31 canli rol oturumu, V18.23 admin yap/kaldir ve sifre endpointleri calisiyordu.
+- Node.js 20+
+- Express 5
+- Socket.IO
+- PostgreSQL
+- JWT tabanlı oturum
+- Rol/yetki: `admin_owner`, `admin_full`, `admin_limited`, `trader`, `user`
 
-## Kaynak migrasyonu
-Yeni temiz kaynak kod `source-migration` dalinda gelistiriliyor ve PR #1 Draft tutuluyor. Bu dal production'a otomatik alinmayacak.
+## Güvenli işlem
 
-Tamamlanan ana katmanlar:
-- Express + Socket.IO + Postgres kaynak agaci
-- `/api/health`
-- admin_owner / admin_full / admin_limited / trader / user rol modeli
-- backend 401/403 yetki korumasi
-- mobil sag ust hamburger menu ve responsive uygulama kabugu
-- Google OAuth config hazirligi
-- KVKK / Iletisim / Kopazar.com piyasa referansi
-- JWT session okuma/dogrulama
-- read-only kullanici sema uyumluluk adaptoru
-- bcrypt tabanli legacy parola dogrulama adaptoru
-- `/api/login` ve `/api/logout` kaynak route'lari; `LEGACY_LOGIN_ENABLED=false` ile varsayilan kapali
-- read-only bakiye/komisyon sema uyumluluk adaptoru
-- escrow release/refund ve komisyon uzlasma cekirdegi
-- `FINANCE_WRITES_ENABLED=false` ile finans yazmalarinin varsayilan kapali tutulmasi
-- tam yetkili admin icin salt sema metadata raporu: `/api/admin/schema-compatibility`
-- GitHub CI syntax + rol + session + login + finans + escrow + smoke testleri
+Alıcı bakiyesi doğrudan satıcıya gitmez. Satın alma sırasında tutar blokeye alınır; teslimat onayında komisyon ayrılır ve satıcının net bakiyesi aktarılır. İhtilaf açıldığında normal kullanıcı serbest bırakma yapamaz; finans yetkili admin iade veya aktarım kararı verebilir.
 
-## Kural
-1. Vercel canli KOTAKAS'in parcasi degildir; sadece eski testler icin kullanildi.
-2. Yeni ozellikler once GitHub kaynak kodunda tutulacak.
-3. Railway environment icine yeni `V18xx` hot-patch zinciri eklenmeyecek.
-4. Her degisiklikten once mevcut canli surum korunacak ve healthcheck gecmeden trafik yeni deploy'a alinmayacak.
-5. Gizli bilgiler (DB URL, JWT secret, OAuth secret, admin sifresi) GitHub'a yazilmayacak; sadece Railway Variables kullanilacak.
-6. Login ve finans yazma feature flagleri staging semasi dogrulanmadan acilmayacak.
+## Pazar ve ürün detay
 
-## Siradaki isler
-- [ ] `/api/admin/schema-compatibility` ile staging DB semasini dogrulamak
-- [ ] Dogrulanan tablo/kolonlara gore bakiye hold/release/refund SQL islemlerini transaction icinde baglamak
-- [ ] Legacy login'i staging'de gercek kullanici ile dogrulayip `LEGACY_LOGIN_ENABLED` flagini kontrollu acmak
-- [ ] Google ile Giris/Kayit (OAuth)
-- [ ] Kayit ve sifre sifirlama uyumlulugu
-- [ ] Staging smoke testi icin Railway kaynak limiti acildiginda ayri test servisi
-- [ ] Yeni kaynak kod dogrulandiktan sonra eski hot-patch degiskenlerini arsivleme
+- İlan oluşturma / listeleme / iptal
+- Sunucu tarafında fiyat ve satıcı doğrulaması
+- Aynı ilanın eşzamanlı iki alıcıya satılmasını engelleyen kilit
+- `/item.html?id=<listingId>` ürün detay ekranı
+- Item katalog metadata modeli
+- Gerçek fiyat geçmişi ve teklif istatistikleri için staging tabloları
+- Veri yokken sahte grafik üretilmez
+
+## Bildirimler
+
+- Kalıcı kullanıcı bildirim merkezi
+- Socket.IO ile anlık bildirimler
+- Okundu / tümünü okundu akışı
+- Kategori bazlı bildirim tercihleri: mesajlar, pazar/teklifler, ihtilaflar ve sistem
+- Para, iade ve güvenlik bildirimleri zorunludur ve kullanıcı tarafından kapatılamaz
+
+## Migration güvenliği
+
+`migrations/` altındaki yeni tablolar staging doğrulaması içindir. Production veritabanında otomatik migration çalıştırılmaz. Özellikle aşağıdaki migrationlar kaynak dalında STAGING ONLY kabul edilir:
+
+- `002_disputes_audit.sql`
+- `003_dispute_messages_admin_notifications.sql`
+- `004_user_notifications.sql`
+- `005_item_catalog_price_history_offers.sql`
+- `006_notification_preferences.sql`
+
+## Çalıştırma
+
+```bash
+npm install
+npm run check
+npm test
+npm start
+```
+
+Gerekli değişkenler için `.env.example` dosyasına bakın.
+
+## Durum
+
+Bu kaynak dalı canlı Railway servisini otomatik olarak değiştirmez. Canlıya geçişten önce staging PostgreSQL şema uyumluluğu, mobil/desktop smoke test ve kontrollü deployment tamamlanmalıdır.
