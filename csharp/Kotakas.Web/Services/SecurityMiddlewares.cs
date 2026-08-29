@@ -31,7 +31,7 @@ public sealed class CsrfProtectionMiddleware(RequestDelegate next)
             return;
         }
 
-        if (req.Path.Equals("/api/payments/iyzico/callback", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(req.Path.Value, "/api/payments/iyzico/callback", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;
@@ -117,10 +117,13 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
     {
         if (!HttpMethods.IsPost(request.Method) && !HttpMethods.IsPatch(request.Method) && !HttpMethods.IsDelete(request.Method)) return false;
         var path = request.Path.Value?.ToLowerInvariant() ?? "";
-        return path.Contains("/api/listings/") && path.EndsWith("/buy") ||
+        return path == "/api/sale-requests" ||
+               path == "/api/listings" ||
+               path == "/api/payments/paid-listing/checkout" ||
+               path == "/api/payments/paid-listing/create-request" ||
+               path.Contains("/api/listings/") && path.EndsWith("/buy") ||
                path.Contains("/api/offers/") && path.EndsWith("/accept") ||
                path.Contains("/api/deals/") && (path.EndsWith("/confirm") || path.EndsWith("/cancel") || path.EndsWith("/dispute") || path.EndsWith("/delivered")) ||
-               path.EndsWith("/api/payments/paid-listing/create-request") ||
                path.Contains("/api/admin/wallet");
     }
 }
