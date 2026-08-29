@@ -17,6 +17,7 @@ public static class StartupSeeder
         await EnsureColumn(db, "Deals", "Quantity", "INTEGER NOT NULL DEFAULT 1");
         await EnsureColumn(db, "Deals", "UnitPriceGb", "TEXT NOT NULL DEFAULT '0'");
         await EnsurePaymentIntentTable(db);
+        await EnsureTraderReviewTable(db);
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         foreach (var role in new[] { "admin_owner", "admin_full", "admin_limited", "trader", "user" })
             if (!await roles.RoleExistsAsync(role)) await roles.CreateAsync(new IdentityRole(role));
@@ -59,6 +60,23 @@ public static class StartupSeeder
         await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_PaymentIntents_ConversationId ON PaymentIntents (ConversationId);");
         await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_PaymentIntents_UserId_Purpose_Status_CreatedAt ON PaymentIntents (UserId, Purpose, Status, CreatedAt);");
         await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_PaymentIntents_ProviderToken ON PaymentIntents (ProviderToken);");
+    }
+
+    private static async Task EnsureTraderReviewTable(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS TraderReviews (
+                Id INTEGER NOT NULL CONSTRAINT PK_TraderReviews PRIMARY KEY AUTOINCREMENT,
+                DealId INTEGER NOT NULL,
+                TraderUserId TEXT NOT NULL,
+                ReviewerUserId TEXT NOT NULL,
+                Stars INTEGER NOT NULL,
+                Comment TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_TraderReviews_DealId ON TraderReviews (DealId);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_TraderReviews_TraderUserId_CreatedAt ON TraderReviews (TraderUserId, CreatedAt);");
     }
 
     private static async Task EnsureColumn(AppDbContext db, string table, string column, string definition)
