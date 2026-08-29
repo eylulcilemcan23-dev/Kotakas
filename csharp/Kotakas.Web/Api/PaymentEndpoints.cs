@@ -46,7 +46,8 @@ public static class PaymentEndpoints
             if (user is null || string.IsNullOrWhiteSpace(user.Email)) return Results.Unauthorized();
 
             var callbackBase = configuration["Payments:CallbackBaseUrl"]?.Trim().TrimEnd('/');
-            if (!Uri.TryCreate(callbackBase, UriKind.Absolute, out var callbackUri) || callbackUri.Scheme is not ("http" or "https"))
+            if (!Uri.TryCreate(callbackBase, UriKind.Absolute, out var callbackUri) ||
+                (callbackUri.Scheme != Uri.UriSchemeHttp && callbackUri.Scheme != Uri.UriSchemeHttps))
                 return Results.Json(new { error = "payment_callback_not_configured" }, statusCode: 503);
 
             var intent = new PaymentIntent
@@ -172,10 +173,12 @@ public static class PaymentEndpoints
             if (credit is null) return Results.Json(new { error = "paid_listing_credit_required" }, statusCode: 402);
 
             var consumedAt = DateTimeOffset.UtcNow;
+            var consumedStatus = "consumed";
+            var paidStatus = "paid";
             var claimed = await db.Database.ExecuteSqlInterpolatedAsync($@"
                 UPDATE PaymentIntents
-                SET Status = {'consumed'}, ConsumedAt = {consumedAt}
-                WHERE Id = {credit.Id} AND Status = {'paid'} AND ConsumedAt IS NULL");
+                SET Status = {consumedStatus}, ConsumedAt = {consumedAt}
+                WHERE Id = {credit.Id} AND Status = {paidStatus} AND ConsumedAt IS NULL");
             if (claimed != 1) return Results.Conflict(new { error = "paid_listing_credit_already_consumed" });
 
             var row = new SaleRequest
