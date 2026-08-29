@@ -46,6 +46,24 @@ public static class StartupFeatureSeeder
         await EnsureColumn(db, "AspNetUsers", "UserVerifiedByUserId", "TEXT NULL");
         await EnsureColumn(db, "AspNetUsers", "LastSeenAt", "TEXT NULL");
         await EnsureColumn(db, "AspNetUsers", "TraderAcceptingOffers", "INTEGER NOT NULL DEFAULT 1");
+
+        // New sale-request alerts are suppressed when a trader explicitly turns offer intake off.
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER IF EXISTS TR_Notifications_TraderAvailability;");
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TRIGGER TR_Notifications_TraderAvailability
+            AFTER INSERT ON Notifications
+            WHEN NEW.Title = 'Yeni satış talebi'
+            BEGIN
+                DELETE FROM Notifications
+                WHERE Id = NEW.Id
+                  AND EXISTS (
+                    SELECT 1 FROM AspNetUsers u
+                    WHERE u.Id = NEW.UserId
+                      AND u.VerifiedTrader = 1
+                      AND u.TraderAcceptingOffers = 0
+                  );
+            END;
+            """);
     }
 
     private static async Task EnsureColumn(AppDbContext db, string table, string column, string definition)
