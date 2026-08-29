@@ -13,6 +13,8 @@ function envNumber(name, fallback, { min = -Infinity, max = Infinity } = {}) {
 const nodeEnv = process.env.NODE_ENV || 'development';
 const paymentProvider = String(process.env.PAYMENT_PROVIDER || 'disabled').trim().toLowerCase();
 const paymentPublicBaseUrl = String(process.env.PAYMENT_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+const emailProvider = String(process.env.EMAIL_PROVIDER || 'disabled').trim().toLowerCase();
+const appPublicBaseUrl = String(process.env.APP_PUBLIC_BASE_URL || process.env.PAYMENT_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
 
 export const config = {
   port: Number(process.env.PORT || 3000),
@@ -30,6 +32,11 @@ export const config = {
   passwordResetSecret: process.env.PASSWORD_RESET_SECRET || '',
   passwordResetTtl: process.env.PASSWORD_RESET_TTL || '30m',
   passwordResetDeliveryEnabled: false,
+  emailProvider,
+  emailApiKey: process.env.EMAIL_API_KEY || '',
+  emailFrom: String(process.env.EMAIL_FROM || '').trim(),
+  appPublicBaseUrl,
+  supportWritesEnabled: envFlag('SUPPORT_WRITES_ENABLED', false),
   financeWritesEnabled: envFlag('FINANCE_WRITES_ENABLED', false),
   paymentWritesEnabled: envFlag('PAYMENT_WRITES_ENABLED', false),
   withdrawalWritesEnabled: envFlag('WITHDRAWAL_WRITES_ENABLED', false),
@@ -75,20 +82,30 @@ config.googleOAuthReady = Boolean(
   config.googleCallbackUrl,
 );
 
+function publicUrlSafe(value) {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) && (config.nodeEnv !== 'production' || url.protocol === 'https:');
+  } catch {
+    return false;
+  }
+}
+
+config.emailDeliveryReady = Boolean(
+  config.emailProvider === 'resend' &&
+  config.emailApiKey &&
+  config.emailFrom &&
+  publicUrlSafe(config.appPublicBaseUrl),
+);
+config.passwordResetDeliveryEnabled = config.emailDeliveryReady;
+
 const paytrCredentialsPresent = Boolean(
   config.paytrMerchantId &&
   config.paytrMerchantKey &&
   config.paytrMerchantSalt,
 );
-const productionPaymentUrlSafe = (() => {
-  if (!config.paymentPublicBaseUrl) return false;
-  try {
-    const url = new URL(config.paymentPublicBaseUrl);
-    return ['http:', 'https:'].includes(url.protocol) && (config.nodeEnv !== 'production' || url.protocol === 'https:');
-  } catch {
-    return false;
-  }
-})();
+const productionPaymentUrlSafe = publicUrlSafe(config.paymentPublicBaseUrl);
 
 config.paymentProviderConfigured = config.paymentProvider === 'paytr'
   ? paytrCredentialsPresent
