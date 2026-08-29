@@ -15,6 +15,11 @@ Bu branch canlı production'u değiştirmez. Amaç, mevcut Railway hot-patch tab
 - [x] PostgreSQL bağlantı/health katmanı
 - [x] Roller ve backend yetki matrisi
 - [x] `/api/health` ve smoke test iskeleti
+- [x] Pazar politikaları: normal üyeye ayda 1 ücretsiz ilan
+- [x] Pazar politikaları: normal/pazarcı ayrı komisyon oranı
+- [x] Pazar politikaları: serbest sohbet kapalı + hazır Satıcıya Sor mesajları
+- [x] Pazar politikaları: telefon/WhatsApp/Instagram/site dışı iletişim filtresi
+- [x] Pazar politikası otomatik testleri
 - [ ] Mevcut auth/register/session endpointlerini kaynak ağaca taşı
 - [ ] Kullanıcı / pazarcı / admin panellerini kaynak ağaca taşı
 - [ ] Bakiye, komisyon ve settlement endpointlerini taşı
@@ -24,6 +29,10 @@ Bu branch canlı production'u değiştirmez. Amaç, mevcut Railway hot-patch tab
 - [ ] Production benzeri test DB ile smoke test
 - [ ] Railway'e ayrı geçiş servisi olarak deploy et
 - [ ] Tüm smoke testler geçmeden production trafiğini değiştirme
+
+## Test sonucu
+- `node --check`: başarılı
+- `node --test`: 4/4 marketplace policy testi başarılı
 
 ## Güvenlik kapısı
 Production'da `KOTAKAS_SOURCE_BASELINE_READY=true` verilmeden yeni kaynak baseline `/api/health` için 200 dönmez. Bu, eksik kaynak ağacının yanlışlıkla canlıya alınmasını önler.
