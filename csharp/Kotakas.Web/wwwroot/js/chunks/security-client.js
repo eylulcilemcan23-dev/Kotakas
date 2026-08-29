@@ -6,10 +6,11 @@
   const critical=(path,method)=>{
     if(!unsafe(method))return false;
     const p=String(path).toLowerCase();
-    return (p.includes('/api/listings/')&&p.endsWith('/buy'))||
+    return p==='/api/sale-requests'||p==='/api/listings'||p==='/api/payments/paid-listing/checkout'||p==='/api/payments/paid-listing/create-request'||
+      (p.includes('/api/listings/')&&p.endsWith('/buy'))||
       (p.includes('/api/offers/')&&p.endsWith('/accept'))||
       (p.includes('/api/deals/')&&(p.endsWith('/confirm')||p.endsWith('/cancel')||p.endsWith('/dispute')||p.endsWith('/delivered')))||
-      p.endsWith('/api/payments/paid-listing/create-request')||p.includes('/api/admin/wallet');
+      p.includes('/api/admin/wallet');
   };
   const uuid=()=>window.crypto?.randomUUID?.()||`${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
   const bodyKey=body=>{try{return typeof body==='string'?body:JSON.stringify(body??null)}catch{return String(body??'')}};
