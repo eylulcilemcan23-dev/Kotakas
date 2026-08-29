@@ -1,11 +1,14 @@
 using Kotakas.Web.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Kotakas.Web.Data;
 
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : IdentityDbContext<ApplicationUser>(options)
 {
+    public bool SuppressAutomation { get; set; }
+
     public DbSet<SaleRequest> SaleRequests => Set<SaleRequest>();
     public DbSet<Offer> Offers => Set<Offer>();
     public DbSet<Deal> Deals => Set<Deal>();
@@ -28,6 +31,104 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<AdminAuditEvent> AdminAuditEvents => Set<AdminAuditEvent>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        if (!SuppressAutomation)
+        {
+            await FilterClosedTraderRequestNotifications(cancellationToken);
+            if (Database.IsNpgsql()) await AddPostgresListingNotifications(cancellationToken);
+        }
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task FilterClosedTraderRequestNotifications(CancellationToken cancellationToken)
+    {
+        var added = ChangeTracker.Entries<AppNotification>()
+            .Where(x => x.State == EntityState.Added && x.Entity.Title == "Yeni satış talebi")
+            .ToList();
+        if (added.Count == 0) return;
+
+        var ids = added.Select(x => x.Entity.UserId).Distinct().ToList();
+        var closed = await Users.AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && x.VerifiedTrader && !x.TraderAcceptingOffers)
+            .Select(x => x.Id).ToListAsync(cancellationToken);
+        if (closed.Count == 0) return;
+        var set = closed.ToHashSet(StringComparer.Ordinal);
+        foreach (var entry in added.Where(x => set.Contains(x.Entity.UserId))) entry.State = EntityState.Detached;
+    }
+
+    private async Task AddPostgresListingNotifications(CancellationToken cancellationToken)
+    {
+        var entries = ChangeTracker.Entries<TraderListing>()
+            .Where(x => x.State is EntityState.Added or EntityState.Modified)
+            .ToList();
+        if (entries.Count == 0) return;
+
+        foreach (var entry in entries)
+        {
+            var listing = entry.Entity;
+            if (entry.State == EntityState.Added && listing.Status == "active" && listing.Stock > 0)
+            {
+                var followers = await Favorites.AsNoTracking()
+                    .Where(x => x.TargetType == "trader" && x.TargetId == listing.SellerUserId && x.UserId != listing.SellerUserId)
+                    .Select(x => x.UserId).Distinct().ToListAsync(cancellationToken);
+                Notifications.AddRange(followers.Select(uid => new AppNotification
+                {
+                    UserId = uid,
+                    Title = "Favori pazarcın yeni ilan açtı",
+                    Body = $"{listing.SellerName} • {listing.ItemName} • {listing.PriceGb:0.##} GB"
+                }));
+
+                var watches = await ItemWatches.AsNoTracking()
+                    .Where(x => (x.ServerCode == "ALL" || x.ServerCode == listing.ServerCode) && x.UserId != listing.SellerUserId)
+                    .ToListAsync(cancellationToken);
+                foreach (var watch in watches.Where(x =>
+                             listing.ItemName.Contains(x.Query, StringComparison.OrdinalIgnoreCase) &&
+                             (!x.MaxPriceGb.HasValue || x.MaxPriceGb.Value <= 0 || listing.PriceGb <= x.MaxPriceGb.Value)))
+                {
+                    Notifications.Add(new AppNotification
+                    {
+                        UserId = watch.UserId,
+                        Title = "Takip ettiğin item için yeni ilan",
+                        Body = $"{listing.ServerCode} • {listing.ItemName} • {listing.PriceGb:0.##} GB • {listing.SellerName}"
+                    });
+                }
+            }
+
+            if (entry.State == EntityState.Modified && entry.Property(x => x.PriceGb).IsModified)
+            {
+                var oldPrice = entry.Property(x => x.PriceGb).OriginalValue;
+                var newPrice = listing.PriceGb;
+                if (newPrice >= oldPrice) continue;
+
+                var favoriteUsers = await Favorites.AsNoTracking()
+                    .Where(x => x.TargetType == "listing" && x.TargetId == listing.Id.ToString() && x.UserId != listing.SellerUserId)
+                    .Select(x => x.UserId).Distinct().ToListAsync(cancellationToken);
+                Notifications.AddRange(favoriteUsers.Select(uid => new AppNotification
+                {
+                    UserId = uid,
+                    Title = "Favorindeki ilanın fiyatı düştü",
+                    Body = $"{listing.ItemName} artık {newPrice:0.##} GB. Eski fiyat: {oldPrice:0.##} GB."
+                }));
+
+                var watches = await ItemWatches.AsNoTracking()
+                    .Where(x => (x.ServerCode == "ALL" || x.ServerCode == listing.ServerCode) && x.UserId != listing.SellerUserId && x.MaxPriceGb != null)
+                    .ToListAsync(cancellationToken);
+                foreach (var watch in watches.Where(x =>
+                             x.MaxPriceGb > 0 && newPrice <= x.MaxPriceGb && oldPrice > x.MaxPriceGb &&
+                             listing.ItemName.Contains(x.Query, StringComparison.OrdinalIgnoreCase)))
+                {
+                    Notifications.Add(new AppNotification
+                    {
+                        UserId = watch.UserId,
+                        Title = "Item alarmındaki fiyat geldi",
+                        Body = $"{listing.ServerCode} • {listing.ItemName} artık {newPrice:0.##} GB."
+                    });
+                }
+            }
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
