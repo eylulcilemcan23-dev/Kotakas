@@ -4,9 +4,19 @@ function envFlag(name, fallback = false) {
   return /^(1|true|yes|on)$/i.test(value);
 }
 
+function envNumber(name, fallback, { min = -Infinity, max = Infinity } = {}) {
+  const value = Number(process.env[name] ?? fallback);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
+const nodeEnv = process.env.NODE_ENV || 'development';
+const paymentProvider = String(process.env.PAYMENT_PROVIDER || 'disabled').trim().toLowerCase();
+const paymentPublicBaseUrl = String(process.env.PAYMENT_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+
 export const config = {
   port: Number(process.env.PORT || 3000),
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   databaseUrl: process.env.DATABASE_URL || '',
   jwtSecret: process.env.JWT_SECRET || '',
   jwtSecretPresent: Boolean(process.env.JWT_SECRET),
@@ -23,13 +33,22 @@ export const config = {
   financeWritesEnabled: envFlag('FINANCE_WRITES_ENABLED', false),
   paymentWritesEnabled: envFlag('PAYMENT_WRITES_ENABLED', false),
   withdrawalWritesEnabled: envFlag('WITHDRAWAL_WRITES_ENABLED', false),
-  paymentProvider: String(process.env.PAYMENT_PROVIDER || 'disabled').trim().toLowerCase(),
+  paymentProvider,
   paymentWebhookSecret: process.env.PAYMENT_WEBHOOK_SECRET || '',
-  // Gerçek ödeme sağlayıcısının checkout adapteri kodla bağlanmadan true yapılmaz.
-  paymentCheckoutReady: false,
-  withdrawalMinAmount: Number(process.env.WITHDRAWAL_MIN_AMOUNT || 100),
-  withdrawalMaxAmount: Number(process.env.WITHDRAWAL_MAX_AMOUNT || 100000),
-  withdrawalFeeRate: Number(process.env.WITHDRAWAL_FEE_RATE || 0),
+  paymentPublicBaseUrl,
+  depositMinAmount: envNumber('DEPOSIT_MIN_AMOUNT', 50, { min: 1, max: 1_000_000 }),
+  depositMaxAmount: envNumber('DEPOSIT_MAX_AMOUNT', 50_000, { min: 1, max: 1_000_000 }),
+  withdrawalMinAmount: envNumber('WITHDRAWAL_MIN_AMOUNT', 100, { min: 1, max: 1_000_000 }),
+  withdrawalMaxAmount: envNumber('WITHDRAWAL_MAX_AMOUNT', 100_000, { min: 1, max: 1_000_000 }),
+  withdrawalFeeRate: envNumber('WITHDRAWAL_FEE_RATE', 0, { min: 0, max: 0.5 }),
+  paytrMerchantId: String(process.env.PAYTR_MERCHANT_ID || '').trim(),
+  paytrMerchantKey: process.env.PAYTR_MERCHANT_KEY || '',
+  paytrMerchantSalt: process.env.PAYTR_MERCHANT_SALT || '',
+  paytrTestMode: envFlag('PAYTR_TEST_MODE', true),
+  paytrDebugOn: envFlag('PAYTR_DEBUG_ON', nodeEnv !== 'production'),
+  paytrNoInstallment: envFlag('PAYTR_NO_INSTALLMENT', true),
+  paytrMaxInstallment: envNumber('PAYTR_MAX_INSTALLMENT', 0, { min: 0, max: 12 }),
+  paytrTimeoutMinutes: envNumber('PAYTR_TIMEOUT_MINUTES', 30, { min: 5, max: 60 }),
   escrowApiEnabled: envFlag('ESCROW_API_ENABLED', false),
   directEscrowEnabled: envFlag('DIRECT_ESCROW_ENABLED', false),
   marketWritesEnabled: envFlag('MARKET_WRITES_ENABLED', false),
@@ -55,11 +74,40 @@ config.googleOAuthReady = Boolean(
   config.googleClientSecret &&
   config.googleCallbackUrl,
 );
-config.paymentProviderConfigured = Boolean(
-  config.paymentProvider &&
-  config.paymentProvider !== 'disabled' &&
-  config.paymentWebhookSecret &&
-  config.paymentWebhookSecret.length >= 16,
+
+const paytrCredentialsPresent = Boolean(
+  config.paytrMerchantId &&
+  config.paytrMerchantKey &&
+  config.paytrMerchantSalt,
 );
+const productionPaymentUrlSafe = (() => {
+  if (!config.paymentPublicBaseUrl) return false;
+  try {
+    const url = new URL(config.paymentPublicBaseUrl);
+    return ['http:', 'https:'].includes(url.protocol) && (config.nodeEnv !== 'production' || url.protocol === 'https:');
+  } catch {
+    return false;
+  }
+})();
+
+config.paymentProviderConfigured = config.paymentProvider === 'paytr'
+  ? paytrCredentialsPresent
+  : Boolean(
+      config.paymentProvider &&
+      config.paymentProvider !== 'disabled' &&
+      config.paymentWebhookSecret &&
+      config.paymentWebhookSecret.length >= 16,
+    );
+config.paymentCheckoutReady = Boolean(
+  config.paymentProvider === 'paytr' &&
+  paytrCredentialsPresent &&
+  productionPaymentUrlSafe,
+);
+config.paytrCallbackUrl = config.paymentCheckoutReady
+  ? `${config.paymentPublicBaseUrl}/api/payments/paytr/callback`
+  : '';
+// PayTR standart iFrame ürünü genel cüzdan nakit çekimi için kullanılmaz.
+// Satıcı/pazarcı payout akışı Marketplace/Platform Transfer sözleşmesi doğrulanınca ayrı adapterle açılacaktır.
+config.withdrawalProviderReady = config.paymentProvider !== 'paytr' && config.paymentProvider !== 'disabled';
 
 export const isProduction = config.nodeEnv === 'production';
