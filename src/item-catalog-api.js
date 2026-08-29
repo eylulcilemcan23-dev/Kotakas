@@ -6,6 +6,7 @@ import {
   detectItemCatalogCompatibility,
   getCatalogItem,
   listCatalogCategories,
+  listCatalogFacets,
   listCatalogMarketListings,
   searchItemCatalog,
 } from './item-catalog-core.js';
@@ -43,9 +44,24 @@ itemCatalogRouter.get('/item-catalog/categories', async (_req, res) => {
   }
 });
 
+itemCatalogRouter.get('/item-catalog/facets', async (_req, res) => {
+  try {
+    const facets = await listCatalogFacets();
+    return res.json({ ok: true, ...facets });
+  } catch (error) {
+    return errorResponse(res, error);
+  }
+});
+
 itemCatalogRouter.get('/item-catalog', async (req, res) => {
   try {
-    const items = await searchItemCatalog({ q: req.query.q, category: req.query.category, limit: req.query.limit });
+    const items = await searchItemCatalog({
+      q: req.query.q,
+      category: req.query.category,
+      subcategory: req.query.subcategory,
+      classInfo: req.query.class,
+      limit: req.query.limit,
+    });
     return res.json({ ok: true, items });
   } catch (error) {
     return errorResponse(res, error);
@@ -66,6 +82,8 @@ itemCatalogRouter.get('/market/catalog-listings', async (req, res) => {
     const listings = await listCatalogMarketListings({
       q: req.query.q,
       category: req.query.category,
+      subcategory: req.query.subcategory,
+      classInfo: req.query.class,
       server: req.query.server,
       sort: req.query.sort,
       minPrice: req.query.minPrice,
