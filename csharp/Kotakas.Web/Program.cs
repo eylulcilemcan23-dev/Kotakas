@@ -59,6 +59,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<KotakasEmailSender>();
 builder.Services.AddKotakasSecurity();
+builder.Services.AddSingleton<DatabaseBackupService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<DatabaseBackupService>());
 builder.Services.AddHostedService<MarketRateSyncService>();
 builder.Services.AddHostedService<MarketplaceMaintenanceService>();
 
@@ -106,6 +108,7 @@ app.MapAdminEndpoints();
 app.MapAdminModerationEndpoints();
 app.MapAdminSearchEndpoints();
 app.MapAdminAuditEndpoints();
+app.MapBackupEndpoints();
 app.MapFinanceReportingEndpoints();
 app.MapIntegrationEndpoints();
 app.MapPaymentEndpoints();
