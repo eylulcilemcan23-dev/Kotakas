@@ -20,7 +20,15 @@ Bu branch canlı production'u değiştirmez. Amaç, mevcut Railway hot-patch tab
 - [x] Pazar politikaları: serbest sohbet kapalı + hazır Satıcıya Sor mesajları
 - [x] Pazar politikaları: telefon/WhatsApp/Instagram/site dışı iletişim filtresi
 - [x] Pazar politikası otomatik testleri
-- [ ] Mevcut auth/register/session endpointlerini kaynak ağaca taşı
+- [x] Auth kaynak katmanı: `/api/register`, `/api/login`, `/api/logout`, `/api/me`
+- [x] Auth geriye uyum aliasları: `/api/auth/*`
+- [x] HttpOnly/Secure/SameSite session cookie
+- [x] Her istekte DB'den canlı rol yenileme (V18.31 davranışı)
+- [x] Login/kayıt IP rate limit
+- [x] Mevcut `users/app_users/members` tablo adları ve kolon aliasları için şema keşfi
+- [x] Auth şema uyumluluğunu `/api/health` kapısına ekle
+- [x] GitHub Actions syntax + unit test CI
+- [ ] Canlı DB şemasını ayrı geçiş servisinde salt-okunur doğrula
 - [ ] Kullanıcı / pazarcı / admin panellerini kaynak ağaca taşı
 - [ ] Bakiye, komisyon ve settlement endpointlerini taşı
 - [ ] Bildirim + hazır mesaj/Satıcıya Sor akışını taşı
@@ -30,9 +38,28 @@ Bu branch canlı production'u değiştirmez. Amaç, mevcut Railway hot-patch tab
 - [ ] Railway'e ayrı geçiş servisi olarak deploy et
 - [ ] Tüm smoke testler geçmeden production trafiğini değiştirme
 
-## Test sonucu
-- `node --check`: başarılı
-- `node --test`: 4/4 marketplace policy testi başarılı
+## Güvenlik notları
+- Kaynak auth sistemi plaintext şifre kabul etmez; bcrypt olmayan eski hash algılanırsa `password_migration_required` döner.
+- Session token rol taşımaz; rol her istekte veritabanından yeniden okunur.
+- Production'da `KOTAKAS_SOURCE_BASELINE_READY=true` verilmeden yeni kaynak baseline `/api/health` için 200 dönmez.
 
-## Güvenlik kapısı
-Production'da `KOTAKAS_SOURCE_BASELINE_READY=true` verilmeden yeni kaynak baseline `/api/health` için 200 dönmez. Bu, eksik kaynak ağacının yanlışlıkla canlıya alınmasını önler.
+## Canlıdan doğrulanan API envanteri
+- `/api/me`
+- `/api/listings`
+- `/api/notifications`
+- `/api/requests`
+- `/api/stats`
+- `/api/transactions`
+- `/api/market-rates`
+- `/api/tickets`
+- `/api/admin/users`
+- `/api/admin/traders`
+- `/api/admin/trader-applications`
+- `/api/admin/listings`
+- `/api/admin/wallets`
+- `/api/admin/commissions`
+- `/api/admin/disputes`
+- `/api/admin/settings`
+- `/api/admin/security-events`
+- `/api/admin/market-rates`
+- `/api/admin/overview`
