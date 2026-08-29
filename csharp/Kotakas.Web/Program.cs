@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
+Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads", "requests"));
 
 builder.Services.AddDbContext<AppDbContext>(o =>
     o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=App_Data/kotakas.db"));
@@ -66,7 +67,11 @@ app.UseAuthorization();
 
 app.MapHealthEndpoints();
 app.MapAuthEndpoints();
+app.MapAccountEndpoints();
 app.MapMarketplaceEndpoints();
+app.MapRequestManagementEndpoints();
+app.MapListingManagementEndpoints();
+app.MapUploadEndpoints();
 app.MapDealEndpoints();
 app.MapSupportEndpoints();
 app.MapAdminEndpoints();
