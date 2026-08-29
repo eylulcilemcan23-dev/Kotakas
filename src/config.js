@@ -24,6 +24,7 @@ export const config = {
   escrowApiEnabled: envFlag('ESCROW_API_ENABLED', false),
   directEscrowEnabled: envFlag('DIRECT_ESCROW_ENABLED', false),
   marketWritesEnabled: envFlag('MARKET_WRITES_ENABLED', false),
+  swapWritesEnabled: envFlag('SWAP_WRITES_ENABLED', false),
   disputeWritesEnabled: envFlag('DISPUTE_WRITES_ENABLED', false),
   communicationWritesEnabled: envFlag('COMMUNICATION_WRITES_ENABLED', false),
   auditLogEnabled: envFlag('AUDIT_LOG_ENABLED', false),
