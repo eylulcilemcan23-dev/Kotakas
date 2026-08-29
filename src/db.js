@@ -2,13 +2,14 @@ import pg from 'pg';
 import { config } from './config.js';
 
 const { Pool } = pg;
+const defaultIdleTimeout = config.nodeEnv === 'test' ? 500 : 30000;
 
 export const pool = config.databaseUrl
   ? new Pool({
       connectionString: config.databaseUrl,
       max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || defaultIdleTimeout),
+      connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS || 5000),
     })
   : null;
 
