@@ -2,8 +2,9 @@
   const path=location.pathname.toLowerCase();
 
   function loginEnhance(){
-    if(!path.endsWith('/login.html'))return;
+    if(!path.endsWith('/login.html')&&!path.endsWith('/register.html'))return;
     const login=$('#loginForm'),register=$('#registerForm');
+    if(path.endsWith('/register.html'))setTimeout(()=>authTab('register'),0);
     const q=new URLSearchParams(location.search);
     if(q.get('email')==='confirmed')setTimeout(()=>toast('E-posta adresin doğrulandı. Giriş yapabilirsin.'),150);
     if(q.get('email')==='confirm_failed')setTimeout(()=>toast('Doğrulama bağlantısı geçersiz veya süresi dolmuş.'),150);
@@ -35,7 +36,7 @@
       const btn=e.target.querySelector('button[type="submit"],button:not([type])');if(btn)btn.disabled=true;
       const body=Object.fromEntries(new FormData(e.target));
       if(String(body.password||'').length<10||!/[0-9]/.test(String(body.password||''))){toast('Şifre en az 10 karakter ve en az 1 rakam içermeli.');if(btn)btn.disabled=false;return}
-      try{const d=await api('/api/register',{method:'POST',body});if(d.requiresEmailConfirmation){toast('Hesap açıldı. E-postana gelen doğrulama bağlantısını kullan.');authTab('login');login.querySelector('[name="email"]').value=body.email||'';}else{ME=d.user;location.href='/dashboard.html'}}catch(err){toast(err.data?.error==='email_already_registered'?'Bu e-posta zaten kayıtlı.':'Kayıt oluşturulamadı.')}finally{if(btn)btn.disabled=false}
+      try{const d=await api('/api/register',{method:'POST',body});if(d.requiresEmailConfirmation){toast('Hesap açıldı. E-postana gelen doğrulama bağlantısını kullan.');authTab('login');if(login?.querySelector('[name="email"]'))login.querySelector('[name="email"]').value=body.email||'';}else{ME=d.user;location.href='/dashboard.html'}}catch(err){toast(err.data?.error==='email_already_registered'?'Bu e-posta zaten kayıtlı.':'Kayıt oluşturulamadı.')}finally{if(btn)btn.disabled=false}
     },true);
   }
 
