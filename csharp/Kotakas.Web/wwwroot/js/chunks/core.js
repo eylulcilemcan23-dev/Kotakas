@@ -8,6 +8,8 @@ function formatDate(s){try{return new Intl.DateTimeFormat('tr-TR',{dateStyle:'sh
 async function loadMe(){try{ME=(await api('/api/me')).user}catch{ME=null}return ME}
 function panelHref(){if(!ME)return'/login.html';if(String(ME.role).startsWith('admin_'))return'/admin.html';if(ME.role==='trader')return'/trader.html';return'/dashboard.html'}
 function updateNav(){const auth=$$('[data-auth]'),guest=$$('[data-guest]');auth.forEach(x=>x.style.display=ME?'':'none');guest.forEach(x=>x.style.display=ME?'none':'');$$('[data-user-name]').forEach(x=>{if(ME){x.textContent=ME.displayName||ME.email;if(x.tagName==='A')x.href=panelHref()}})}
+function addMarketReference(){ $$('.copyright').forEach(x=>{if(!x.textContent.includes('Piyasa Referansı:')){const s=document.createElement('span');s.textContent=' • Piyasa Referansı: Kopazar.com';x.appendChild(s)}})}
+queueMicrotask(addMarketReference);
 window.toggleMobile=()=>$('#mobileNav')?.classList.toggle('open');
 window.logout=async()=>{await api('/api/logout',{method:'POST'}).catch(()=>{});location.href='/'};
 window.authTab=name=>{const login=name==='login';$('#loginForm').style.display=login?'':'none';$('#registerForm').style.display=login?'none':'';$('#loginTab')?.classList.toggle('active',login);$('#registerTab')?.classList.toggle('active',!login)};
