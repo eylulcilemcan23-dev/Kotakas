@@ -66,6 +66,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AdminAuditMiddleware>();
 app.UseMiddleware<TraderAvailabilityMiddleware>();
 
 app.MapHealthEndpoints();
@@ -88,6 +89,7 @@ app.MapSupportEndpoints();
 app.MapAdminEndpoints();
 app.MapAdminModerationEndpoints();
 app.MapAdminSearchEndpoints();
+app.MapAdminAuditEndpoints();
 app.MapFinanceReportingEndpoints();
 app.MapIntegrationEndpoints();
 app.MapPaymentEndpoints();
