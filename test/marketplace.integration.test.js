@@ -2,12 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { config } from '../src/config.js';
 import { pool } from '../src/db.js';
-import { releaseEscrow } from '../src/finance-write-adapter.js';
+import { refundEscrow, releaseEscrow } from '../src/finance-write-adapter.js';
 import {
   createListing,
   detectMarketplaceCompatibility,
   purchaseListing,
-  syncListingForOrder,
 } from '../src/marketplace.js';
 
 const dbReady = Boolean(process.env.DATABASE_URL && pool);
@@ -75,6 +74,11 @@ async function wallet(id) {
   return result.rows[0];
 }
 
+async function listingState(id) {
+  const result = await pool.query('select status, order_id::text as order_id from listings where id=$1', [id]);
+  return result.rows[0];
+}
+
 function enableWrites() {
   const before = {
     market: config.marketWritesEnabled,
@@ -108,9 +112,7 @@ test('listing purchase uses server-side listing price and reserves it atomically
     assert.equal(order.sellerId, '202');
     assert.equal(order.commissionAmount, 20);
     assert.deepEqual(await wallet(101), { available: '100.00', held: '400.00' });
-
-    const stored = await pool.query('select status, order_id::text as order_id from listings where id=$1', [listing.id]);
-    assert.deepEqual(stored.rows[0], { status: 'reserved', order_id: order.id });
+    assert.deepEqual(await listingState(listing.id), { status: 'reserved', order_id: order.id });
   } finally {
     restore();
     await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
@@ -157,16 +159,38 @@ test('buyer cannot purchase own listing', { skip: !dbReady }, async () => {
   }
 });
 
-test('released listing becomes sold after escrow reconciliation', { skip: !dbReady }, async () => {
+test('release credits seller, records commission and marks listing sold in one transaction', { skip: !dbReady }, async () => {
   await resetSchema();
   const restore = enableWrites();
   try {
     const listing = await createListing({ sellerId: 202, title: 'Complete sale', server: 'ZERO', price: 200 });
     const order = await purchaseListing({ buyerId: 101, listingId: listing.id, idempotencyKey: 'complete-sale' });
     await releaseEscrow(order.id);
-    const synced = await syncListingForOrder(order.id);
-    assert.equal(synced.status, 'sold');
-    assert.equal((await wallet(202)).available, '190.00');
+
+    assert.deepEqual(await listingState(listing.id), { status: 'sold', order_id: order.id });
+    assert.deepEqual(await wallet(101), { available: '300.00', held: '0.00' });
+    assert.deepEqual(await wallet(202), { available: '190.00', held: '0.00' });
+    const commission = await pool.query('select amount::text as amount from commissions where order_id=$1', [order.id]);
+    assert.equal(commission.rows[0].amount, '10.00');
+  } finally {
+    restore();
+    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
+  }
+});
+
+test('refund restores buyer balance and reactivates listing in one transaction', { skip: !dbReady }, async () => {
+  await resetSchema();
+  const restore = enableWrites();
+  try {
+    const listing = await createListing({ sellerId: 202, title: 'Refund sale', server: 'ZERO', price: 125 });
+    const order = await purchaseListing({ buyerId: 101, listingId: listing.id, idempotencyKey: 'refund-listing' });
+    await refundEscrow(order.id);
+
+    assert.deepEqual(await wallet(101), { available: '500.00', held: '0.00' });
+    assert.deepEqual(await wallet(202), { available: '0.00', held: '0.00' });
+    assert.deepEqual(await listingState(listing.id), { status: 'active', order_id: null });
+    const commission = await pool.query('select count(*)::int as count from commissions where order_id=$1', [order.id]);
+    assert.equal(commission.rows[0].count, 0);
   } finally {
     restore();
     await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
