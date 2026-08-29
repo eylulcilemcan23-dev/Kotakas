@@ -194,11 +194,12 @@ async function main() {
     price: 400,
   });
   const offer = await createOrUpdateOffer({ listingId: offerListing.id, buyerId: 101, amount: 350 });
-  const offerOrder = await acceptOffer({
+  const offerAcceptance = await acceptOffer({
     offerId: offer.id,
     sellerId: 202,
     idempotencyKey: 'rehearsal:offer:accept:1',
   });
+  const offerOrder = offerAcceptance.order;
   assert.equal(offerOrder.amount, 350);
   assert.equal(offerOrder.commissionAmount, 17.5);
   await releaseEscrow(offerOrder.id);
