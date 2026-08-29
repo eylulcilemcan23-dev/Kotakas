@@ -1,14 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { pool } from '../src/db.js';
 import { config } from '../src/config.js';
-import { detectMarketplaceCompatibility } from '../src/marketplace.js';
+import { cancelListing, detectMarketplaceCompatibility, purchaseListing } from '../src/marketplace.js';
 import { acceptOffer, createOrUpdateOffer, detectOfferCompatibility } from '../src/offers-api.js';
 
 const dbReady = Boolean(process.env.DATABASE_URL && pool);
+const offerConstraintsMigration = new URL('../migrations/007_listing_offer_constraints.sql', import.meta.url);
 
 async function resetSchema() {
   await pool.query('drop table if exists wallet_transactions, listing_offers, orders, wallets, listings cascade');
+  await pool.query('drop function if exists kotakas_close_open_offers_on_listing_state() cascade');
   await pool.query(`
     create table listings (
       id bigserial primary key,
@@ -61,8 +64,14 @@ async function resetSchema() {
       created_at timestamptz not null default now()
     );
   `);
+  await pool.query(await readFile(offerConstraintsMigration, 'utf8'));
   await detectOfferCompatibility({ force: true });
   await detectMarketplaceCompatibility({ force: true });
+}
+
+async function cleanup() {
+  await pool.query('drop table if exists wallet_transactions, listing_offers, orders, wallets, listings cascade');
+  await pool.query('drop function if exists kotakas_close_open_offers_on_listing_state() cascade');
 }
 
 function enableWrites() {
@@ -94,7 +103,7 @@ test('buyer can create one open offer and update its amount', { skip: !dbReady }
     await assert.rejects(createOrUpdateOffer({ listingId: 10, buyerId: 200, amount: 50 }), /buyer and seller/);
   } finally {
     restore();
-    await pool.query('drop table if exists wallet_transactions, listing_offers, orders, wallets, listings cascade');
+    await cleanup();
   }
 });
 
@@ -131,7 +140,7 @@ test('seller accepting offer atomically holds buyer funds, reserves listing and 
     assert.equal(orders.rows[0].count, 1);
   } finally {
     restore();
-    await pool.query('drop table if exists wallet_transactions, listing_offers, orders, wallets, listings cascade');
+    await cleanup();
   }
 });
 
@@ -155,6 +164,33 @@ test('insufficient buyer balance leaves offer and listing untouched', { skip: !d
     assert.equal(Number(wallet.rows[0].held_balance), 0);
   } finally {
     restore();
-    await pool.query('drop table if exists wallet_transactions, listing_offers, orders, wallets, listings cascade');
+    await cleanup();
+  }
+});
+
+test('full-price purchase rejects existing offers and seller cancellation cancels open offers', { skip: !dbReady }, async () => {
+  const restore = enableWrites();
+  await resetSchema();
+  try {
+    await pool.query(`
+      insert into listings (id,seller_id,title,server,price,status) values
+        (13,203,'Shard +8','ZERO',100,'active'),
+        (14,204,'Iron Impact +7','FELIS',90,'active');
+      insert into wallets (user_id,available_balance,held_balance) values (305,150,0);
+      insert into listing_offers (id,listing_id,offered_by,amount,status) values
+        (54,13,304,80,'open'),
+        (55,14,306,70,'open');
+    `);
+
+    await purchaseListing({ buyerId: 305, listingId: 13, idempotencyKey: 'full-price-closes-offers' });
+    const purchasedOffer = await pool.query('select status from listing_offers where id = 54');
+    assert.equal(purchasedOffer.rows[0].status, 'rejected');
+
+    await cancelListing({ sellerId: 204, listingId: 14 });
+    const cancelledOffer = await pool.query('select status from listing_offers where id = 55');
+    assert.equal(cancelledOffer.rows[0].status, 'cancelled');
+  } finally {
+    restore();
+    await cleanup();
   }
 });

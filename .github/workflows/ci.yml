@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - source-migration
+      - main
 
 jobs:
   syntax:
@@ -30,9 +30,9 @@ jobs:
       NODE_ENV: test
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
       - name: Install dependencies
