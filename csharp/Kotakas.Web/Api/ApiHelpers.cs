@@ -34,7 +34,17 @@ public static class ApiHelpers
     public static async Task<object> UserDto(UserManager<ApplicationUser> users, ApplicationUser user)
     {
         var roles = await users.GetRolesAsync(user);
-        return new { id = user.Id, email = user.Email, displayName = user.DisplayName, role = roles.FirstOrDefault() ?? "user", active = user.AccountStatus == "active", verifiedTrader = user.VerifiedTrader };
+        return new
+        {
+            id = user.Id,
+            email = user.Email,
+            displayName = user.DisplayName,
+            role = roles.FirstOrDefault() ?? "user",
+            active = user.AccountStatus == "active",
+            userVerified = user.UserVerified,
+            userVerifiedAt = user.UserVerifiedAt,
+            verifiedTrader = user.VerifiedTrader
+        };
     }
     public static object RequestDto(SaleRequest x) => new { x.Id, x.ItemName, x.ServerCode, quantity = x.Quantity, minimumGb = x.MinimumGb, x.Note, x.Status, x.CreatedAt, offers = x.Offers.OrderByDescending(o => o.PriceGb).Select(o => new { o.Id, o.TraderName, o.PriceGb, o.ExpiryMinutes, o.Status }) };
 }
