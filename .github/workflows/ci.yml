@@ -47,3 +47,5 @@ jobs:
         run: npm run staging:rehearsal
       - name: Source smoke test
         run: bash scripts/smoke.sh
+      - name: Release readiness safe-defaults
+        run: node scripts/release-readiness.js
