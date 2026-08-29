@@ -5,6 +5,7 @@ import { requireAuthenticated, requirePermission, roleCan } from './authz.js';
 import { PERMISSIONS } from './roles.js';
 import { holdEscrow, refundEscrow, releaseEscrow } from './finance-write-adapter.js';
 import { hasOpenDispute } from './disputes-api.js';
+import { createUserNotification } from './dispute-communications.js';
 import { writeAudit } from './audit-log.js';
 
 export const escrowApiRouter = Router();
@@ -49,6 +50,25 @@ function sendEscrowError(res, error) {
   return res.status(503).json({ ok: false, error: 'escrow_temporarily_unavailable' });
 }
 
+async function notifyReleased(order, actorId) {
+  if (!order) return;
+  const amount = Number(order.amount || 0);
+  const sellerNet = Number(order.seller_net || 0);
+  await Promise.all([
+    createUserNotification({ userId: order.buyer_id, kind: 'order_completed', title: `İşlem #${order.id} tamamlandı`, body: `Teslim onayı kaydedildi. ${amount.toFixed(2)} TL tutarındaki işlem tamamlandı.`, targetType: 'order', targetId: order.id, dedupeKey: `order-completed:${order.id}:buyer`, createdBy: actorId }),
+    createUserNotification({ userId: order.seller_id, kind: 'sale_completed', title: `Satış #${order.id} tamamlandı`, body: `${sellerNet.toFixed(2)} TL net satış tutarı bakiyene aktarıldı.`, targetType: 'order', targetId: order.id, dedupeKey: `order-completed:${order.id}:seller`, createdBy: actorId }),
+  ].map((promise) => promise.catch(() => null)));
+}
+
+async function notifyRefunded(order, actorId) {
+  if (!order) return;
+  const amount = Number(order.amount || 0);
+  await Promise.all([
+    createUserNotification({ userId: order.buyer_id, kind: 'order_refunded', title: `İşlem #${order.id} iade edildi`, body: `${amount.toFixed(2)} TL tutarındaki bloke bakiyene geri döndü.`, targetType: 'order', targetId: order.id, dedupeKey: `order-refunded:${order.id}:buyer`, createdBy: actorId }),
+    createUserNotification({ userId: order.seller_id, kind: 'order_refunded', title: `İşlem #${order.id} iade edildi`, body: 'İşlem yönetim kararıyla alıcıya iade edildi.', targetType: 'order', targetId: order.id, dedupeKey: `order-refunded:${order.id}:seller`, createdBy: actorId }),
+  ].map((promise) => promise.catch(() => null)));
+}
+
 // Genel amaçlı sellerId + amount alan bu endpoint varsayılan olarak kapalıdır.
 // Pazar alışverişlerinde fiyat ve satıcı daima sunucudaki listing kaydından okunur.
 escrowApiRouter.post('/escrow/hold', requireAuthenticated, requireEscrowApiReady, async (req, res) => {
@@ -59,17 +79,9 @@ escrowApiRouter.post('/escrow/hold', requireAuthenticated, requireEscrowApiReady
   if (!buyerId || !/^\d+$/.test(sellerId)) return res.status(400).json({ ok: false, error: 'invalid_escrow_identity' });
 
   try {
-    const order = await holdEscrow({
-      buyerId,
-      sellerId,
-      amount: req.body?.amount,
-      commissionRate: config.commissionRate,
-      idempotencyKey,
-    });
+    const order = await holdEscrow({ buyerId, sellerId, amount: req.body?.amount, commissionRate: config.commissionRate, idempotencyKey });
     return res.status(201).json({ ok: true, order });
-  } catch (error) {
-    return sendEscrowError(res, error);
-  }
+  } catch (error) { return sendEscrowError(res, error); }
 });
 
 escrowApiRouter.post('/escrow/:orderId/release', requireAuthenticated, requireEscrowApiReady, async (req, res) => {
@@ -79,30 +91,22 @@ escrowApiRouter.post('/escrow/:orderId/release', requireAuthenticated, requireEs
     const user = req.user || req.auth;
     if (!canReleaseEscrow(user, order)) return res.status(403).json({ ok: false, error: 'forbidden' });
     const financeAdmin = roleCan(user.role, PERMISSIONS.FINANCE);
-    if (!financeAdmin && await hasOpenDispute(order.id)) {
-      return res.status(409).json({ ok: false, error: 'open_dispute' });
-    }
+    if (!financeAdmin && await hasOpenDispute(order.id)) return res.status(409).json({ ok: false, error: 'open_dispute' });
     const released = await releaseEscrow(order.id);
-    await writeAudit({
-      actorId: userId(user), actorRole: user.role, action: financeAdmin ? 'admin_escrow_release' : 'buyer_delivery_confirmed',
-      targetType: 'order', targetId: order.id, metadata: { amount: Number(order.amount || 0) },
-    }).catch((error) => console.error('[KOTAKAS] audit write failed:', error?.message || error));
+    await writeAudit({ actorId: userId(user), actorRole: user.role, action: financeAdmin ? 'admin_escrow_release' : 'buyer_delivery_confirmed', targetType: 'order', targetId: order.id, metadata: { amount: Number(order.amount || 0) } }).catch(() => {});
+    await notifyReleased(order, userId(user));
     return res.json({ ok: true, order: released });
-  } catch (error) {
-    return sendEscrowError(res, error);
-  }
+  } catch (error) { return sendEscrowError(res, error); }
 });
 
 escrowApiRouter.post('/escrow/:orderId/refund', requireAuthenticated, requirePermission(PERMISSIONS.FINANCE), requireEscrowApiReady, async (req, res) => {
   try {
     const user = req.user || req.auth;
+    const order = await readOrder(req.params.orderId);
+    if (!order) return res.status(404).json({ ok: false, error: 'escrow_not_found' });
     const refunded = await refundEscrow(req.params.orderId);
-    await writeAudit({
-      actorId: userId(user), actorRole: user.role, action: 'admin_escrow_refund',
-      targetType: 'order', targetId: req.params.orderId, metadata: {},
-    }).catch((error) => console.error('[KOTAKAS] audit write failed:', error?.message || error));
+    await writeAudit({ actorId: userId(user), actorRole: user.role, action: 'admin_escrow_refund', targetType: 'order', targetId: req.params.orderId, metadata: {} }).catch(() => {});
+    await notifyRefunded(order, userId(user));
     return res.json({ ok: true, order: refunded });
-  } catch (error) {
-    return sendEscrowError(res, error);
-  }
+  } catch (error) { return sendEscrowError(res, error); }
 });
