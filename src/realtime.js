@@ -87,6 +87,33 @@ export function publishAdminNotificationRead(notification) {
   return true;
 }
 
+export function publishUserNotification(notification) {
+  const userId = notification?.userId == null ? '' : String(notification.userId);
+  if (!/^\d+$/.test(userId)) return false;
+  const operator = audienceOperator([`user:${userId}`]);
+  if (!operator) return false;
+  operator.emit('user:notification', { notification });
+  return true;
+}
+
+export function publishUserNotificationRead(notification) {
+  const userId = notification?.userId == null ? '' : String(notification.userId);
+  if (!/^\d+$/.test(userId)) return false;
+  const operator = audienceOperator([`user:${userId}`]);
+  if (!operator) return false;
+  operator.emit('user:notification-read', { notification });
+  return true;
+}
+
+export function publishUserNotificationsReadAll(userId) {
+  const id = userId == null ? '' : String(userId);
+  if (!/^\d+$/.test(id)) return false;
+  const operator = audienceOperator([`user:${id}`]);
+  if (!operator) return false;
+  operator.emit('user:notifications-read-all', { userId: id });
+  return true;
+}
+
 export function publishDisputeMessage({ message, buyerId, sellerId }) {
   if (!message) return false;
   const rooms = ['admin:disputes'];
