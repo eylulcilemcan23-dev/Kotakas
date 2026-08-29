@@ -75,6 +75,7 @@ app.MapUploadEndpoints();
 app.MapDealEndpoints();
 app.MapReviewEndpoints();
 app.MapFavoriteEndpoints();
+app.MapItemWatchEndpoints();
 app.MapSupportEndpoints();
 app.MapAdminEndpoints();
 app.MapAdminModerationEndpoints();
