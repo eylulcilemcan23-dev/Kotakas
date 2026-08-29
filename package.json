@@ -1,6 +1,6 @@
 {
   "name": "kotakas",
-  "version": "21.1.0-baseline",
+  "version": "21.2.0-baseline",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js && node --check src/auth/roles.js && node --check src/auth/users.js && node --check src/auth/session.js && node --check src/auth/routes.js && node --check src/domain/marketplace-policy.js",
+    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js && node --check src/auth/roles.js && node --check src/auth/users.js && node --check src/auth/session.js && node --check src/auth/routes.js && node --check src/auth/panel-access.js && node --check src/security/rate-limit.js && node --check src/domain/marketplace-policy.js",
     "test": "node --test",
     "smoke": "node scripts/smoke.mjs"
   },
