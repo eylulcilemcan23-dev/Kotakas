@@ -83,8 +83,15 @@ builder.Services.AddHostedService<MarketRateSyncService>();
 builder.Services.AddHostedService<MarketplaceMaintenanceService>();
 
 var app = builder.Build();
-await StartupSeeder.InitializeAsync(app);
-await StartupFeatureSeeder.InitializeAsync(app);
+if (databaseProvider is "postgres" or "postgresql")
+{
+    await PostgresStartupSeeder.InitializeAsync(app);
+}
+else
+{
+    await StartupSeeder.InitializeAsync(app);
+    await StartupFeatureSeeder.InitializeAsync(app);
+}
 
 if (app.Environment.IsProduction())
 {
