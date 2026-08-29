@@ -26,25 +26,37 @@ jobs:
           for f in csharp/Kotakas.Web/wwwroot/js/app.js csharp/Kotakas.Web/wwwroot/js/chunks/*.js; do
             node --check "$f"
           done
-      - name: Restore
+      - name: Restore web
         run: dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
-      - name: Build
+      - name: Restore migrator
+        run: dotnet restore csharp/Kotakas.Migrator/Kotakas.Migrator.csproj
+      - name: Build web
         run: dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
-      - name: Publish
+      - name: Build migrator
+        run: dotnet build csharp/Kotakas.Migrator/Kotakas.Migrator.csproj -c Release --no-restore
+      - name: Publish web
         run: dotnet publish csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build -o out/kotakas
+      - name: Publish migrator
+        run: dotnet publish csharp/Kotakas.Migrator/Kotakas.Migrator.csproj -c Release --no-build -o out/migrator
       - name: Build source package
         run: |
           mkdir -p out/package
-          zip -qr out/package/KOTAKAS_CSHARP_V5_SOURCE.zip csharp
+          zip -qr out/package/KOTAKAS_CSHARP_V12_SOURCE.zip csharp
       - name: Upload hosting publish
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V5_HOSTING
+          name: KOTAKAS_CSHARP_V12_HOSTING
           path: out/kotakas
+          if-no-files-found: error
+      - name: Upload PostgreSQL migrator
+        uses: actions/upload-artifact@v4
+        with:
+          name: KOTAKAS_CSHARP_V12_MIGRATOR
+          path: out/migrator
           if-no-files-found: error
       - name: Upload source package
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V5_SOURCE
-          path: out/package/KOTAKAS_CSHARP_V5_SOURCE.zip
+          name: KOTAKAS_CSHARP_V12_SOURCE
+          path: out/package/KOTAKAS_CSHARP_V12_SOURCE.zip
           if-no-files-found: error
