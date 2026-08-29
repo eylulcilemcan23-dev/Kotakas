@@ -9,8 +9,25 @@ public static class SupportEndpoints
 {
     public static IEndpointRouteBuilder MapSupportEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/notifications", async (ClaimsPrincipal p, AppDbContext db) => Results.Ok(new { notifications = await db.Notifications.AsNoTracking().Where(x => x.UserId == ApiHelpers.UserId(p)).OrderByDescending(x => x.Id).Take(100).ToListAsync() })).RequireAuthorization();
-        app.MapPost("/api/notifications/read-all", async (ClaimsPrincipal p, AppDbContext db) => { foreach (var n in await db.Notifications.Where(x => x.UserId == ApiHelpers.UserId(p) && !x.IsRead).ToListAsync()) n.IsRead = true; await db.SaveChangesAsync(); return Results.Ok(new { ok = true }); }).RequireAuthorization();
+        app.MapGet("/api/notifications", async (ClaimsPrincipal p, AppDbContext db) =>
+        {
+            var uid = ApiHelpers.UserId(p);
+            var pref = await db.NotificationPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == uid);
+            var rows = await db.Notifications.AsNoTracking().Where(x => x.UserId == uid).OrderByDescending(x => x.Id).Take(200).ToListAsync();
+            var visible = rows.Where(x => NotificationPreferenceEndpoints.IsVisible(x, pref)).Take(100).ToList();
+            return Results.Ok(new { notifications = visible, hiddenByPreference = rows.Count - visible.Count });
+        }).RequireAuthorization();
+
+        app.MapPost("/api/notifications/read-all", async (ClaimsPrincipal p, AppDbContext db) =>
+        {
+            var uid = ApiHelpers.UserId(p);
+            var pref = await db.NotificationPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == uid);
+            var rows = await db.Notifications.Where(x => x.UserId == uid && !x.IsRead).ToListAsync();
+            foreach (var n in rows.Where(x => NotificationPreferenceEndpoints.IsVisible(x, pref))) n.IsRead = true;
+            await db.SaveChangesAsync();
+            return Results.Ok(new { ok = true });
+        }).RequireAuthorization();
+
         app.MapPost("/api/trader-applications", async (ClaimsPrincipal p, TraderApplicationInput input, AppDbContext db) =>
         {
             var uid = ApiHelpers.UserId(p); if (await db.TraderApplications.AnyAsync(x => x.UserId == uid && x.Status == "pending")) return Results.Conflict(new { error = "application_already_pending" });
