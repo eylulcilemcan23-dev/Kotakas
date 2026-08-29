@@ -1,6 +1,6 @@
 (() => {
   const path = location.pathname === '/index.html' ? '/' : location.pathname;
-  if (!['/market.html', '/sell.html'].includes(path)) return;
+  if (!['/market.html', '/sell.html', '/deals.html'].includes(path)) return;
 
   const money = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' });
   const esc = (value = '') => String(value).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char]));
@@ -154,10 +154,70 @@
     });
   }
 
+  function stateLabel(state) {
+    return ({ held: 'Teslim onayı bekliyor', released: 'Tamamlandı', refunded: 'İade edildi' })[state] || state;
+  }
+
+  async function releaseOrder(button, orderId) {
+    if (!confirm('Item/GB teslimini aldığını onaylıyor musun? Onaydan sonra ödeme satıcıya aktarılacak.')) return;
+    button.disabled = true;
+    try {
+      const response = await fetch(`/api/escrow/${encodeURIComponent(orderId)}/release`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'release_failed');
+      alert('Teslim onaylandı. Satıcı ödemesi ve KOTAKAS komisyonu işlendi.');
+      await renderDeals(true);
+    } catch (_) {
+      alert('Teslim onayı şu anda tamamlanamadı.');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function renderDeals(force = false) {
+    const main = document.querySelector('main.main');
+    if (!main) return;
+    if (!force && main.dataset.dealsReady === '1') return;
+    main.dataset.dealsReady = '1';
+    const existing = main.querySelector('.card.full');
+    if (existing) existing.innerHTML = '<div class="empty">İşlemler yükleniyor…</div>';
+    try {
+      const response = await fetch('/api/market/orders/mine?limit=50', { headers: { Accept: 'application/json' } });
+      if (response.status === 401) {
+        if (existing) existing.innerHTML = '<div class="empty"><a class="btn" href="/login.html?next=%2Fdeals.html">İşlemler için giriş yap</a></div>';
+        return;
+      }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'orders_failed');
+      const orders = Array.isArray(data.orders) ? data.orders : [];
+      const actor = String(data.actorId || '');
+      if (!existing) return;
+      if (!orders.length) {
+        existing.innerHTML = '<div class="empty">Henüz alım veya satış işlemin yok.</div>';
+        return;
+      }
+      existing.innerHTML = `<div class="list">${orders.map((order) => {
+        const isBuyer = String(order.buyerId) === actor;
+        const roleText = isBuyer ? 'Alım' : 'Satış';
+        const payout = isBuyer ? money.format(order.amount) : `${money.format(order.sellerNet)} net`;
+        const action = order.escrowState === 'held' && isBuyer
+          ? `<button class="btn success" data-release-order="${esc(order.id)}">Teslim Aldım</button>`
+          : `<span class="badge ${order.escrowState === 'released' ? 'green' : order.escrowState === 'refunded' ? 'yellow' : ''}">${esc(stateLabel(order.escrowState))}</span>`;
+        return `<div class="list-item"><div style="flex:1"><strong>${esc(order.title)} · ${esc(roleText)}</strong><span>${esc(order.server)} · İşlem #${esc(order.id)} · ${esc(payout)}</span></div><div>${action}</div></div>`;
+      }).join('')}</div>`;
+      document.querySelectorAll('[data-release-order]').forEach((button) => button.addEventListener('click', () => releaseOrder(button, button.dataset.releaseOrder)));
+    } catch (_) {
+      if (existing) existing.innerHTML = '<div class="empty">İşlem geçmişi staging şeması doğrulandıktan sonra burada görünecek.</div>';
+    }
+  }
+
   async function enhance() {
     if (!document.querySelector('.page-title h1')) return;
     if (path === '/market.html') await renderMarket();
     if (path === '/sell.html') await renderSell();
+    if (path === '/deals.html') await renderDeals();
     enhanced = true;
   }
 
