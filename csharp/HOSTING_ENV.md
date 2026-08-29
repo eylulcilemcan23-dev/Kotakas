@@ -37,21 +37,33 @@ Kaynak API key istiyorsa:
 
 Otomatik kaynak hata verirse son başarılı `gb_try_rate` korunur; admin manuel kur girmeye devam edebilir.
 
-## Ödeme sağlayıcısı hazırlığı
+## iyzico ile ücretli ilan hakkı
 
-Şimdilik güvenli varsayılan:
+Ödeme sistemi genel KOTAKAS bakiyesi yüklemek için değil, aylık ücretsiz satış talebi hakkı bittikten sonra **ücretli ilan hakkı satın almak** için hazırlanmıştır.
+
+Önce sandbox ile test edin:
+
+- `Payments__Provider=iyzico`
+- `Payments__BaseUrl=https://sandbox-api.iyzipay.com`
+- `Payments__ApiKey=SANDBOX_API_KEY`
+- `Payments__SecretKey=SANDBOX_SECRET_KEY`
+- `Payments__CallbackBaseUrl=https://SENIN-DOMAININ`
+
+Canlı iyzico hesabı açılıp sandbox testi tamamlandıktan sonra yalnız BaseUrl ve canlı anahtarlar değiştirilir:
+
+- `Payments__BaseUrl=https://api.iyzipay.com`
+- `Payments__ApiKey=LIVE_API_KEY`
+- `Payments__SecretKey=LIVE_SECRET_KEY`
+
+Callback yolu uygulama tarafından otomatik olarak şu şekilde oluşturulur:
+
+`https://SENIN-DOMAININ/api/payments/iyzico/callback`
+
+Ödeme sağlayıcısı kapalı tutulacaksa:
 
 - `Payments__Provider=disabled`
 
-Gerçek sağlayıcı bağlandığında:
-
-- `Payments__Provider=...`
-- `Payments__BaseUrl=...`
-- `Payments__ApiKey=...`
-- `Payments__SecretKey=...`
-- `Payments__CallbackBaseUrl=https://SENIN-DOMAININ`
-
-Anahtarlar tamamlanana kadar gerçek ödeme başlatma özelliği açılmamalıdır.
+API key/secret, BaseUrl veya CallbackBaseUrl eksikse kartla ödeme butonu kullanıcıya aktif edilmez.
 
 ## Veritabanı
 
