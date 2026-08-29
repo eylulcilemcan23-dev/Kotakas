@@ -98,10 +98,13 @@ public static class StartupSeeder
 
     private static async Task EnsureFavoriteNotificationTriggers(AppDbContext db)
     {
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER IF EXISTS TR_Favorites_ListingPriceDrop;");
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER IF EXISTS TR_Favorites_TraderNewListing;");
+
         await db.Database.ExecuteSqlRawAsync("""
-            CREATE TRIGGER IF NOT EXISTS TR_Favorites_ListingPriceDrop
+            CREATE TRIGGER TR_Favorites_ListingPriceDrop
             AFTER UPDATE OF PriceGb ON Listings
-            WHEN NEW.PriceGb < OLD.PriceGb
+            WHEN CAST(NEW.PriceGb AS REAL) < CAST(OLD.PriceGb AS REAL)
             BEGIN
                 INSERT INTO Notifications (UserId, Title, Body, IsRead, CreatedAt)
                 SELECT f.UserId,
@@ -117,7 +120,7 @@ public static class StartupSeeder
             """);
 
         await db.Database.ExecuteSqlRawAsync("""
-            CREATE TRIGGER IF NOT EXISTS TR_Favorites_TraderNewListing
+            CREATE TRIGGER TR_Favorites_TraderNewListing
             AFTER INSERT ON Listings
             WHEN NEW.Status = 'active'
             BEGIN
