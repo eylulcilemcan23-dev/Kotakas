@@ -1,0 +1,44 @@
+name: Apply KOTAKAS CSharp V4
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - '.automation/csharp-v4/APPLY'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: csharp-rebuild
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Rebuild patch
+        run: |
+          cat .automation/csharp-v4/part*.b64 | base64 -d > /tmp/csharp-v4.patch
+          git apply --check /tmp/csharp-v4.patch
+          git apply /tmp/csharp-v4.patch
+      - name: JavaScript syntax
+        run: |
+          for f in csharp/Kotakas.Web/wwwroot/js/app.js csharp/Kotakas.Web/wwwroot/js/chunks/*.js; do node --check "$f"; done
+      - name: Restore
+        run: dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
+      - name: Build
+        run: dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
+      - name: Publish
+        run: dotnet publish csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build -o /tmp/kotakas-publish
+      - name: Commit verified V4
+        run: |
+          rm -rf .automation/csharp-v4
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(csharp): paid requests and secure listing checkout"
+          git push origin csharp-rebuild
