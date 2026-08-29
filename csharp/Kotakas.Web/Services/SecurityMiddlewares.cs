@@ -59,7 +59,7 @@ public sealed class CsrfProtectionMiddleware(RequestDelegate next)
 
 public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
 {
-    private static readonly SemaphoreSlim CriticalCommerceLock = new(1, 1);
+    private static readonly SemaphoreSlim LocalCommerceLock = new(1, 1);
 
     public async Task InvokeAsync(HttpContext context, AppDbContext db)
     {
@@ -84,12 +84,23 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
             return;
         }
 
-        var scope = $"{context.Request.Method}:{context.Request.Path}";
-        await CriticalCommerceLock.WaitAsync(context.RequestAborted);
+        var idempotencyScope = $"{context.Request.Method}:{context.Request.Path}";
+        var localLocked = false;
+        PostgresAdvisoryLease? pgLease = null;
         try
         {
+            if (db.Database.IsNpgsql())
+            {
+                pgLease = await PostgresAdvisoryLease.AcquireAsync(db, DistributedScope(context.Request, uid), context.RequestAborted);
+            }
+            else
+            {
+                await LocalCommerceLock.WaitAsync(context.RequestAborted);
+                localLocked = true;
+            }
+
             var exists = await db.IdempotencyRecords.AsNoTracking()
-                .AnyAsync(x => x.UserId == uid && x.Scope == scope && x.RequestKey == key, context.RequestAborted);
+                .AnyAsync(x => x.UserId == uid && x.Scope == idempotencyScope && x.RequestKey == key, context.RequestAborted);
             if (exists)
             {
                 context.Response.StatusCode = StatusCodes.Status409Conflict;
@@ -100,7 +111,7 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
             db.IdempotencyRecords.Add(new Models.IdempotencyRecord
             {
                 UserId = uid,
-                Scope = scope,
+                Scope = idempotencyScope,
                 RequestKey = key,
                 CreatedAt = DateTimeOffset.UtcNow
             });
@@ -109,8 +120,24 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
         }
         finally
         {
-            CriticalCommerceLock.Release();
+            if (pgLease is not null) await pgLease.DisposeAsync();
+            if (localLocked) LocalCommerceLock.Release();
         }
+    }
+
+    private static string DistributedScope(HttpRequest request, string uid)
+    {
+        var path = request.Path.Value?.ToLowerInvariant() ?? "";
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "listings" && parts[^1] == "buy")
+            return $"kotakas:listing:{parts[2]}";
+        if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "deals")
+            return $"kotakas:deal:{parts[2]}";
+        if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "offers" && parts[^1] == "accept")
+            return "kotakas:offer-accept"; // farklı teklifler aynı satış talebine ait olabilir; kabul işlemleri global sıraya alınır.
+        if (path == "/api/sale-requests" || path == "/api/listings" || path.StartsWith("/api/payments/paid-listing"))
+            return $"kotakas:{path}:{uid}";
+        return $"kotakas:{path}";
     }
 
     private static bool IsCritical(HttpRequest request)
@@ -125,5 +152,47 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
                path.Contains("/api/offers/") && path.EndsWith("/accept") ||
                path.Contains("/api/deals/") && (path.EndsWith("/confirm") || path.EndsWith("/cancel") || path.EndsWith("/dispute") || path.EndsWith("/delivered")) ||
                path.Contains("/api/admin/wallet");
+    }
+
+    private sealed class PostgresAdvisoryLease(AppDbContext db, string scope) : IAsyncDisposable
+    {
+        public static async Task<PostgresAdvisoryLease> AcquireAsync(AppDbContext db, string scope, CancellationToken cancellationToken)
+        {
+            await db.Database.OpenConnectionAsync(cancellationToken);
+            try
+            {
+                await using var command = db.Database.GetDbConnection().CreateCommand();
+                command.CommandText = "SELECT pg_advisory_lock(hashtext(@scope));";
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = "scope";
+                parameter.Value = scope;
+                command.Parameters.Add(parameter);
+                await command.ExecuteScalarAsync(cancellationToken);
+                return new PostgresAdvisoryLease(db, scope);
+            }
+            catch
+            {
+                await db.Database.CloseConnectionAsync();
+                throw;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            try
+            {
+                await using var command = db.Database.GetDbConnection().CreateCommand();
+                command.CommandText = "SELECT pg_advisory_unlock(hashtext(@scope));";
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = "scope";
+                parameter.Value = scope;
+                command.Parameters.Add(parameter);
+                await command.ExecuteScalarAsync();
+            }
+            finally
+            {
+                await db.Database.CloseConnectionAsync();
+            }
+        }
     }
 }
