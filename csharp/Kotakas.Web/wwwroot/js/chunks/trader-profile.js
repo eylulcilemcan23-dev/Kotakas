@@ -34,26 +34,26 @@
       $('#tpListings').innerHTML=(d.listings||[]).length?(d.listings||[]).map(listingHtml).join(''):'<div class="empty">Bu pazarcının şu an aktif SELL ilanı yok.</div>';
       $('#tpReviews').innerHTML=(d.reviews||[]).length?(d.reviews||[]).map(reviewHtml).join(''):'<div class="empty">Henüz tamamlanmış işlem değerlendirmesi yok.</div>';
 
-      let favState=false;
-      if(ME){try{const fd=await api('/api/favorites/');favState=(fd.traderIds||[]).map(String).includes(String(traderId))}catch{}}
+      let favState=false,listingFavIds=new Set();
+      if(ME){try{const fd=await api('/api/favorites/');favState=(fd.traderIds||[]).map(String).includes(String(traderId));listingFavIds=new Set((fd.listingIds||[]).map(String))}catch{}}
       const actions=$('#tpActions');actions.innerHTML='';
       if(ME&&ME.id!==traderId){
         const fav=document.createElement('button');fav.className=`btn ${favState?'teal':'ghost'}`;fav.textContent=favState?'★ Pazarcı Takipte':'☆ Pazarcıyı Takip Et';fav.dataset.favoriteType='trader';fav.dataset.favoriteId=traderId;fav.onclick=()=>toggleFavorite('trader',traderId,fav);actions.append(fav);
         const report=document.createElement('button');report.className='btn ghost';report.textContent='⚠ Şikâyet Et';report.onclick=()=>openReport('trader',traderId,t.displayName||'Pazarcı');actions.append(report);
-      }else if(!ME){
+      }else if(ME&&ME.id===traderId){
+        const manage=document.createElement('a');manage.href='/trader.html';manage.className='btn teal';manage.textContent='🛍️ İlanlarımı Yönet';actions.append(manage);
+      }else{
         const login=document.createElement('a');login.href='/login.html';login.className='btn teal';login.textContent='Giriş Yap ve Takip Et';actions.append(login);
       }
 
       $$('.tp-listing').forEach(card=>{
         const id=Number(card.dataset.id),stock=Number(card.dataset.stock),price=Number(card.dataset.price),name=decodeURIComponent(card.dataset.name||'');
-        card.querySelector('.tp-buy')?.addEventListener('click',()=>{
-          if(!ME){location.href='/login.html';return}
-          if(typeof window.buyListing==='function')window.buyListing(id,stock,name,price);else location.href='/buy.html';
-        });
-        const fav=card.querySelector('.tp-fav');
-        if(fav){fav.dataset.favoriteType='listing';fav.dataset.favoriteId=String(id);fav.addEventListener('click',()=>toggleFavorite('listing',id,fav));}
+        const buy=card.querySelector('.tp-buy'),fav=card.querySelector('.tp-fav');
+        if(ME&&ME.id===traderId){if(buy)buy.remove();if(fav)fav.remove();const a=document.createElement('a');a.href='/trader.html';a.className='btn sm ghost';a.textContent='İlanı Yönet';card.querySelector('.actions')?.append(a);return}
+        buy?.addEventListener('click',()=>{if(!ME){location.href='/login.html';return}if(typeof window.buyListing==='function')window.buyListing(id,stock,name,price);else location.href='/buy.html'});
+        if(fav){const active=listingFavIds.has(String(id));fav.dataset.favoriteType='listing';fav.dataset.favoriteId=String(id);fav.textContent=active?'♥ Favoride':'♡ Favoriye Al';fav.classList.toggle('teal',active);fav.classList.toggle('ghost',!active);fav.addEventListener('click',()=>toggleFavorite('listing',id,fav))}
       });
-    }catch(err){
+    }catch{
       $('#tpName').textContent='Pazarcı bulunamadı';
       $('#tpListings').innerHTML='<div class="empty">Bu profil aktif değil veya mevcut değil.</div>';
     }
