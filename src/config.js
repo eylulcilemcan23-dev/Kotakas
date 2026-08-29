@@ -11,16 +11,21 @@ export function loadConfig() {
     }
   }
 
+  const publicBaseUrl = process.env.APP_PUBLIC_BASE_URL || 'http://localhost:3000';
+
   return Object.freeze({
     env,
     production,
     port: Number(process.env.PORT || 3000),
     databaseUrl: process.env.DATABASE_URL || '',
     jwtSecret: process.env.JWT_SECRET || '',
-    publicBaseUrl: process.env.APP_PUBLIC_BASE_URL || 'http://localhost:3000',
+    publicBaseUrl,
     normalCommissionRate: Number(process.env.COMMISSION_RATE || 4),
     traderCommissionRate: Number(process.env.TRADER_COMMISSION_RATE || 3),
     traderDebtLimitGb: Number(process.env.TRADER_DEBT_LIMIT_GB || 0),
-    sourceBaselineReady: process.env.KOTAKAS_SOURCE_BASELINE_READY === 'true'
+    sourceBaselineReady: process.env.KOTAKAS_SOURCE_BASELINE_READY === 'true',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || `${publicBaseUrl}/auth/google/callback`
   });
 }
