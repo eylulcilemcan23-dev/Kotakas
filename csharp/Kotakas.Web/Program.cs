@@ -59,6 +59,7 @@ builder.Services.AddHostedService<MarketRateSyncService>();
 
 var app = builder.Build();
 await StartupSeeder.InitializeAsync(app);
+await StartupFeatureSeeder.InitializeAsync(app);
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -76,9 +77,12 @@ app.MapDealEndpoints();
 app.MapReviewEndpoints();
 app.MapFavoriteEndpoints();
 app.MapItemWatchEndpoints();
+app.MapNotificationPreferenceEndpoints();
+app.MapReportEndpoints();
 app.MapSupportEndpoints();
 app.MapAdminEndpoints();
 app.MapAdminModerationEndpoints();
+app.MapAdminSearchEndpoints();
 app.MapFinanceReportingEndpoints();
 app.MapIntegrationEndpoints();
 app.MapPaymentEndpoints();
