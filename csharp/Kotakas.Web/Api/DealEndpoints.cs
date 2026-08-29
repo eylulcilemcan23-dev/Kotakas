@@ -49,16 +49,15 @@ public static class DealEndpoints
             return Results.Ok(new { ok = true });
         }).RequireAuthorization();
 
-        // Eski KOTAKAS akışı: normal kullanıcı satıcıdır, pazarcı alıcıdır.
         app.MapPost("/api/deals/{id:long}/delivered", async (long id, ClaimsPrincipal p, AppDbContext db) =>
         {
-            var sellerUserId = ApiHelpers.UserId(p);
-            var deal = await db.Deals.FirstOrDefaultAsync(x => x.Id == id && x.UserId == sellerUserId && x.Status == "funded");
-            if (deal is null) return Results.NotFound();
+            var uid = ApiHelpers.UserId(p);
+            var deal = await db.Deals.FirstOrDefaultAsync(x => x.Id == id && x.Status == "funded");
+            if (deal is null || ApiHelpers.DealSellerUserId(deal) != uid) return Results.NotFound();
             deal.Status = "seller_delivered";
             db.Notifications.Add(new AppNotification
             {
-                UserId = deal.TraderUserId,
+                UserId = ApiHelpers.DealBuyerUserId(deal),
                 Title = "Satıcı teslim bildirimi yaptı",
                 Body = $"{deal.ItemName} teslim edildi olarak işaretlendi. Itemi aldıysan işlemi onayla."
             });
@@ -68,18 +67,19 @@ public static class DealEndpoints
 
         app.MapPost("/api/deals/{id:long}/confirm", async (long id, ClaimsPrincipal p, AppDbContext db) =>
         {
-            var buyerUserId = ApiHelpers.UserId(p);
+            var uid = ApiHelpers.UserId(p);
             await using var tx = await db.Database.BeginTransactionAsync();
-            var deal = await db.Deals.FirstOrDefaultAsync(x => x.Id == id && x.TraderUserId == buyerUserId && x.Status == "seller_delivered");
-            if (deal is null || deal.EscrowTry <= 0) return Results.NotFound();
+            var deal = await db.Deals.FirstOrDefaultAsync(x => x.Id == id && x.Status == "seller_delivered");
+            if (deal is null || ApiHelpers.DealBuyerUserId(deal) != uid || deal.EscrowTry <= 0) return Results.NotFound();
 
-            var sellerWallet = await ApiHelpers.WalletFor(db, deal.UserId);
+            var sellerUserId = ApiHelpers.DealSellerUserId(deal);
+            var sellerWallet = await ApiHelpers.WalletFor(db, sellerUserId);
             var before = sellerWallet.BalanceTry;
             sellerWallet.BalanceTry += deal.SellerNetTry;
             sellerWallet.UpdatedAt = DateTimeOffset.UtcNow;
             db.WalletLedgers.Add(new WalletLedger
             {
-                UserId = deal.UserId,
+                UserId = sellerUserId,
                 AmountTry = deal.SellerNetTry,
                 BeforeTry = before,
                 AfterTry = sellerWallet.BalanceTry,
@@ -92,7 +92,7 @@ public static class DealEndpoints
             deal.CompletedAt = DateTimeOffset.UtcNow;
             db.Notifications.Add(new AppNotification
             {
-                UserId = deal.UserId,
+                UserId = sellerUserId,
                 Title = "İşlem tamamlandı",
                 Body = $"{deal.ItemName}: {deal.SellerNetTry:0.00} ₺ bakiyene aktarıldı. Komisyon {deal.CommissionTry:0.00} ₺."
             });
@@ -103,18 +103,19 @@ public static class DealEndpoints
 
         app.MapPost("/api/deals/{id:long}/cancel", async (long id, ClaimsPrincipal p, AppDbContext db) =>
         {
-            var sellerUserId = ApiHelpers.UserId(p);
+            var uid = ApiHelpers.UserId(p);
             await using var tx = await db.Database.BeginTransactionAsync();
-            var deal = await db.Deals.FirstOrDefaultAsync(x => x.Id == id && x.UserId == sellerUserId && x.Status == "funded");
-            if (deal is null || deal.EscrowTry <= 0) return Results.NotFound();
+            var deal = await db.Deals.FirstOrDefaultAsync(x => x.Id == id && x.Status == "funded");
+            if (deal is null || ApiHelpers.DealSellerUserId(deal) != uid || deal.EscrowTry <= 0) return Results.NotFound();
 
-            var buyerWallet = await ApiHelpers.WalletFor(db, deal.TraderUserId);
+            var buyerUserId = ApiHelpers.DealBuyerUserId(deal);
+            var buyerWallet = await ApiHelpers.WalletFor(db, buyerUserId);
             var before = buyerWallet.BalanceTry;
             buyerWallet.BalanceTry += deal.EscrowTry;
             buyerWallet.UpdatedAt = DateTimeOffset.UtcNow;
             db.WalletLedgers.Add(new WalletLedger
             {
-                UserId = deal.TraderUserId,
+                UserId = buyerUserId,
                 AmountTry = deal.EscrowTry,
                 BeforeTry = before,
                 AfterTry = buyerWallet.BalanceTry,
@@ -124,9 +125,21 @@ public static class DealEndpoints
             var refund = deal.EscrowTry;
             deal.EscrowTry = 0;
             deal.Status = "cancelled";
-            var request = await db.SaleRequests.FirstOrDefaultAsync(x => x.Id == deal.SaleRequestId);
-            if (request is not null) request.Status = "cancelled";
-            db.Notifications.Add(new AppNotification { UserId = deal.TraderUserId, Title = "İşlem iptal edildi", Body = $"{refund:0.00} ₺ emanet bakiyeden hesabına iade edildi." });
+            if (deal.Flow == "request_offer")
+            {
+                var request = await db.SaleRequests.FirstOrDefaultAsync(x => x.Id == deal.SaleRequestId);
+                if (request is not null) request.Status = "cancelled";
+            }
+            else if (deal.TraderListingId is long listingId)
+            {
+                var listing = await db.Listings.FirstOrDefaultAsync(x => x.Id == listingId);
+                if (listing is not null)
+                {
+                    listing.Stock += Math.Max(1, deal.Quantity);
+                    listing.Status = "active";
+                }
+            }
+            db.Notifications.Add(new AppNotification { UserId = buyerUserId, Title = "İşlem iptal edildi", Body = $"{refund:0.00} ₺ emanet bakiyeden hesabına iade edildi." });
             await db.SaveChangesAsync();
             await tx.CommitAsync();
             return Results.Ok(new { ok = true, deal });

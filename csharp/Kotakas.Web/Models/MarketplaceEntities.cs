@@ -31,12 +31,17 @@ public sealed class Deal
 {
     public long Id { get; set; }
     public long SaleRequestId { get; set; }
-    // UserId = itemi satan normal kullanıcı; TraderUserId = itemi satın alan pazarcı.
+    public long? TraderListingId { get; set; }
+    // request_offer: UserId=satıcı kullanıcı, TraderUserId=alıcı pazarcı.
+    // trader_listing: UserId=alıcı kullanıcı, TraderUserId=satıcı pazarcı.
+    public string Flow { get; set; } = "request_offer";
     public string UserId { get; set; } = "";
     public string TraderUserId { get; set; } = "";
     public string TraderName { get; set; } = "";
     public string ItemName { get; set; } = "";
     public string ServerCode { get; set; } = "ZERO";
+    public int Quantity { get; set; } = 1;
+    public decimal UnitPriceGb { get; set; }
     public decimal PriceGb { get; set; }
     public decimal GbTryRate { get; set; }
     public decimal GrossTry { get; set; }

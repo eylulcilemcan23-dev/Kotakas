@@ -23,6 +23,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         base.OnModelCreating(b);
         b.Entity<SaleRequest>().Property(x => x.MinimumGb).HasPrecision(18, 4);
         b.Entity<Offer>().Property(x => x.PriceGb).HasPrecision(18, 4);
+        b.Entity<Deal>().Property(x => x.UnitPriceGb).HasPrecision(18, 4);
         b.Entity<Deal>().Property(x => x.PriceGb).HasPrecision(18, 4);
         b.Entity<Deal>().Property(x => x.GbTryRate).HasPrecision(18, 4);
         b.Entity<Deal>().Property(x => x.GrossTry).HasPrecision(18, 2);
@@ -39,6 +40,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<SaleRequest>().HasMany(x => x.Offers).WithOne(x => x.SaleRequest).HasForeignKey(x => x.SaleRequestId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<SaleRequest>().HasIndex(x => new { x.Status, x.ServerCode, x.CreatedAt });
         b.Entity<Offer>().HasIndex(x => new { x.SaleRequestId, x.TraderUserId });
+        b.Entity<Deal>().HasIndex(x => new { x.Flow, x.Status, x.CreatedAt });
+        b.Entity<Deal>().HasIndex(x => x.TraderListingId);
         b.Entity<AppNotification>().HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAt });
         b.Entity<TraderApplication>().HasIndex(x => new { x.UserId, x.Status });
         b.Entity<Wallet>().HasIndex(x => x.UserId).IsUnique();

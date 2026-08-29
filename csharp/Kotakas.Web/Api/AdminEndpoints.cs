@@ -62,21 +62,30 @@ public static class AdminEndpoints
             var amount = deal.EscrowTry;
             if (input.Action == "refund_buyer")
             {
-                var wallet = await ApiHelpers.WalletFor(db, deal.TraderUserId);
+                var buyerUserId = ApiHelpers.DealBuyerUserId(deal);
+                var wallet = await ApiHelpers.WalletFor(db, buyerUserId);
                 var before = wallet.BalanceTry; wallet.BalanceTry += amount; wallet.UpdatedAt = DateTimeOffset.UtcNow;
-                db.WalletLedgers.Add(new WalletLedger { UserId = deal.TraderUserId, AmountTry = amount, BeforeTry = before, AfterTry = wallet.BalanceTry, Type = "dispute_refund", Reason = $"Anlaşmazlık #{deal.Id} alıcı lehine çözüldü", AdminUserId = ApiHelpers.UserId(p) });
+                db.WalletLedgers.Add(new WalletLedger { UserId = buyerUserId, AmountTry = amount, BeforeTry = before, AfterTry = wallet.BalanceTry, Type = "dispute_refund", Reason = $"Anlaşmazlık #{deal.Id} alıcı lehine çözüldü", AdminUserId = ApiHelpers.UserId(p) });
                 deal.Status = "refunded";
-                db.Notifications.Add(new AppNotification { UserId = deal.TraderUserId, Title = "Anlaşmazlık sonuçlandı", Body = $"{amount:0.00} ₺ bakiyene iade edildi." });
-                db.Notifications.Add(new AppNotification { UserId = deal.UserId, Title = "Anlaşmazlık sonuçlandı", Body = "İşlem alıcı lehine sonuçlandı ve emanet tutarı iade edildi." });
+                if (deal.Flow == "trader_listing" && deal.TraderListingId is long listingId)
+                {
+                    var listing = await db.Listings.FirstOrDefaultAsync(x => x.Id == listingId);
+                    if (listing is not null) { listing.Stock += Math.Max(1, deal.Quantity); listing.Status = "active"; }
+                }
+                var sellerUserId = ApiHelpers.DealSellerUserId(deal);
+                db.Notifications.Add(new AppNotification { UserId = buyerUserId, Title = "Anlaşmazlık sonuçlandı", Body = $"{amount:0.00} ₺ bakiyene iade edildi." });
+                db.Notifications.Add(new AppNotification { UserId = sellerUserId, Title = "Anlaşmazlık sonuçlandı", Body = "İşlem alıcı lehine sonuçlandı ve emanet tutarı iade edildi." });
             }
             else
             {
-                var wallet = await ApiHelpers.WalletFor(db, deal.UserId);
+                var sellerUserId = ApiHelpers.DealSellerUserId(deal);
+                var wallet = await ApiHelpers.WalletFor(db, sellerUserId);
                 var before = wallet.BalanceTry; wallet.BalanceTry += deal.SellerNetTry; wallet.UpdatedAt = DateTimeOffset.UtcNow;
-                db.WalletLedgers.Add(new WalletLedger { UserId = deal.UserId, AmountTry = deal.SellerNetTry, BeforeTry = before, AfterTry = wallet.BalanceTry, Type = "dispute_release", Reason = $"Anlaşmazlık #{deal.Id} satıcı lehine çözüldü", AdminUserId = ApiHelpers.UserId(p) });
+                db.WalletLedgers.Add(new WalletLedger { UserId = sellerUserId, AmountTry = deal.SellerNetTry, BeforeTry = before, AfterTry = wallet.BalanceTry, Type = "dispute_release", Reason = $"Anlaşmazlık #{deal.Id} satıcı lehine çözüldü", AdminUserId = ApiHelpers.UserId(p) });
                 deal.Status = "completed"; deal.CompletedAt = DateTimeOffset.UtcNow;
-                db.Notifications.Add(new AppNotification { UserId = deal.UserId, Title = "Anlaşmazlık sonuçlandı", Body = $"{deal.SellerNetTry:0.00} ₺ bakiyene aktarıldı." });
-                db.Notifications.Add(new AppNotification { UserId = deal.TraderUserId, Title = "Anlaşmazlık sonuçlandı", Body = "İşlem satıcı lehine sonuçlandı." });
+                var buyerUserId = ApiHelpers.DealBuyerUserId(deal);
+                db.Notifications.Add(new AppNotification { UserId = sellerUserId, Title = "Anlaşmazlık sonuçlandı", Body = $"{deal.SellerNetTry:0.00} ₺ bakiyene aktarıldı." });
+                db.Notifications.Add(new AppNotification { UserId = buyerUserId, Title = "Anlaşmazlık sonuçlandı", Body = "İşlem satıcı lehine sonuçlandı." });
             }
             deal.EscrowTry = 0;
             await db.SaveChangesAsync(); await tx.CommitAsync();

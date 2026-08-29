@@ -14,6 +14,8 @@ public static class ApiHelpers
     public static bool IsFullAdmin(ClaimsPrincipal p) => p.IsInRole("admin_owner") || p.IsInRole("admin_full");
     public static bool IsAnyAdmin(ClaimsPrincipal p) => IsFullAdmin(p) || p.IsInRole("admin_limited");
     public static bool DealAccess(Deal d, ClaimsPrincipal p) => d.UserId == UserId(p) || d.TraderUserId == UserId(p) || IsAnyAdmin(p);
+    public static string DealSellerUserId(Deal d) => d.Flow == "trader_listing" ? d.TraderUserId : d.UserId;
+    public static string DealBuyerUserId(Deal d) => d.Flow == "trader_listing" ? d.UserId : d.TraderUserId;
     public static bool HasExternalContact(string text) => Regex.IsMatch(text ?? "", @"https?://|www\.|wa\.me|whatsapp|telegram|t\.me|discord|instagram|@[a-z0-9_.]{3,}|(?:\+?90\s*)?0?5\d{2}[\s.-]*\d{3}[\s.-]*\d{2}[\s.-]*\d{2}", RegexOptions.IgnoreCase);
     public static async Task<decimal> SettingDecimal(AppDbContext db, string key, decimal fallback = 0m)
     {
