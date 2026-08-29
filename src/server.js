@@ -18,6 +18,7 @@ import { walletApiRouter } from './wallet-api.js';
 import { marketplaceApiRouter } from './marketplace-api.js';
 import { adminFinanceApiRouter } from './admin-finance-api.js';
 import { disputesApiRouter } from './disputes-api.js';
+import { disputeCommunicationsRouter } from './dispute-communications.js';
 import { optionalSession } from './session.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -54,6 +55,7 @@ app.use('/api', walletApiRouter);
 app.use('/api', marketplaceApiRouter);
 app.use('/api', adminFinanceApiRouter);
 app.use('/api', disputesApiRouter);
+app.use('/api', disputeCommunicationsRouter);
 app.use('/api', apiRouter);
 app.use(express.static(publicDir));
 
