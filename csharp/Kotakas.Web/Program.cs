@@ -17,12 +17,14 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
     o.User.RequireUniqueEmail = true;
-    o.Password.RequiredLength = 8;
+    o.Password.RequiredLength = 10;
     o.Password.RequireUppercase = false;
     o.Password.RequireLowercase = false;
-    o.Password.RequireDigit = false;
+    o.Password.RequireDigit = true;
     o.Password.RequireNonAlphanumeric = false;
-    o.Lockout.MaxFailedAccessAttempts = 8;
+    o.Lockout.MaxFailedAccessAttempts = 5;
+    o.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    o.Lockout.AllowedForNewUsers = true;
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
@@ -44,17 +46,19 @@ builder.Services.ConfigureApplicationCookie(o =>
     o.Cookie.Name = "kotakas.sid";
     o.Cookie.HttpOnly = true;
     o.Cookie.SameSite = SameSiteMode.Lax;
-    o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    o.Cookie.SecurePolicy = builder.Environment.IsProduction() ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
     o.LoginPath = "/login.html";
     o.AccessDeniedPath = "/login.html";
     o.SlidingExpiration = true;
-    o.ExpireTimeSpan = TimeSpan.FromDays(7);
+    o.ExpireTimeSpan = TimeSpan.FromDays(3);
     o.Events.OnRedirectToLogin = ctx => RedirectApi(ctx, 401);
     o.Events.OnRedirectToAccessDenied = ctx => RedirectApi(ctx, 403);
 });
 
 builder.Services.AddAuthorization();
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<KotakasEmailSender>();
+builder.Services.AddKotakasSecurity();
 builder.Services.AddHostedService<MarketRateSyncService>();
 builder.Services.AddHostedService<MarketplaceMaintenanceService>();
 
@@ -62,16 +66,27 @@ var app = builder.Build();
 await StartupSeeder.InitializeAsync(app);
 await StartupFeatureSeeder.InitializeAsync(app);
 
+if (app.Environment.IsProduction())
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
+app.UseMiddleware<SessionSecurityMiddleware>();
+app.UseMiddleware<CsrfProtectionMiddleware>();
+app.UseMiddleware<CriticalRequestGuardMiddleware>();
 app.UseMiddleware<AdminAuditMiddleware>();
 app.UseMiddleware<TraderAvailabilityMiddleware>();
 
 app.MapHealthEndpoints();
 app.MapAuthEndpoints();
 app.MapAccountEndpoints();
+app.MapSessionEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
@@ -99,6 +114,11 @@ app.Run();
 
 static Task RedirectApi(RedirectContext<CookieAuthenticationOptions> ctx, int code)
 {
-    if (ctx.Request.Path.StartsWithSegments("/api")) { ctx.Response.StatusCode = code; return Task.CompletedTask; }
-    ctx.Response.Redirect(ctx.RedirectUri); return Task.CompletedTask;
+    if (ctx.Request.Path.StartsWithSegments("/api"))
+    {
+        ctx.Response.StatusCode = code;
+        return Task.CompletedTask;
+    }
+    ctx.Response.Redirect(ctx.RedirectUri);
+    return Task.CompletedTask;
 }
