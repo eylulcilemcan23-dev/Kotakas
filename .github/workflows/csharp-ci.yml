@@ -1,0 +1,29 @@
+name: KOTAKAS CSharp CI
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-ci.yml'
+  pull_request:
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-ci.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
+      - name: Build
+        run: dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
+      - name: Publish
+        run: dotnet publish csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build -o out/kotakas
