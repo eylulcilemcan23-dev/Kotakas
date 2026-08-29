@@ -6,10 +6,13 @@ import { createUserRepository } from './auth/users.js';
 import { createSessionMiddleware } from './auth/session.js';
 import { createAuthRouter } from './auth/routes.js';
 import { landingPathForRole, requirePanelPage } from './auth/panel-access.js';
+import { createFinanceRepository } from './finance/repository.js';
+import { createFinanceRouter } from './finance/routes.js';
 
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
 const users = db ? createUserRepository(db) : null;
+const finance = db ? createFinanceRepository(db) : null;
 const app = express();
 
 app.disable('x-powered-by');
@@ -46,6 +49,14 @@ if (users) {
   app.get('/admin.html', requirePanelPage('admin'), (_req, _res, next) => next());
   app.get('/trader.html', requirePanelPage('trader'), (_req, _res, next) => next());
   app.get('/dashboard.html', requirePanelPage('user'), (_req, _res, next) => next());
+}
+
+if (finance) {
+  app.use('/api', createFinanceRouter({
+    finance,
+    normalRate: config.normalCommissionRate,
+    traderRate: config.traderCommissionRate
+  }));
 }
 
 app.get('/api/health', async (_req, res) => {
