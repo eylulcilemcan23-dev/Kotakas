@@ -1,6 +1,7 @@
 using Kotakas.Web.Api;
 using Kotakas.Web.Data;
 using Kotakas.Web.Models;
+using Kotakas.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
@@ -25,6 +26,18 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"]?.Trim();
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]?.Trim();
+if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    builder.Services.AddAuthentication().AddGoogle("Google", o =>
+    {
+        o.ClientId = googleClientId;
+        o.ClientSecret = googleClientSecret;
+        o.SaveTokens = false;
+    });
+}
+
 builder.Services.ConfigureApplicationCookie(o =>
 {
     o.Cookie.Name = "kotakas.sid";
@@ -40,6 +53,9 @@ builder.Services.ConfigureApplicationCookie(o =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddHttpClient();
+builder.Services.AddHostedService<MarketRateSyncService>();
+
 var app = builder.Build();
 await StartupSeeder.InitializeAsync(app);
 
