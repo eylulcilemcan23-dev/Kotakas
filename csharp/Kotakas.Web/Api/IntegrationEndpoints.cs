@@ -27,8 +27,9 @@ public static class IntegrationEndpoints
         {
             var provider = configuration["Payments:Provider"]?.Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(provider)) provider = "disabled";
-            var enabled = provider != "disabled";
+            var enabled = provider == "iyzico";
             var configured = enabled &&
+                !string.IsNullOrWhiteSpace(configuration["Payments:BaseUrl"]) &&
                 !string.IsNullOrWhiteSpace(configuration["Payments:ApiKey"]) &&
                 !string.IsNullOrWhiteSpace(configuration["Payments:SecretKey"]) &&
                 !string.IsNullOrWhiteSpace(configuration["Payments:CallbackBaseUrl"]);
