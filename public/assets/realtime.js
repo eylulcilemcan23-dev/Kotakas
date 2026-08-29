@@ -37,6 +37,19 @@
     dispatch('kotakas:admin-notification-read', payload);
   });
 
+  socket.on('user:notification', (payload) => {
+    dispatch('kotakas:user-notification', payload);
+    if (location.pathname !== '/notifications.html' && payload?.notification?.title) toast(payload.notification.title);
+  });
+
+  socket.on('user:notification-read', (payload) => {
+    dispatch('kotakas:user-notification-read', payload);
+  });
+
+  socket.on('user:notifications-read-all', (payload) => {
+    dispatch('kotakas:user-notifications-read-all', payload);
+  });
+
   socket.on('dispute:message', (payload) => {
     dispatch('kotakas:dispute-message', payload);
     const message = payload?.message;
@@ -52,8 +65,5 @@
     }
   });
 
-  window.KotakasRealtime = {
-    socket,
-    connected: () => socket.connected,
-  };
+  window.KotakasRealtime = { socket, connected: () => socket.connected };
 })();
