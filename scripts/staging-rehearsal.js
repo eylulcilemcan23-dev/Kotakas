@@ -10,6 +10,9 @@ import { detectMarketplaceCompatibility, createListing, purchaseListing } from '
 import { detectOfferCompatibility, createOrUpdateOffer, acceptOffer } from '../src/offers-api.js';
 import { detectSwapCompatibility, createSwapRequest, acceptSwap, confirmSwapReceipt } from '../src/swaps-api.js';
 import { detectItemCatalogCompatibility, searchItemCatalog } from '../src/item-catalog-core.js';
+import { detectPasswordResetStoreCompatibility, issuePasswordResetToken, consumePasswordResetToken } from '../src/password-reset-store.js';
+import { detectOauthIdentityCompatibility, linkOauthIdentity, findOauthIdentity } from '../src/oauth-identities.js';
+import { detectSupportCompatibility, createSupportTicket, listMySupportTickets } from '../src/support-api.js';
 import {
   applyProviderPaymentEvent,
   createDepositIntent,
@@ -34,14 +37,12 @@ async function resetBaseSchema() {
       role text not null,
       name text
     );
-
     create table wallets (
       user_id bigint primary key,
       available_balance numeric(18,2) not null default 0 check (available_balance >= 0),
       held_balance numeric(18,2) not null default 0 check (held_balance >= 0),
       updated_at timestamptz not null default now()
     );
-
     create table listings (
       id bigserial primary key,
       seller_id bigint not null,
@@ -54,7 +55,6 @@ async function resetBaseSchema() {
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     );
-
     create table orders (
       id bigserial primary key,
       listing_id bigint references listings(id),
@@ -69,9 +69,7 @@ async function resetBaseSchema() {
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     );
-
     alter table listings add constraint listings_order_fk foreign key (order_id) references orders(id);
-
     create table wallet_transactions (
       id bigserial primary key,
       order_id bigint not null references orders(id),
@@ -81,7 +79,6 @@ async function resetBaseSchema() {
       held_delta numeric(18,2) not null default 0,
       created_at timestamptz not null default now()
     );
-
     create table commissions (
       id bigserial primary key,
       order_id bigint not null unique references orders(id),
@@ -89,13 +86,11 @@ async function resetBaseSchema() {
       rate numeric(8,6) not null check (rate >= 0 and rate <= 1),
       created_at timestamptz not null default now()
     );
-
     insert into users (id,email,password_hash,role,name) values
       (101,'buyer@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','user','Buyer'),
       (202,'trader@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','trader','Trader'),
       (303,'swapper@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','user','Swapper'),
       (404,'buyer2@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','user','Buyer 2');
-
     insert into wallets (user_id,available_balance,held_balance) values
       (101,600,0),(202,0,0),(303,0,0),(404,500,0);
   `);
@@ -103,11 +98,9 @@ async function resetBaseSchema() {
 
 async function applyStagingMigrations() {
   const dir = path.join(root, 'migrations');
-  const files = (await fs.readdir(dir))
-    .filter((name) => /^\d{3}_.+\.sql$/.test(name))
-    .sort();
-  const expected = Array.from({ length: 11 }, (_, index) => String(index + 2).padStart(3, '0'));
-  assert.deepEqual(files.map((name) => name.slice(0, 3)), expected, 'migration sequence must be 002-012 without gaps');
+  const files = (await fs.readdir(dir)).filter((name) => /^\d{3}_.+\.sql$/.test(name)).sort();
+  const expected = Array.from({ length: 12 }, (_, index) => String(index + 2).padStart(3, '0'));
+  assert.deepEqual(files.map((name) => name.slice(0, 3)), expected, 'migration sequence must be 002-013 without gaps');
   for (const file of files) {
     const sql = await fs.readFile(path.join(dir, file), 'utf8');
     await pool.query(sql);
@@ -124,6 +117,7 @@ function enableRehearsalFlags() {
   config.paymentWritesEnabled = true;
   config.withdrawalWritesEnabled = false;
   config.communicationWritesEnabled = true;
+  config.supportWritesEnabled = true;
   config.auditLogEnabled = true;
   config.paymentProvider = 'sandbox';
   config.paymentWebhookSecret = 'ci-rehearsal-payment-secret-123456789';
@@ -141,6 +135,9 @@ async function assertCompatibility() {
     swaps: await detectSwapCompatibility({ force: true }),
     catalog: await detectItemCatalogCompatibility({ force: true }),
     funding: await detectPaymentFundingCompatibility({ force: true }),
+    passwordReset: await detectPasswordResetStoreCompatibility({ force: true }),
+    oauth: await detectOauthIdentityCompatibility({ force: true }),
+    support: await detectSupportCompatibility({ force: true }),
   };
   for (const [name, status] of Object.entries(checks)) {
     assert.equal(status.ready, true, `${name} blockers: ${(status.blockers || []).join(', ')}`);
@@ -149,10 +146,7 @@ async function assertCompatibility() {
 }
 
 async function wallet(userId) {
-  const result = await pool.query(
-    'select available_balance::text as available,held_balance::text as held from wallets where user_id=$1',
-    [userId],
-  );
+  const result = await pool.query('select available_balance::text as available,held_balance::text as held from wallets where user_id=$1', [userId]);
   return result.rows[0];
 }
 
@@ -165,19 +159,29 @@ async function main() {
   const catalog = await searchItemCatalog({ q: 'IB8', limit: 10 });
   assert.ok(catalog.some((row) => row.canonicalName === 'Iron Bow' && row.matchedEnhancement === 8), 'IB8 must resolve to Iron Bow +8');
 
-  const deposit = await createDepositIntent({
+  const reset = await issuePasswordResetToken('buyer@test.local');
+  const consumedReset = await consumePasswordResetToken(reset.token);
+  assert.deepEqual(consumedReset, { email: 'buyer@test.local' });
+  assert.equal(await consumePasswordResetToken(reset.token), null, 'password reset token must be single-use');
+
+  await linkOauthIdentity({ provider: 'google', subject: 'google-subject-rehearsal-101', userId: 101, email: 'buyer@test.local' });
+  const oauthIdentity = await findOauthIdentity({ provider: 'google', subject: 'google-subject-rehearsal-101' });
+  assert.equal(oauthIdentity.userId, '101');
+  assert.equal(oauthIdentity.email, 'buyer@test.local');
+
+  const supportTicket = await createSupportTicket({
     userId: 101,
-    amount: 100,
-    idempotencyKey: 'rehearsal:deposit:101:100',
-    provider: 'sandbox',
+    email: 'buyer@test.local',
+    subject: 'Rehearsal destek talebi',
+    body: 'Destek akışının migration 013 üzerinde çalıştığını doğruluyoruz.',
   });
+  const supportTickets = await listMySupportTickets(101);
+  assert.equal(supportTickets[0].id, supportTicket.id);
+
+  const deposit = await createDepositIntent({ userId: 101, amount: 100, idempotencyKey: 'rehearsal:deposit:101:100', provider: 'sandbox' });
   const depositEvent = {
-    eventId: 'rehearsal-deposit-event-1',
-    merchantReference: deposit.merchantReference,
-    providerPaymentId: 'rehearsal-payment-1',
-    status: 'paid',
-    amount: 100,
-    currency: 'TRY',
+    eventId: 'rehearsal-deposit-event-1', merchantReference: deposit.merchantReference,
+    providerPaymentId: 'rehearsal-payment-1', status: 'paid', amount: 100, currency: 'TRY',
   };
   const credited = await applyProviderPaymentEvent(depositEvent, { provider: 'sandbox' });
   const duplicateCredit = await applyProviderPaymentEvent(depositEvent, { provider: 'sandbox' });
@@ -185,71 +189,28 @@ async function main() {
   assert.equal(duplicateCredit.credited, false);
   assert.equal((await wallet(101)).available, '700.00');
 
-  const offerListing = await createListing({
-    sellerId: 202,
-    sellerRole: 'trader',
-    title: 'Mirage Dagger +8',
-    server: 'ZERO',
-    description: 'Rehearsal offer listing',
-    price: 400,
-  });
+  const offerListing = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Mirage Dagger +8', server: 'ZERO', description: 'Rehearsal offer listing', price: 400 });
   const offer = await createOrUpdateOffer({ listingId: offerListing.id, buyerId: 101, amount: 350 });
-  const offerAcceptance = await acceptOffer({
-    offerId: offer.id,
-    sellerId: 202,
-    idempotencyKey: 'rehearsal:offer:accept:1',
-  });
+  const offerAcceptance = await acceptOffer({ offerId: offer.id, sellerId: 202, idempotencyKey: 'rehearsal:offer:accept:1' });
   const offerOrder = offerAcceptance.order;
   assert.equal(offerOrder.amount, 350);
   assert.equal(offerOrder.commissionAmount, 17.5);
   await releaseEscrow(offerOrder.id);
 
-  const directListing = await createListing({
-    sellerId: 202,
-    sellerRole: 'trader',
-    title: 'Raptor +8',
-    server: 'ZERO',
-    description: 'Rehearsal direct purchase listing',
-    price: 120,
-  });
-  const directOrder = await purchaseListing({
-    buyerId: 404,
-    listingId: directListing.id,
-    idempotencyKey: 'rehearsal:direct:purchase:1',
-  });
+  const directListing = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Raptor +8', server: 'ZERO', description: 'Rehearsal direct purchase listing', price: 120 });
+  const directOrder = await purchaseListing({ buyerId: 404, listingId: directListing.id, idempotencyKey: 'rehearsal:direct:purchase:1' });
   assert.equal(directOrder.commissionAmount, 6);
   await releaseEscrow(directOrder.id);
 
-  const swapOffered = await createListing({
-    sellerId: 303,
-    sellerRole: 'user',
-    title: 'Iron Bow +8',
-    server: 'ZERO',
-    description: 'Rehearsal swap offered item',
-    price: 200,
-  });
-  const swapRequested = await createListing({
-    sellerId: 202,
-    sellerRole: 'trader',
-    title: 'Shard +8',
-    server: 'ZERO',
-    description: 'Rehearsal swap requested item',
-    price: 210,
-  });
-  const swap = await createSwapRequest({
-    proposerId: 303,
-    offeredListingId: swapOffered.id,
-    requestedListingId: swapRequested.id,
-  });
+  const swapOffered = await createListing({ sellerId: 303, sellerRole: 'user', title: 'Iron Bow +8', server: 'ZERO', description: 'Rehearsal swap offered item', price: 200 });
+  const swapRequested = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Shard +8', server: 'ZERO', description: 'Rehearsal swap requested item', price: 210 });
+  const swap = await createSwapRequest({ proposerId: 303, offeredListingId: swapOffered.id, requestedListingId: swapRequested.id });
   await acceptSwap({ swapId: swap.id, recipientId: 202 });
   await confirmSwapReceipt({ swapId: swap.id, userId: 303 });
   const completedSwap = await confirmSwapReceipt({ swapId: swap.id, userId: 202 });
   assert.equal(completedSwap.status, 'completed');
 
-  const listingStates = await pool.query(
-    'select id::text,status from listings where id=any($1::bigint[]) order by id',
-    [[swapOffered.id, swapRequested.id]],
-  );
+  const listingStates = await pool.query('select id::text,status from listings where id=any($1::bigint[]) order by id', [[swapOffered.id, swapRequested.id]]);
   assert.deepEqual(listingStates.rows.map((row) => row.status), ['swapped', 'swapped']);
 
   const commission = await pool.query('select coalesce(sum(amount),0)::text as total,count(*)::int as count from commissions');
@@ -263,6 +224,8 @@ async function main() {
     migrations: migrations.length,
     compatibility: Object.fromEntries(Object.entries(compatibility).map(([name, status]) => [name, status.ready])),
     catalogProbe: 'IB8 -> Iron Bow +8',
+    accountRecovery: { singleUseToken: true, oauthLinked: oauthIdentity.userId === '101' },
+    support: { ticketId: supportTicket.id },
     deposit: { firstCredit: credited.credited, duplicateCredit: duplicateCredit.credited },
     offerOrder: offerOrder.id,
     directOrder: directOrder.id,
@@ -273,9 +236,7 @@ async function main() {
 }
 
 main()
-  .then(async () => {
-    await pool.end();
-  })
+  .then(async () => { await pool.end(); })
   .catch(async (error) => {
     console.error('[rehearsal] FAIL', error);
     await pool.end().catch(() => {});
