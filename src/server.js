@@ -1,26 +1,53 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import { loadConfig } from './config.js';
 import { createDb, checkDb } from './db.js';
+import { createUserRepository } from './auth/users.js';
+import { createSessionMiddleware } from './auth/session.js';
+import { createAuthRouter } from './auth/routes.js';
 
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
+const users = db ? createUserRepository(db) : null;
 const app = express();
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+app.use(cookieParser());
 
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
 
+if (users) {
+  app.use(createSessionMiddleware({ users, jwtSecret: config.jwtSecret }));
+  app.use('/api', createAuthRouter({
+    users,
+    jwtSecret: config.jwtSecret,
+    production: config.production
+  }));
+}
+
 app.get('/api/health', async (_req, res) => {
   const database = await checkDb(db);
+  let authSchema = { ok: false, reason: 'database_not_ready' };
+
+  if (database.ok && users) {
+    try {
+      authSchema = { ok: true, schema: await users.describeSchema() };
+    } catch (error) {
+      authSchema = { ok: false, reason: String(error?.message || 'auth_schema_error') };
+    }
+  }
+
   const migrationGateOk = !config.production || config.sourceBaselineReady;
-  const ok = database.ok && migrationGateOk;
+  const ok = database.ok && authSchema.ok && migrationGateOk;
 
   res.status(ok ? 200 : 503).json({
     ok,
@@ -28,6 +55,7 @@ app.get('/api/health', async (_req, res) => {
     phase: 21,
     source: 'github-baseline',
     database: database.ok ? 'ok' : 'error',
+    authSchema: authSchema.ok ? 'compatible' : authSchema.reason,
     migrationGate: migrationGateOk ? 'open' : 'closed'
   });
 });
