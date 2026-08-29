@@ -11,6 +11,14 @@ export const READY_SELLER_QUESTIONS = Object.freeze([
   'İlan bilgileri güncel mi?'
 ]);
 
+export const READY_SELLER_ANSWERS = Object.freeze([
+  'Evet, ürün satılık.',
+  'Hayır, ürün artık satılık değil.',
+  'İlandaki fiyat güncel.',
+  'Teklifinizi kabul ediyorum.',
+  'Teklifinizi kabul etmiyorum.'
+]);
+
 const blockedContactPatterns = [
   /https?:\/\//i,
   /www\./i,
@@ -41,6 +49,10 @@ export function isReadyQuestion(message = '') {
   return READY_SELLER_QUESTIONS.includes(String(message).trim());
 }
 
+export function isReadyAnswer(message = '') {
+  return READY_SELLER_ANSWERS.includes(String(message).trim());
+}
+
 export function canSendSellerQuestion(message = '') {
   if (FREE_FORM_CHAT_ENABLED) return validateMarketplaceText(message);
   if (!isReadyQuestion(message)) {
@@ -48,6 +60,18 @@ export function canSendSellerQuestion(message = '') {
       ok: false,
       error: 'free_form_chat_disabled',
       message: 'Yalnızca KOTAKAS hazır soruları kullanılabilir.'
+    };
+  }
+  return { ok: true };
+}
+
+export function canSendSellerAnswer(message = '') {
+  if (FREE_FORM_CHAT_ENABLED) return validateMarketplaceText(message);
+  if (!isReadyAnswer(message)) {
+    return {
+      ok: false,
+      error: 'free_form_chat_disabled',
+      message: 'Yalnızca KOTAKAS hazır cevapları kullanılabilir.'
     };
   }
   return { ok: true };
