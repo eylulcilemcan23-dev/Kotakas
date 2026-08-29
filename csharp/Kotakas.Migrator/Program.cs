@@ -136,19 +136,26 @@ static async Task<int> Copy<T>(DbSet<T> from, DbSet<T> to, AppDbContext targetDb
 
 static async Task<DbSummary> Summary(AppDbContext db)
 {
+    // SQLite decimal SUM çevirisini desteklemez. Provider bağımsız doğrulama için
+    // finans değerlerini satır bazında okuyup toplamı uygulama tarafında hesaplarız.
+    var walletBalances = await db.Wallets.AsNoTracking().Select(x => x.BalanceTry).ToListAsync();
+    var dealAmounts = await db.Deals.AsNoTracking()
+        .Select(x => new { x.Status, x.EscrowTry, x.GrossTry })
+        .ToListAsync();
+
     return new DbSummary(
         await db.Users.CountAsync(),
         await db.SaleRequests.CountAsync(),
         await db.Offers.CountAsync(),
         await db.Listings.CountAsync(),
-        await db.Deals.CountAsync(),
-        await db.Wallets.CountAsync(),
+        dealAmounts.Count,
+        walletBalances.Count,
         await db.WalletLedgers.CountAsync(),
         await db.TraderReviews.CountAsync(),
         await db.Favorites.CountAsync(),
-        await db.Wallets.SumAsync(x => (decimal?)x.BalanceTry) ?? 0m,
-        await db.Deals.SumAsync(x => (decimal?)x.EscrowTry) ?? 0m,
-        await db.Deals.Where(x => x.Status == "completed").SumAsync(x => (decimal?)x.GrossTry) ?? 0m);
+        walletBalances.Sum(),
+        dealAmounts.Sum(x => x.EscrowTry),
+        dealAmounts.Where(x => x.Status == "completed").Sum(x => x.GrossTry));
 }
 
 static void PrintSummary(string title, DbSummary s)
