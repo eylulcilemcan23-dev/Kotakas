@@ -33,7 +33,8 @@ Bu dosya secret içermez. Yalnızca canlıya geçişte hangi değişkenlerin kon
 
 ## Pazaryeri açılırken
 
-- `TRADER_COMMISSION_RATE` kullanıcı tarafından kesin seçilmeli. Demo oranı production oranı değildir.
+- Onaylanan Pazarcı komisyon oranı: `TRADER_COMMISSION_RATE=0.03` (%3).
+- 1.000 TL tamamlanmış Pazarcı satışında komisyon 30 TL, satıcı neti 970 TL olur.
 - `FINANCE_WRITES_ENABLED=true`
 - `ESCROW_API_ENABLED=true`
 - `MARKET_WRITES_ENABLED=true`
