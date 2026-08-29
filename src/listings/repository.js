@@ -1,4 +1,5 @@
 function mapListing(row) {
+  if (!row) return null;
   return {
     id: row.id,
     sellerUserId: row.seller_user_id,
@@ -39,6 +40,15 @@ export function createListingRepository(pool) {
           order by created_at desc
           limit $${params.length}`,
         params
+      );
+      return result.rows.map(mapListing);
+    },
+
+    async listAll(limit = 200) {
+      const safeLimit = Math.max(1, Math.min(500, Number(limit) || 200));
+      const result = await pool.query(
+        `select * from listings order by created_at desc limit $1`,
+        [safeLimit]
       );
       return result.rows.map(mapListing);
     },
