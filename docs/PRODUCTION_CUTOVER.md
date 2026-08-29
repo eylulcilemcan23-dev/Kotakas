@@ -7,7 +7,7 @@ Bu belge `source-migration` dalının production'a alınması için zorunlu son 
 Aşağıdakiler çözülmeden production deploy yapılmaz:
 
 - PR CI tamamen yeşil olmalı.
-- `node scripts/release-readiness.js` PASS olmalı.
+- `npm run release:check` PASS olmalı.
 - Gerçek production credential kontrolü `KOTAKAS_RELEASE_MODE=production` ile PASS olmalı.
 - Production DB yedeği alınmış ve geri yükleme yolu doğrulanmış olmalı.
 - Son çalışan Railway deployment ID kayıt altına alınmalı.
@@ -67,7 +67,7 @@ Production Railway Variables ile, secretları ekrana dökmeden:
 KOTAKAS_RELEASE_MODE=production \
 KOTAKAS_BACKUP_CONFIRMED=1 \
 KOTAKAS_ROLLBACK_DEPLOYMENT_ID="<son-calisan-deployment-id>" \
-node scripts/release-readiness.js
+npm run release:check
 ```
 
 Komut FAIL verirse deploy durdurulur.
