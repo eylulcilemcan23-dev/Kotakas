@@ -11,8 +11,26 @@ var builder = WebApplication.CreateBuilder(args);
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads", "requests"));
 
-builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=App_Data/kotakas.db"));
+var databaseProvider = (builder.Configuration["Database:Provider"] ?? "sqlite").Trim().ToLowerInvariant();
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    switch (databaseProvider)
+    {
+        case "sqlite":
+            options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=App_Data/kotakas.db");
+            break;
+        case "postgres":
+        case "postgresql":
+            var postgres = builder.Configuration.GetConnectionString("Postgres")
+                ?? builder.Configuration.GetConnectionString("Default");
+            if (string.IsNullOrWhiteSpace(postgres))
+                throw new InvalidOperationException("PostgreSQL seçildi ancak ConnectionStrings:Postgres ayarlanmadı.");
+            options.UseNpgsql(postgres, npgsql => npgsql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(5), null));
+            break;
+        default:
+            throw new InvalidOperationException($"Desteklenmeyen Database:Provider: {databaseProvider}");
+    }
+});
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
 {
