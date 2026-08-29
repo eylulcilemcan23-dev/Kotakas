@@ -6,6 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 const errors = [];
 const warnings = [];
+const APPROVED_TRADER_COMMISSION_RATE = 0.03;
 
 function fail(message) { errors.push(message); }
 function warn(message) { warnings.push(message); }
@@ -56,6 +57,9 @@ async function staticChecks() {
   }
   if (env.get('PAYMENT_PROVIDER') !== 'disabled') fail('PAYMENT_PROVIDER varsayılanı disabled olmalı');
   if (String(env.get('PAYTR_TEST_MODE') || '').toLowerCase() !== 'true') fail('PAYTR_TEST_MODE örnek ortamda true kalmalı');
+  if (Number(env.get('TRADER_COMMISSION_RATE')) !== APPROVED_TRADER_COMMISSION_RATE) {
+    fail('TRADER_COMMISSION_RATE onaylanan production politikası olan 0.03 olmalı');
+  }
 
   const migrations = (await fs.readdir(path.join(root, 'migrations')))
     .filter((name) => /^\d{3}_.+\.sql$/.test(name)).sort();
@@ -76,6 +80,7 @@ async function staticChecks() {
   const appIndex = indexSource.indexOf('/assets/app.js');
   if (demoIndex < 0 || appIndex < 0 || demoIndex > appIndex) fail('Preview demo interceptörü app.js öncesinde yüklenmeli');
   if (!previewSource.includes("hostname.endsWith('.vercel.app')")) fail('Preview demo yalnız .vercel.app üzerinde çalışacak şekilde sınırlandırılmamış');
+  if (!previewSource.includes('commissionRate: 0.03')) fail('Preview Pazarcı komisyonu onaylanan %3 oranını göstermeli');
   if (!indexSource.includes('/assets/faz20-ui-polish.js')) fail('Faz 20 UI düzeltme katmanı index.html içinde bulunamadı');
 
   for (const marker of ['Staging migration rehearsal', 'Source smoke test']) {
@@ -116,10 +121,12 @@ function productionChecks() {
     if (!enabled('FINANCE_WRITES_ENABLED')) fail('MARKET_WRITES_ENABLED için FINANCE_WRITES_ENABLED=true gerekli');
     if (!enabled('ESCROW_API_ENABLED')) fail('MARKET_WRITES_ENABLED için ESCROW_API_ENABLED=true gerekli');
     if (!Object.prototype.hasOwnProperty.call(process.env, 'TRADER_COMMISSION_RATE')) {
-      fail('Pazarcı komisyon oranı yayın öncesi açıkça seçilmeli: TRADER_COMMISSION_RATE');
+      fail('Pazarcı komisyon oranı yayın öncesi açıkça seçilmeli: TRADER_COMMISSION_RATE=0.03');
     } else {
       const rate = Number(process.env.TRADER_COMMISSION_RATE);
-      if (!Number.isFinite(rate) || rate <= 0 || rate > 0.5) fail('TRADER_COMMISSION_RATE 0 ile 0.5 arasında pozitif olmalı');
+      if (!Number.isFinite(rate) || Math.abs(rate - APPROVED_TRADER_COMMISSION_RATE) > 1e-9) {
+        fail('TRADER_COMMISSION_RATE onaylanan production oranı olan 0.03 (%3) olmalı');
+      }
     }
   }
   if (enabled('SWAP_WRITES_ENABLED') && !enabled('MARKET_WRITES_ENABLED')) fail('SWAP_WRITES_ENABLED için MARKET_WRITES_ENABLED=true gerekli');
