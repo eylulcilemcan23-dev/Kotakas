@@ -10,6 +10,29 @@ public static class MarketplaceEndpoints
 {
     public static IEndpointRouteBuilder MapMarketplaceEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/public/stats", async (AppDbContext db) => Results.Ok(new
+        {
+            users = await db.Users.CountAsync(x => x.AccountStatus == "active"),
+            traders = await db.Users.CountAsync(x => x.AccountStatus == "active" && x.VerifiedTrader),
+            openRequests = await db.SaleRequests.CountAsync(x => x.Status == "open"),
+            completedDeals = await db.Deals.CountAsync(x => x.Status == "completed")
+        }));
+
+        app.MapGet("/api/traders", async (AppDbContext db) =>
+        {
+            var traders = await db.Users.AsNoTracking()
+                .Where(x => x.AccountStatus == "active" && x.VerifiedTrader)
+                .OrderByDescending(x => x.CreatedAt).Take(12)
+                .Select(x => new { id = x.Id, x.DisplayName, x.CreatedAt })
+                .ToListAsync();
+            var ids = traders.Select(x => x.id).ToList();
+            var dealCounts = await db.Deals.AsNoTracking()
+                .Where(x => ids.Contains(x.TraderUserId) && x.Status == "completed")
+                .GroupBy(x => x.TraderUserId)
+                .Select(g => new { id = g.Key, count = g.Count() })
+                .ToDictionaryAsync(x => x.id, x => x.count);
+            return Results.Ok(new { traders = traders.Select(x => new { x.id, x.DisplayName, completedDeals = dealCounts.TryGetValue(x.id, out var c) ? c : 0 }) });
+        });
         app.MapGet("/api/sale-requests", async (string? server, string? search, AppDbContext db) =>
         {
             var q = db.SaleRequests.AsNoTracking().Include(x => x.Offers).Where(x => x.Status == "open");
@@ -18,11 +41,13 @@ public static class MarketplaceEndpoints
             var rows = await q.OrderByDescending(x => x.Id).Take(200).ToListAsync();
             return Results.Ok(new { requests = rows.Select(ApiHelpers.RequestDto) });
         });
+
         app.MapGet("/api/sale-requests/mine", async (ClaimsPrincipal p, AppDbContext db) =>
         {
             var rows = await db.SaleRequests.AsNoTracking().Include(x => x.Offers).Where(x => x.UserId == ApiHelpers.UserId(p)).OrderByDescending(x => x.Id).Take(200).ToListAsync();
             return Results.Ok(new { requests = rows.Select(ApiHelpers.RequestDto) });
         }).RequireAuthorization();
+
         app.MapPost("/api/sale-requests", async (ClaimsPrincipal p, SaleRequestInput input, AppDbContext db) =>
         {
             var uid = ApiHelpers.UserId(p); var item = (input.ItemName ?? "").Trim(); var note = (input.Note ?? "").Trim();
@@ -36,6 +61,7 @@ public static class MarketplaceEndpoints
             db.Notifications.AddRange(traders.Select(id => new AppNotification { UserId = id, Title = "Yeni satış talebi", Body = $"{row.ServerCode} • {row.ItemName} • minimum {row.MinimumGb:0.##} GB" }));
             await db.SaveChangesAsync(); return Results.Json(new { ok = true, request = row }, statusCode: 201);
         }).RequireAuthorization();
+
         app.MapPost("/api/sale-requests/{id:long}/offers", async (long id, ClaimsPrincipal p, OfferInput input, UserManager<ApplicationUser> users, AppDbContext db) =>
         {
             if (!p.IsInRole("trader") && !ApiHelpers.IsFullAdmin(p)) return Results.Forbid();
@@ -48,21 +74,78 @@ public static class MarketplaceEndpoints
             db.Notifications.Add(new AppNotification { UserId = request.UserId, Title = "Yeni teklif", Body = $"{request.ItemName} için {offer.TraderName} {offer.PriceGb:0.##} GB teklif verdi." });
             await db.SaveChangesAsync(); return Results.Ok(new { ok = true, offer });
         }).RequireAuthorization();
-        app.MapPost("/api/offers/{id:long}/accept", async (long id, ClaimsPrincipal p, AppDbContext db) =>
+
+        app.MapPost("/api/offers/{id:long}/accept", async (long id, ClaimsPrincipal p, UserManager<ApplicationUser> users, AppDbContext db) =>
         {
-            var offer = await db.Offers.Include(x => x.SaleRequest).FirstOrDefaultAsync(x => x.Id == id); var uid = ApiHelpers.UserId(p);
-            if (offer?.SaleRequest is null || offer.SaleRequest.UserId != uid || offer.SaleRequest.Status != "open") return Results.NotFound();
+            var offer = await db.Offers.Include(x => x.SaleRequest).FirstOrDefaultAsync(x => x.Id == id);
+            var sellerUserId = ApiHelpers.UserId(p);
+            if (offer?.SaleRequest is null || offer.SaleRequest.UserId != sellerUserId || offer.SaleRequest.Status != "open") return Results.NotFound();
+
+            var rate = await ApiHelpers.SettingDecimal(db, "gb_try_rate", 0m);
+            if (rate <= 0) return Results.Json(new { error = "market_rate_not_configured" }, statusCode: 503);
+            var grossTry = Math.Round(offer.PriceGb * rate, 2, MidpointRounding.AwayFromZero);
+            if (grossTry <= 0) return Results.BadRequest(new { error = "invalid_settlement_amount" });
+
+            var buyerWallet = await ApiHelpers.WalletFor(db, offer.TraderUserId);
+            if (buyerWallet.BalanceTry < grossTry)
+                return Results.Json(new { error = "buyer_balance_insufficient", requiredTry = grossTry, balanceTry = buyerWallet.BalanceTry }, statusCode: 402);
+
+            var seller = await users.FindByIdAsync(sellerUserId);
+            if (seller is null) return Results.NotFound();
+            var sellerRoles = await users.GetRolesAsync(seller);
+            var sellerIsTrader = sellerRoles.Contains("trader");
+            var commissionPercent = await ApiHelpers.SettingDecimal(db, sellerIsTrader ? "trader_commission_percent" : "normal_commission_percent", sellerIsTrader ? 3m : 4m);
+            commissionPercent = Math.Clamp(commissionPercent, 0m, 100m);
+            var commissionTry = Math.Round(grossTry * commissionPercent / 100m, 2, MidpointRounding.AwayFromZero);
+            var sellerNetTry = grossTry - commissionTry;
+
+            var before = buyerWallet.BalanceTry;
+            buyerWallet.BalanceTry -= grossTry;
+            buyerWallet.UpdatedAt = DateTimeOffset.UtcNow;
+            db.WalletLedgers.Add(new WalletLedger
+            {
+                UserId = offer.TraderUserId,
+                AmountTry = -grossTry,
+                BeforeTry = before,
+                AfterTry = buyerWallet.BalanceTry,
+                Type = "escrow_fund",
+                Reason = $"Anlaşma emanet fonu: {offer.SaleRequest.ItemName}"
+            });
+
             offer.SaleRequest.Status = "matched";
-            foreach (var sibling in await db.Offers.Where(x => x.SaleRequestId == offer.SaleRequestId).ToListAsync()) sibling.Status = sibling.Id == offer.Id ? "accepted" : "declined";
-            var deal = new Deal { SaleRequestId = offer.SaleRequestId, UserId = uid, TraderUserId = offer.TraderUserId, TraderName = offer.TraderName, ItemName = offer.SaleRequest.ItemName, ServerCode = offer.SaleRequest.ServerCode, PriceGb = offer.PriceGb };
-            db.Deals.Add(deal); db.Notifications.Add(new AppNotification { UserId = offer.TraderUserId, Title = "Teklifin kabul edildi", Body = $"{deal.ItemName} • {deal.PriceGb:0.##} GB" });
-            await db.SaveChangesAsync(); return Results.Ok(new { ok = true, deal });
+            foreach (var sibling in await db.Offers.Where(x => x.SaleRequestId == offer.SaleRequestId).ToListAsync())
+                sibling.Status = sibling.Id == offer.Id ? "accepted" : "declined";
+
+            var deal = new Deal
+            {
+                SaleRequestId = offer.SaleRequestId,
+                UserId = sellerUserId,
+                TraderUserId = offer.TraderUserId,
+                TraderName = offer.TraderName,
+                ItemName = offer.SaleRequest.ItemName,
+                ServerCode = offer.SaleRequest.ServerCode,
+                PriceGb = offer.PriceGb,
+                GbTryRate = rate,
+                GrossTry = grossTry,
+                EscrowTry = grossTry,
+                CommissionPercent = commissionPercent,
+                CommissionTry = commissionTry,
+                SellerNetTry = sellerNetTry,
+                Status = "funded"
+            };
+            db.Deals.Add(deal);
+            db.Notifications.Add(new AppNotification { UserId = offer.TraderUserId, Title = "Teklifin kabul edildi", Body = $"{deal.ItemName} • {deal.PriceGb:0.##} GB • {deal.GrossTry:0.00} ₺ emanet bakiyeye alındı." });
+            db.Notifications.Add(new AppNotification { UserId = sellerUserId, Title = "Güvenli işlem başladı", Body = $"{deal.GrossTry:0.00} ₺ emanet bakiyede. Item tesliminden sonra pazarcı onayı beklenir." });
+            await db.SaveChangesAsync();
+            return Results.Ok(new { ok = true, deal });
         }).RequireAuthorization();
+
         app.MapGet("/api/offers/mine", async (ClaimsPrincipal p, AppDbContext db) =>
         {
             var rows = await db.Offers.AsNoTracking().Include(x => x.SaleRequest).Where(x => x.TraderUserId == ApiHelpers.UserId(p)).OrderByDescending(x => x.Id).Take(200).ToListAsync();
             return Results.Ok(new { offers = rows.Select(x => new { x.Id, x.SaleRequestId, itemName = x.SaleRequest!.ItemName, serverCode = x.SaleRequest.ServerCode, x.PriceGb, x.ExpiryMinutes, x.Status, x.CreatedAt }) });
         }).RequireAuthorization();
+
         app.MapGet("/api/listings", async (string? server, string? search, AppDbContext db) =>
         {
             var q = db.Listings.AsNoTracking().Where(x => x.Status == "active" && x.Stock > 0);
@@ -78,6 +161,7 @@ public static class MarketplaceEndpoints
             var user = await users.GetUserAsync(p); var row = new TraderListing { SellerUserId = ApiHelpers.UserId(p), SellerName = user?.DisplayName ?? "Pazarcı", ItemName = input.ItemName.Trim(), ServerCode = (input.ServerCode ?? "ZERO").Trim().ToUpperInvariant(), PriceGb = input.PriceGb, Stock = input.Stock };
             db.Listings.Add(row); await db.SaveChangesAsync(); return Results.Json(new { ok = true, listing = row }, statusCode: 201);
         }).RequireAuthorization();
+
         app.MapGet("/api/wallet", async (ClaimsPrincipal p, AppDbContext db) =>
         {
             var uid = ApiHelpers.UserId(p); var wallet = await db.Wallets.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == uid);
