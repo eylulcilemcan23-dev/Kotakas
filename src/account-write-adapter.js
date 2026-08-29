@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { pool } from './db.js';
 import { detectUserSchema, findUserByEmail, publicUser } from './user-adapter.js';
@@ -42,10 +43,10 @@ export async function detectAccountWriteCompatibility({ force = false } = {}) {
   };
 }
 
-export async function createLocalUser({ email, password, name = null }) {
+export async function createLocalUser({ email, password, name = null }, queryable = pool) {
   const compatibility = await detectAccountWriteCompatibility();
   if (!compatibility.ready) throw new Error('registration_schema_not_ready');
-  if (await findUserByEmail(email)) throw new Error('email_already_registered');
+  if (await findUserByEmail(email, queryable)) throw new Error('email_already_registered');
 
   const schema = compatibility.schema;
   const passwordHash = await bcrypt.hash(password, 12);
@@ -68,16 +69,21 @@ export async function createLocalUser({ email, password, name = null }) {
     schema.name ? `${qi(schema.name)} as name` : `null::text as name`,
   ];
   const sql = `insert into ${qi(schema.table)} (${columns.map(qi).join(', ')}) values (${placeholders}) returning ${selects.join(', ')}`;
-  const result = await pool.query(sql, values);
+  const result = await queryable.query(sql, values);
   return publicUser(result.rows[0]);
 }
 
-export async function updateUserPasswordByEmail(email, password) {
+export async function createOAuthUser({ email, name = null }, queryable = pool) {
+  const randomPassword = crypto.randomBytes(48).toString('base64url');
+  return createLocalUser({ email, password: randomPassword, name }, queryable);
+}
+
+export async function updateUserPasswordByEmail(email, password, queryable = pool) {
   const compatibility = await detectAccountWriteCompatibility();
   if (!compatibility.ready) throw new Error('password_schema_not_ready');
   const schema = compatibility.schema;
   const passwordHash = await bcrypt.hash(password, 12);
   const sql = `update ${qi(schema.table)} set ${qi(schema.password)} = $2 where lower(${qi(schema.email)}) = lower($1) returning ${qi(schema.id)} as id`;
-  const result = await pool.query(sql, [email, passwordHash]);
+  const result = await queryable.query(sql, [email, passwordHash]);
   return result.rowCount > 0;
 }
