@@ -5,6 +5,7 @@ import { config } from '../src/config.js';
 import { createCatalogListing } from '../src/catalog-marketplace.js';
 import {
   detectItemCatalogCompatibility,
+  listCatalogFacets,
   listCatalogMarketListings,
   searchItemCatalog,
 } from '../src/item-catalog-core.js';
@@ -111,6 +112,45 @@ test('catalog listing derives title and item stats server-side and appears in en
     assert.equal(results[0].title, 'Iron Bow +8');
     assert.equal(results[0].item.subcategory, 'Bow');
     assert.equal(Object.prototype.hasOwnProperty.call(results[0], 'buyerId'), false);
+  } finally {
+    config.marketWritesEnabled = oldWrites;
+    await pool.query('drop table if exists listing_item_metadata, item_catalog, listings cascade');
+  }
+});
+
+test('compact KO search understands alias plus enhancement and exposes safe facets', { skip: !dbReady }, async () => {
+  await resetSchema();
+  const oldWrites = config.marketWritesEnabled;
+  config.marketWritesEnabled = true;
+  try {
+    await createCatalogListing({
+      sellerId: 201,
+      sellerRole: 'trader',
+      itemId: 10,
+      server: 'zero',
+      enhancement: 8,
+      reverse: false,
+      deliveryWindow: '15 dk içinde',
+      description: '',
+      price: 1500,
+    });
+
+    const catalog = await searchItemCatalog({ q: 'ib8' });
+    assert.equal(catalog.length, 1);
+    assert.equal(catalog[0].canonicalName, 'Iron Bow');
+    assert.equal(catalog[0].matchedEnhancement, 8);
+
+    const market = await listCatalogMarketListings({ q: 'ib+8', subcategory: 'Bow', classInfo: 'Rogue' });
+    assert.equal(market.length, 1);
+    assert.equal(market[0].enhancement, 8);
+
+    const wrongLevel = await listCatalogMarketListings({ q: 'ib9' });
+    assert.equal(wrongLevel.length, 0);
+
+    const facets = await listCatalogFacets();
+    assert.deepEqual(facets.categories, [{ name: 'Weapon', count: 1 }]);
+    assert.deepEqual(facets.subcategories, [{ name: 'Bow', count: 1 }]);
+    assert.deepEqual(facets.classes, [{ name: 'Rogue', count: 1 }]);
   } finally {
     config.marketWritesEnabled = oldWrites;
     await pool.query('drop table if exists listing_item_metadata, item_catalog, listings cascade');
