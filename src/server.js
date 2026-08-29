@@ -10,12 +10,18 @@ import { createFinanceRepository } from './finance/repository.js';
 import { createFinanceRouter } from './finance/routes.js';
 import { createListingRepository } from './listings/repository.js';
 import { createListingRouter } from './listings/routes.js';
+import { createNotificationRepository } from './notifications/repository.js';
+import { createNotificationRouter } from './notifications/routes.js';
+import { createSellerRequestRepository } from './requests/repository.js';
+import { createSellerRequestRouter } from './requests/routes.js';
 
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
 const users = db ? createUserRepository(db) : null;
 const finance = db ? createFinanceRepository(db) : null;
 const listings = db ? createListingRepository(db) : null;
+const notifications = db ? createNotificationRepository(db) : null;
+const sellerRequests = db ? createSellerRequestRepository(db) : null;
 const app = express();
 
 app.disable('x-powered-by');
@@ -66,6 +72,18 @@ if (listings) {
   app.use('/api', createListingRouter({ listings }));
 }
 
+if (notifications) {
+  app.use('/api', createNotificationRouter({ notifications }));
+}
+
+if (sellerRequests && listings && notifications) {
+  app.use('/api', createSellerRequestRouter({
+    requests: sellerRequests,
+    listings,
+    notifications
+  }));
+}
+
 app.get('/api/health', async (_req, res) => {
   const database = await checkDb(db);
   let authSchema = { ok: false, reason: 'database_not_ready' };
@@ -98,7 +116,8 @@ app.get('/api/meta', (_req, res) => {
     app: 'KOTAKAS',
     phase: 21,
     normalCommissionRate: config.normalCommissionRate,
-    traderCommissionRate: config.traderCommissionRate
+    traderCommissionRate: config.traderCommissionRate,
+    freeFormChatEnabled: false
   });
 });
 
