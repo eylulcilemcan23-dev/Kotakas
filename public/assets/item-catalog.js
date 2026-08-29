@@ -45,6 +45,10 @@
     return levels.map((level) => `<option value="${Number(level)}">+${Number(level)}</option>`).join('');
   }
 
+  function hasLevel(levels, level) {
+    return Number.isInteger(level) && Array.isArray(levels) && levels.map(Number).includes(level);
+  }
+
   async function enhanceSell() {
     const form = document.querySelector('#marketSellForm');
     if (!form || form.dataset.catalogEnhanced === '1') return;
@@ -62,7 +66,8 @@
     picker.innerHTML = `
       <div class="field catalog-search-field">
         <label>Item seç</label>
-        <input type="search" data-catalog-query maxlength="80" autocomplete="off" placeholder="Raptor, Mirage Dagger, Iron Bow…">
+        <input type="search" data-catalog-query maxlength="80" autocomplete="off" placeholder="IB8, MD8, HB8, WOE8, Raptor +8…">
+        <small class="catalog-search-hint">Kısaltma + seviye yazabilirsin: <b>IB8</b>, <b>MD8</b>, <b>HB8</b>, <b>WOE8</b>.</small>
         <div class="catalog-results" data-catalog-results hidden></div>
       </div>
       <div class="catalog-selected" data-catalog-selected hidden></div>
@@ -85,12 +90,15 @@
     let item = null;
     let manualMode = false;
 
-    function applyLevels() {
+    function applyLevels(preferredLevel = null) {
       if (!item) return;
       const levels = reverse.checked ? item.reverseLevels : item.normalLevels;
       enhancement.innerHTML = levelOptions(levels);
       enhancement.disabled = levels.length === 0;
-      if (levels.length) enhancement.value = String(levels[levels.length - 1]);
+      const preferred = Number(preferredLevel);
+      if (levels.length) {
+        enhancement.value = String(hasLevel(levels, preferred) ? preferred : levels[levels.length - 1]);
+      }
       titleInput.value = levels.length ? `${item.canonicalName} +${enhancement.value}` : item.canonicalName;
     }
 
@@ -99,13 +107,16 @@
       manualMode = false;
       titleInput.readOnly = true;
       titleInput.value = item.canonicalName;
+      const matched = Number(item.matchedEnhancement);
+      const matchedNormal = hasLevel(item.normalLevels, matched);
+      const matchedReverse = hasLevel(item.reverseLevels, matched);
       reverse.disabled = !item.reverseLevels?.length;
-      reverse.checked = false;
+      reverse.checked = Boolean(!matchedNormal && matchedReverse);
       enhancement.disabled = false;
       selected.hidden = false;
-      selected.innerHTML = `<img src="${esc(item.imageUrl || '')}" alt="" onerror="this.style.display='none'"><div><strong>${esc(item.canonicalName)}</strong><span>${esc([item.category, item.subcategory, item.classInfo].filter(Boolean).join(' · '))}</span><small>${esc(item.source?.name ? `Kaynak: ${item.source.name}${item.source.license ? ` · ${item.source.license}` : ''}` : 'Doğrulanmış katalog')}</small></div>`;
+      selected.innerHTML = `<img src="${esc(item.imageUrl || '')}" alt="" onerror="this.style.display='none'"><div><strong>${esc(item.canonicalName)}${Number.isInteger(matched) ? ` <em class="catalog-match-level">+${matched}</em>` : ''}</strong><span>${esc([item.category, item.subcategory, item.classInfo].filter(Boolean).join(' · '))}</span><small>${esc(item.source?.name ? `Kaynak: ${item.source.name}${item.source.license ? ` · ${item.source.license}` : ''}` : 'Doğrulanmış katalog')}</small></div>`;
       results.hidden = true;
-      applyLevels();
+      applyLevels(Number.isInteger(matched) ? matched : null);
     }
 
     const search = debounce(async () => {
@@ -117,16 +128,16 @@
       const { response, data } = await jsonFetch(`/api/item-catalog?q=${encodeURIComponent(term)}&limit=8`);
       if (!response.ok) return;
       const items = Array.isArray(data.items) ? data.items : [];
-      results.innerHTML = items.length ? items.map((row) => `<button type="button" class="catalog-result" data-item-id="${esc(row.id)}"><img src="${esc(row.imageUrl || '')}" alt="" onerror="this.style.display='none'"><span><strong>${esc(row.canonicalName)}</strong><small>${esc([row.category, row.subcategory, row.classInfo].filter(Boolean).join(' · '))}</small></span></button>`).join('') : '<div class="catalog-no-result">Sonuç yok. “Item katalogda yok” seçeneğini kullanabilirsin.</div>';
+      results.innerHTML = items.length ? items.map((row) => `<button type="button" class="catalog-result" data-item-id="${esc(row.id)}"><img src="${esc(row.imageUrl || '')}" alt="" onerror="this.style.display='none'"><span><strong>${esc(row.canonicalName)}${Number.isInteger(Number(row.matchedEnhancement)) ? ` <em class="catalog-match-level">+${Number(row.matchedEnhancement)}</em>` : ''}</strong><small>${esc([row.category, row.subcategory, row.classInfo].filter(Boolean).join(' · '))}</small></span></button>`).join('') : '<div class="catalog-no-result">Sonuç yok. “Item katalogda yok” seçeneğini kullanabilirsin.</div>';
       results.hidden = false;
-      results.querySelectorAll('[data-item-id]').forEach((button) => button.addEventListener('click', async () => {
+      results.querySelectorAll('[data-item-id]').forEach((button) => button.addEventListener('click', () => {
         const found = items.find((row) => String(row.id) === button.dataset.itemId);
         if (found) choose(found);
       }));
     });
 
     query.addEventListener('input', search);
-    reverse.addEventListener('change', applyLevels);
+    reverse.addEventListener('change', () => applyLevels());
     enhancement.addEventListener('change', () => {
       if (item) titleInput.value = `${item.canonicalName} +${enhancement.value}`;
     });
@@ -227,16 +238,24 @@
     const grid = document.querySelector('main.main .grid');
     if (!grid || grid.dataset.catalogBrowse === '1') return;
     if (!(await checkCatalog())) return;
-    const categoriesResult = await jsonFetch('/api/item-catalog/categories');
-    const probe = await jsonFetch('/api/market/catalog-listings?limit=1');
-    if (!categoriesResult.response.ok || !probe.response.ok) return;
+    const [facetsResult, probe] = await Promise.all([
+      jsonFetch('/api/item-catalog/facets'),
+      jsonFetch('/api/market/catalog-listings?limit=1'),
+    ]);
+    if (!facetsResult.response.ok || !probe.response.ok) return;
     grid.dataset.catalogBrowse = '1';
-    const categories = Array.isArray(categoriesResult.data.categories) ? categoriesResult.data.categories : [];
+    const categories = Array.isArray(facetsResult.data.categories) ? facetsResult.data.categories : [];
+    const subcategories = Array.isArray(facetsResult.data.subcategories) ? facetsResult.data.subcategories : [];
+    const classes = Array.isArray(facetsResult.data.classes) ? facetsResult.data.classes : [];
+    const options = (rows) => rows.map((row) => `<option value="${esc(row.name)}">${esc(row.name)} (${Number(row.count || 0)})</option>`).join('');
+
     grid.innerHTML = `
       <section class="card full catalog-market-filter">
         <div class="catalog-market-filter-grid">
-          <div class="field"><label>Item ara</label><input type="search" data-market-q maxlength="80" placeholder="Raptor, IB, MD…"></div>
-          <div class="field"><label>Kategori</label><select data-market-category><option value="">Tümü</option>${categories.map((row) => `<option value="${esc(row.name)}">${esc(row.name)} (${Number(row.count || 0)})</option>`).join('')}</select></div>
+          <div class="field catalog-market-search"><label>Item ara</label><input type="search" data-market-q maxlength="80" placeholder="IB8, MD8, HB8, WOE8, Raptor +8…"><small class="catalog-search-hint">Item adı veya KO kısaltması + seviye ile ara.</small></div>
+          <div class="field"><label>Kategori</label><select data-market-category><option value="">Tümü</option>${options(categories)}</select></div>
+          <div class="field"><label>Tür</label><select data-market-subcategory><option value="">Tümü</option>${options(subcategories)}</select></div>
+          <div class="field"><label>Sınıf</label><select data-market-class><option value="">Tümü</option>${options(classes)}</select></div>
           <div class="field"><label>Sunucu</label><select data-market-server><option value="">Tümü</option><option>ZERO</option><option>AGARTHA</option><option>PANDORA</option><option>FELIS</option></select></div>
           <div class="field"><label>Sıralama</label><select data-market-sort><option value="new">En yeni</option><option value="price_asc">Fiyat artan</option><option value="price_desc">Fiyat azalan</option></select></div>
         </div>
@@ -245,6 +264,8 @@
 
     const q = grid.querySelector('[data-market-q]');
     const category = grid.querySelector('[data-market-category]');
+    const subcategory = grid.querySelector('[data-market-subcategory]');
+    const classInfo = grid.querySelector('[data-market-class]');
     const server = grid.querySelector('[data-market-server]');
     const sort = grid.querySelector('[data-market-sort]');
     const target = grid.querySelector('#catalogMarketResults');
@@ -253,6 +274,8 @@
       const params = new URLSearchParams({ limit: '60', sort: sort.value });
       if (q.value.trim()) params.set('q', q.value.trim());
       if (category.value) params.set('category', category.value);
+      if (subcategory.value) params.set('subcategory', subcategory.value);
+      if (classInfo.value) params.set('class', classInfo.value);
       if (server.value) params.set('server', server.value);
       target.innerHTML = '<div class="empty">İlanlar yükleniyor…</div>';
       const { response, data } = await jsonFetch(`/api/market/catalog-listings?${params}`);
@@ -268,7 +291,7 @@
       target.innerHTML = `<div class="catalog-market-list">${listings.map((listing) => `<article class="catalog-market-row">
         <a class="catalog-market-item" href="/item.html?id=${encodeURIComponent(listing.id)}">
           <div class="catalog-market-image">${listing.item?.imageUrl ? `<img src="${esc(listing.item.imageUrl)}" alt="${esc(listing.title)}">` : '<span>KO</span>'}</div>
-          <div class="catalog-market-copy"><strong>${esc(listing.title)}</strong><span>${esc([listing.server, listing.item?.subcategory || listing.item?.category, listing.item?.classInfo].filter(Boolean).join(' · '))}</span>${listing.description ? `<small>${esc(listing.description)}</small>` : ''}</div>
+          <div class="catalog-market-copy"><strong>${esc(listing.title)}${listing.reverse ? ' <em class="catalog-reverse-badge">REB</em>' : ''}</strong><span>${esc([listing.server, listing.item?.subcategory || listing.item?.category, listing.item?.classInfo].filter(Boolean).join(' · '))}</span>${listing.description ? `<small>${esc(listing.description)}</small>` : ''}</div>
         </a>
         <div class="catalog-market-price"><strong>${esc(money.format(listing.price))}</strong>${listing.deliveryWindow ? `<small>${esc(listing.deliveryWindow)}</small>` : ''}<div><a class="btn ghost catalog-market-btn" href="/item.html?id=${encodeURIComponent(listing.id)}">İncele</a><button class="btn primary catalog-market-btn" data-catalog-buy="${esc(listing.id)}" ${securePurchaseEnabled ? '' : 'disabled'}>${securePurchaseEnabled ? 'Satın Al' : 'Yakında'}</button></div></div>
       </article>`).join('')}</div>`;
@@ -281,6 +304,8 @@
     const delayedLoad = debounce(load, 220);
     q.addEventListener('input', delayedLoad);
     category.addEventListener('change', load);
+    subcategory.addEventListener('change', load);
+    classInfo.addEventListener('change', load);
     server.addEventListener('change', load);
     sort.addEventListener('change', load);
     await load();
