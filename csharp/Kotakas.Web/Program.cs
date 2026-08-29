@@ -65,6 +65,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<TraderAvailabilityMiddleware>();
 
 app.MapHealthEndpoints();
 app.MapAuthEndpoints();
