@@ -21,9 +21,30 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: JavaScript syntax
+        run: |
+          for f in csharp/Kotakas.Web/wwwroot/js/app.js csharp/Kotakas.Web/wwwroot/js/chunks/*.js; do
+            node --check "$f"
+          done
       - name: Restore
         run: dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
       - name: Build
         run: dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
       - name: Publish
         run: dotnet publish csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build -o out/kotakas
+      - name: Build source package
+        run: |
+          mkdir -p out/package
+          zip -qr out/package/KOTAKAS_CSHARP_V5_SOURCE.zip csharp
+      - name: Upload hosting publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: KOTAKAS_CSHARP_V5_HOSTING
+          path: out/kotakas
+          if-no-files-found: error
+      - name: Upload source package
+        uses: actions/upload-artifact@v4
+        with:
+          name: KOTAKAS_CSHARP_V5_SOURCE
+          path: out/package/KOTAKAS_CSHARP_V5_SOURCE.zip
+          if-no-files-found: error
