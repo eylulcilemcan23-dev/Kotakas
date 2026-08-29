@@ -25,15 +25,25 @@ Bu branch canlı production'u değiştirmez. Amaç, mevcut Railway hot-patch tab
 - [x] HttpOnly/Secure/SameSite session cookie
 - [x] Her istekte DB'den canlı rol yenileme (V18.31 davranışı)
 - [x] Login/kayıt IP rate limit
-- [x] Mevcut `users/app_users/members` tablo adları ve kolon aliasları için şema keşfi
-- [x] Auth şema uyumluluğunu `/api/health` kapısına ekle
+- [x] Kullanıcı / pazarcı / admin panel erişimini backend'de ayır
+- [x] Finans çekirdeği: wallet + ledger + idempotent admin bakiye ekle/çıkar
+- [x] Finans çekirdeği: normal kullanıcı/pazarcı ayrı komisyon
+- [x] Finans çekirdeği: iç bakiye settlement ve platform komisyon kaydı
+- [x] Finans güvenliği: çift işlem engeli + deterministik wallet lock + self-settlement engeli
+- [x] Canlı uyumlu `/api/transactions`, `/api/admin/wallets`, `/api/admin/commissions`
+- [x] İlan çekirdeği: `/api/listings` + kendi ilanları + düzenle/kapat
+- [x] Normal kullanıcı ilk aylık ilan ücretsiz, ikinci ilan ödeme gerektirir
+- [x] Pazarcı ilan akışı ayrı publication type ile açık
+- [x] İlan metninde site dışı iletişim filtresi
+- [x] `/api/admin/listings` ve moderasyon endpointi
 - [x] GitHub Actions syntax + unit test CI
 - [ ] Canlı DB şemasını ayrı geçiş servisinde salt-okunur doğrula
-- [ ] Kullanıcı / pazarcı / admin panellerini kaynak ağaca taşı
-- [ ] Bakiye, komisyon ve settlement endpointlerini taşı
-- [ ] Bildirim + hazır mesaj/Satıcıya Sor akışını taşı
-- [ ] İlan / BUY / SELL / anlaşma akışlarını taşı
-- [ ] Admin finans ve Admin Yönetimi fonksiyonlarını taşı
+- [ ] Bildirim + hazır mesaj/Satıcıya Sor akışını kaynak ağaca taşı
+- [ ] BUY / SELL / anlaşma akışlarını settlement ile bağla
+- [ ] Admin finans ve Admin Yönetimi ekran verilerini tam kaynak ağaca taşı
+- [ ] Google ile Giriş/Kayıt
+- [ ] Footer: KVKK, İletişim, Piyasa Referansı: Kopazar.com
+- [ ] KVKK ve İletişim sayfaları
 - [ ] Production benzeri test DB ile smoke test
 - [ ] Railway'e ayrı geçiş servisi olarak deploy et
 - [ ] Tüm smoke testler geçmeden production trafiğini değiştirme
@@ -41,6 +51,9 @@ Bu branch canlı production'u değiştirmez. Amaç, mevcut Railway hot-patch tab
 ## Güvenlik notları
 - Kaynak auth sistemi plaintext şifre kabul etmez; bcrypt olmayan eski hash algılanırsa `password_migration_required` döner.
 - Session token rol taşımaz; rol her istekte veritabanından yeniden okunur.
+- Admin bakiye işlemleri idempotency key kullanır ve bakiye sıfırın altına düşmez.
+- Settlement alıcı/satıcı walletlarını deterministik sırada kilitler; aynı settlement iki kez işlenmez.
+- İkinci normal kullanıcı ilanı ücret entegrasyonu tamamlanmadan yanlışlıkla ücretsiz yayınlanmaz; `402 paid_listing_required` döner.
 - Production'da `KOTAKAS_SOURCE_BASELINE_READY=true` verilmeden yeni kaynak baseline `/api/health` için 200 dönmez.
 
 ## Canlıdan doğrulanan API envanteri
