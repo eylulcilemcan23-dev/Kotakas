@@ -87,8 +87,14 @@
         return;
       }
       form.reset();
-      await openChat(disputeId, open);
+      await refreshActiveChat();
     });
+  }
+
+  async function refreshActiveChat() {
+    if (!chatDispute) return;
+    const { response, data } = await jsonFetch(`/api/disputes/${encodeURIComponent(chatDispute)}/messages?limit=200`);
+    if (response.ok) renderChat(chatDispute, Array.isArray(data.messages) ? data.messages : [], true);
   }
 
   async function openChat(disputeId, open = true) {
@@ -125,10 +131,7 @@
   async function tick() {
     await renderNotifications();
     enhanceDisputeRows();
-    if (chatDispute) {
-      const { response, data } = await jsonFetch(`/api/disputes/${encodeURIComponent(chatDispute)}/messages?limit=200`);
-      if (response.ok) renderChat(chatDispute, Array.isArray(data.messages) ? data.messages : [], true);
-    }
+    await refreshActiveChat();
   }
 
   const observer = new MutationObserver(() => enhanceDisputeRows());
@@ -136,7 +139,15 @@
     const app = document.querySelector('#app');
     if (app) observer.observe(app, { childList: true, subtree: true });
     setTimeout(tick, 350);
-    pollTimer = setInterval(tick, 15000);
+    pollTimer = setInterval(tick, 60000);
     window.addEventListener('beforeunload', () => clearInterval(pollTimer), { once: true });
   });
+
+  window.addEventListener('kotakas:admin-notification', () => renderNotifications());
+  window.addEventListener('kotakas:admin-notification-read', () => renderNotifications());
+  window.addEventListener('kotakas:dispute-message', (event) => {
+    renderNotifications();
+    if (chatDispute && String(event.detail?.disputeId) === String(chatDispute)) refreshActiveChat();
+  });
+  window.addEventListener('kotakas:dispute-resolved', () => tick());
 })();

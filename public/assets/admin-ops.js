@@ -120,4 +120,9 @@
       }
     }, 150);
   });
+
+  window.addEventListener('kotakas:admin-notification', (event) => {
+    if (event.detail?.notification?.kind === 'dispute_opened') renderOps(true);
+  });
+  window.addEventListener('kotakas:dispute-resolved', () => renderOps(true));
 })();

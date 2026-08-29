@@ -58,11 +58,19 @@
         return;
       }
       form.reset();
-      await openChat(dispute);
+      await refreshActiveChat();
     });
   }
 
-  async function openChat(dispute) {
+  async function refreshActiveChat() {
+    if (!activeDispute) return;
+    const panel = panelHost();
+    if (!panel) return;
+    const result = await jsonFetch(`/api/disputes/${encodeURIComponent(activeDispute.id)}/messages?limit=200`);
+    if (result.response.ok) renderMessages(panel, activeDispute, Array.isArray(result.data.messages) ? result.data.messages : []);
+  }
+
+  async function openChat(dispute, { scroll = true } = {}) {
     activeDispute = dispute;
     const panel = panelHost();
     if (!panel) return;
@@ -75,12 +83,8 @@
     }
     renderMessages(panel, dispute, Array.isArray(data.messages) ? data.messages : []);
     clearInterval(refreshTimer);
-    refreshTimer = setInterval(async () => {
-      if (!activeDispute) return;
-      const result = await jsonFetch(`/api/disputes/${encodeURIComponent(activeDispute.id)}/messages?limit=200`);
-      if (result.response.ok) renderMessages(panel, activeDispute, Array.isArray(result.data.messages) ? result.data.messages : []);
-    }, 10000);
-    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    refreshTimer = setInterval(refreshActiveChat, 30000);
+    if (scroll) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function enhanceRows() {
@@ -110,5 +114,21 @@
     const app = document.querySelector('#app');
     if (app) observer.observe(app, { childList: true, subtree: true });
     setTimeout(enhanceRows, 300);
+  });
+
+  window.addEventListener('kotakas:dispute-message', (event) => {
+    if (activeDispute && String(event.detail?.disputeId) === String(activeDispute.id)) refreshActiveChat();
+    enhanceRows();
+  });
+
+  window.addEventListener('kotakas:dispute-resolved', async (event) => {
+    if (!activeDispute || String(event.detail?.dispute?.id) !== String(activeDispute.id)) return;
+    const { response, data } = await jsonFetch('/api/disputes/mine?limit=100');
+    if (!response.ok) return;
+    const updated = (Array.isArray(data.disputes) ? data.disputes : []).find((item) => String(item.id) === String(activeDispute.id));
+    if (updated) {
+      activeDispute = updated;
+      await refreshActiveChat();
+    }
   });
 })();

@@ -4,6 +4,7 @@ import { pool } from './db.js';
 import { requireAuthenticated, requirePermission, roleCan } from './authz.js';
 import { PERMISSIONS } from './roles.js';
 import { writeAudit } from './audit-log.js';
+import { publishAdminNotification, publishAdminNotificationRead, publishDisputeMessage } from './realtime.js';
 
 export const disputeCommunicationsRouter = Router();
 
@@ -103,10 +104,12 @@ async function readDisputeAccess(disputeId, actorId, actorRole) {
   `, [id]);
   if (!result.rowCount) throw new Error('dispute not found');
   const row = result.rows[0];
-  const participant = [String(row.buyer_id), String(row.seller_id)].includes(userId);
+  const buyerId = String(row.buyer_id);
+  const sellerId = String(row.seller_id);
+  const participant = [buyerId, sellerId].includes(userId);
   const admin = roleCan(actorRole, PERMISSIONS.DISPUTES);
   if (!participant && !admin) throw new Error('forbidden dispute access');
-  return { id, status: row.status, participant, admin };
+  return { id, status: row.status, participant, admin, buyerId, sellerId };
 }
 
 export async function listDisputeMessages({ disputeId, actorId, actorRole, limit = 100 }) {
@@ -138,7 +141,9 @@ export async function createAdminNotification({ kind, title, body, targetType = 
     values ($1,$2,$3,$4,$5,$6,now(),null)
     returning *
   `, [safeKind, safeTitle, safeBody, safeTargetType, target, creator]);
-  return notificationView(result.rows[0]);
+  const notification = notificationView(result.rows[0]);
+  publishAdminNotification(notification);
+  return notification;
 }
 
 export async function addDisputeMessage({ disputeId, senderId, senderRole, body }) {
@@ -153,6 +158,9 @@ export async function addDisputeMessage({ disputeId, senderId, senderRole, body 
     returning *
   `, [access.id, sender, senderRole || 'user', text]);
   const message = messageView(result.rows[0]);
+
+  publishDisputeMessage({ message, buyerId: access.buyerId, sellerId: access.sellerId });
+
   if (access.participant && !access.admin) {
     await createAdminNotification({
       kind: 'dispute_message',
@@ -193,7 +201,9 @@ export async function markAdminNotificationRead(notificationId) {
     update admin_notifications set read_at = coalesce(read_at, now()) where id = $1 returning *
   `, [id]);
   if (!result.rowCount) throw new Error('notification not found');
-  return notificationView(result.rows[0]);
+  const notification = notificationView(result.rows[0]);
+  publishAdminNotificationRead(notification);
+  return notification;
 }
 
 function errorResponse(res, error) {

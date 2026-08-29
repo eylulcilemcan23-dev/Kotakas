@@ -20,6 +20,7 @@ import { adminFinanceApiRouter } from './admin-finance-api.js';
 import { disputesApiRouter } from './disputes-api.js';
 import { disputeCommunicationsRouter } from './dispute-communications.js';
 import { optionalSession } from './session.js';
+import { configureRealtime } from './realtime.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +28,10 @@ const publicDir = path.join(__dirname, '..', 'public');
 
 const app = express();
 const server = http.createServer(app);
-const io = new SocketIOServer(server, { cors: { origin: false } });
+const io = new SocketIOServer(server, {
+  cors: { origin: false },
+  serveClient: true,
+});
 
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -59,9 +63,7 @@ app.use('/api', disputeCommunicationsRouter);
 app.use('/api', apiRouter);
 app.use(express.static(publicDir));
 
-io.on('connection', (socket) => {
-  socket.emit('system:hello', { ok: true, service: 'kotakas', sourceMode: true });
-});
+configureRealtime(io);
 
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ ok: false, error: 'not_found' });

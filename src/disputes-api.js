@@ -5,6 +5,8 @@ import { requireAuthenticated, requirePermission } from './authz.js';
 import { PERMISSIONS } from './roles.js';
 import { refundEscrow, releaseEscrow } from './finance-write-adapter.js';
 import { writeAudit, listAuditLogs, detectAuditCompatibility } from './audit-log.js';
+import { createAdminNotification } from './dispute-communications.js';
+import { publishDisputeResolved } from './realtime.js';
 
 export const disputesApiRouter = Router();
 
@@ -179,6 +181,8 @@ export async function resolveDispute({ disputeId, adminId, adminRole, resolution
   if (!current.rowCount) throw new Error('dispute not found');
   if (current.rows[0].status === 'resolved') return disputeView(current.rows[0]);
   const orderId = String(current.rows[0].order_id);
+  const audienceResult = await pool.query(`select buyer_id, seller_id from orders where id = $1 limit 1`, [orderId]);
+  const audience = audienceResult.rows[0] || {};
 
   if (safeResolution === 'refund') await refundEscrow(orderId);
   if (safeResolution === 'release') await releaseEscrow(orderId);
@@ -200,6 +204,7 @@ export async function resolveDispute({ disputeId, adminId, adminRole, resolution
     metadata: { orderId, resolution: safeResolution },
   }).catch((error) => console.error('[KOTAKAS] audit write failed:', error?.message || error));
 
+  publishDisputeResolved({ dispute, buyerId: audience.buyer_id, sellerId: audience.seller_id });
   return dispute;
 }
 
@@ -223,6 +228,13 @@ disputesApiRouter.post('/disputes', requireAuthenticated, async (req, res) => {
     const dispute = await openDispute({ orderId: req.body?.orderId, openedBy: user.id, reason: req.body?.reason });
     await writeAudit({ actorId: user.id, actorRole: user.role, action: 'dispute_opened', targetType: 'dispute', targetId: dispute.id, metadata: { orderId: dispute.orderId } })
       .catch((error) => console.error('[KOTAKAS] audit write failed:', error?.message || error));
+    await createAdminNotification({
+      kind: 'dispute_opened',
+      title: `Yeni ihtilaf #${dispute.id}`,
+      body: dispute.reason.length > 180 ? `${dispute.reason.slice(0, 177)}...` : dispute.reason,
+      targetId: dispute.id,
+      createdBy: user.id,
+    }).catch((error) => console.error('[KOTAKAS] admin notification failed:', error?.message || error));
     return res.status(201).json({ ok: true, dispute });
   } catch (error) {
     return errorResponse(res, error);
