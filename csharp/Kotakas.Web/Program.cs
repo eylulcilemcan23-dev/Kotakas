@@ -70,6 +70,7 @@ app.MapMarketplaceEndpoints();
 app.MapDealEndpoints();
 app.MapSupportEndpoints();
 app.MapAdminEndpoints();
+app.MapIntegrationEndpoints();
 app.MapFallbackToFile("index.html");
 app.Run();
 
