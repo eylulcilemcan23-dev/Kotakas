@@ -18,6 +18,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<DealMessage> DealMessages => Set<DealMessage>();
     public DbSet<PaymentIntent> PaymentIntents => Set<PaymentIntent>();
+    public DbSet<TraderReview> TraderReviews => Set<TraderReview>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -54,5 +55,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<PaymentIntent>().HasIndex(x => x.ConversationId).IsUnique();
         b.Entity<PaymentIntent>().HasIndex(x => new { x.UserId, x.Purpose, x.Status, x.CreatedAt });
         b.Entity<PaymentIntent>().HasIndex(x => x.ProviderToken);
+        b.Entity<TraderReview>().HasIndex(x => x.DealId).IsUnique();
+        b.Entity<TraderReview>().HasIndex(x => new { x.TraderUserId, x.CreatedAt });
     }
 }
