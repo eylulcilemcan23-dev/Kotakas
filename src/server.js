@@ -20,6 +20,7 @@ import { listingDetailRouter } from './listing-detail-api.js';
 import { adminFinanceApiRouter } from './admin-finance-api.js';
 import { disputesApiRouter } from './disputes-api.js';
 import { disputeCommunicationsRouter } from './dispute-communications.js';
+import { notificationPreferencesRouter } from './notification-preferences-api.js';
 import { optionalSession } from './session.js';
 import { configureRealtime } from './realtime.js';
 
@@ -62,6 +63,7 @@ app.use('/api', listingDetailRouter);
 app.use('/api', adminFinanceApiRouter);
 app.use('/api', disputesApiRouter);
 app.use('/api', disputeCommunicationsRouter);
+app.use('/api', notificationPreferencesRouter);
 app.use('/api', apiRouter);
 app.use(express.static(publicDir));
 
