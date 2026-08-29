@@ -104,6 +104,7 @@ function orderView(row) {
   if (!row) return null;
   return {
     id: String(row.id),
+    listingId: row.listing_id == null ? null : String(row.listing_id),
     buyerId: String(row.buyer_id),
     sellerId: String(row.seller_id),
     amount: money(row.amount),
@@ -132,6 +133,29 @@ async function getLockedWallets(client, userIds) {
     if (!map.has(id)) throw new Error(`wallet not found:${id}`);
   }
   return map;
+}
+
+async function settleLinkedListing(client, order, escrowState) {
+  if (order.listing_id == null) return null;
+  const targetStatus = escrowState === ESCROW_STATES.RELEASED ? 'sold' : escrowState === ESCROW_STATES.REFUNDED ? 'active' : null;
+  if (!targetStatus) return null;
+
+  const result = escrowState === ESCROW_STATES.RELEASED
+    ? await client.query(`
+        update listings
+        set status = 'sold', updated_at = now()
+        where id = $1 and order_id = $2
+        returning id, status, order_id
+      `, [order.listing_id, order.id])
+    : await client.query(`
+        update listings
+        set status = 'active', order_id = null, updated_at = now()
+        where id = $1 and order_id = $2
+        returning id, status, order_id
+      `, [order.listing_id, order.id]);
+
+  if (!result.rowCount) throw new Error('listing settlement invariant failed');
+  return result.rows[0];
 }
 
 export async function holdEscrow({ buyerId, sellerId, amount, commissionRate, idempotencyKey }) {
@@ -257,6 +281,7 @@ export async function releaseEscrow(orderId) {
       update orders set escrow_state = $2, updated_at = now() where id = $1 returning *
     `, [order.id, ESCROW_STATES.RELEASED]);
 
+    await settleLinkedListing(client, updated.rows[0], ESCROW_STATES.RELEASED);
     await client.query('commit');
     return orderView(updated.rows[0]);
   } catch (error) {
@@ -301,6 +326,7 @@ export async function refundEscrow(orderId) {
       update orders set escrow_state = $2, updated_at = now() where id = $1 returning *
     `, [order.id, ESCROW_STATES.REFUNDED]);
 
+    await settleLinkedListing(client, updated.rows[0], ESCROW_STATES.REFUNDED);
     await client.query('commit');
     return orderView(updated.rows[0]);
   } catch (error) {
