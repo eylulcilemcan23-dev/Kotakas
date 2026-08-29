@@ -1,6 +1,6 @@
-# KOTAKAS C# Hosting Environment Ayarları
+# KOTAKAS C# V12 Hosting / Production Ayarları
 
-Bu değerleri koda veya GitHub'a gerçek secret olarak yazmayın. Hosting panelindeki Environment Variables / Application Settings alanına girin.
+Gerçek secret değerlerini koda veya GitHub'a yazmayın. Hosting panelindeki Environment Variables / Application Settings alanına girin.
 
 ## Ana domain
 
@@ -8,12 +8,75 @@ Bu değerleri koda veya GitHub'a gerçek secret olarak yazmayın. Hosting paneli
 
 E-posta doğrulama ve şifre yenileme bağlantıları bu domain ile oluşturulur.
 
+## Veritabanı
+
+### Geliştirme / küçük test: SQLite
+
+- `Database__Provider=sqlite`
+- `ConnectionStrings__Default=Data Source=App_Data/kotakas.db`
+
+SQLite modunda App_Data klasörünün yazılabilir olması gerekir. Uygulama günlük yerel ZIP yedeği alabilir.
+
+### Üretim: PostgreSQL
+
+- `Database__Provider=postgres`
+- `ConnectionStrings__Postgres=Host=...;Port=5432;Database=kotakas;Username=...;Password=...;SSL Mode=Require`
+
+Gerçek bağlantı dizesi sağlayıcının verdiği değere göre kullanılmalıdır. KOTAKAS PostgreSQL modunda Npgsql connection pooling ve geçici bağlantı hataları için retry kullanır.
+
+`/api/health` canlıda şu bilgileri göstermelidir:
+
+- `database: PostgreSQL`
+- `schemaVersion: 12`
+
+PostgreSQL modunda kritik satın alma/escrow işlemleri DB seviyesinde advisory lock kullanır; birden fazla uygulama instance'ı aynı kaynağı eşzamanlı değiştirmeye çalışsa da işlemler sıraya alınır.
+
+## SQLite → PostgreSQL veri taşıma
+
+V12 artifact'lerinde ayrı `KOTAKAS_CSHARP_V12_MIGRATOR` aracı bulunur. Bu araç kullanıcı/rol/Identity password hash/Google login, bakiye, ledger, ilan, teklif, anlaşma, ödeme kaydı, yorum, favori, item alarmı, destek, şikâyet ve audit kayıtlarını taşır.
+
+Önce dry-run:
+
+```bash
+dotnet Kotakas.Migrator.dll \
+  --sqlite "Data Source=/ESKI/App_Data/kotakas.db" \
+  --postgres "Host=...;Database=kotakas;Username=...;Password=..."
+```
+
+Gerçek taşıma yalnız boş PostgreSQL hedefe yapılır:
+
+```bash
+dotnet Kotakas.Migrator.dll \
+  --sqlite "Data Source=/ESKI/App_Data/kotakas.db" \
+  --postgres "Host=...;Database=kotakas;Username=...;Password=..." \
+  --execute
+```
+
+Item görselleri de aynı anda taşınacaksa:
+
+```bash
+--uploads-source "/ESKI/wwwroot/uploads/requests" \
+--uploads-target "/YENI/wwwroot/uploads/requests"
+```
+
+Migrator hedef PostgreSQL boş değilse işlemi reddeder. Taşıma sonunda kullanıcı/ilan/anlaşma kayıt adetleri ile toplam kullanıcı bakiyesi, aktif escrow ve tamamlanan işlem hacmi karşılaştırılır. Eşleşmezse DB transaction geri alınır. Aktif cihaz oturumları ve idempotency kayıtları bilerek taşınmaz; canlı geçişten sonra kullanıcıların yeniden oturum açması daha güvenlidir.
+
+## PostgreSQL yedekleme
+
+PostgreSQL modunda KOTAKAS yerel SQLite `.db` yedeği üretmez. Üretimde sağlayıcının şu özelliklerinden en az biri açılmalıdır:
+
+- günlük managed snapshot,
+- point-in-time recovery,
+- düzenli `pg_dump` + ayrı güvenli storage.
+
+`wwwroot/uploads/requests` görselleri de ayrıca yedeklenmelidir. Admin > Yedekler ekranı kullanılan provider'ı gösterir ve PostgreSQL'de yerel yedek butonunu kapatır.
+
 ## Google ile giriş
 
 - `Authentication__Google__ClientId`
 - `Authentication__Google__ClientSecret`
 
-Google Cloud Console'da Authorized redirect URI:
+Google Cloud Console Authorized redirect URI:
 
 `https://SENIN-DOMAININ/signin-google`
 
@@ -31,7 +94,7 @@ SMTP yapılandırıldığında yeni normal üyeler e-posta doğrulaması yapmada
 - `Email__FromName=KOTAKAS`
 - `Email__UseSsl=true`
 
-SMTP boşsa geliştirme/test kurulumu kilitlenmez ve e-posta doğrulama zorunlu tutulmaz.
+SMTP boşsa geliştirme/test kurulumu kilitlenmez.
 
 ## Otomatik 1 GB = TL kuru
 
@@ -46,20 +109,18 @@ JSON örneği:
 { "tryPerGb": 123.45 }
 ```
 
-İç içe JSON için `MarketRateFeed__JsonProperty=data.tryPerGb` gibi noktalı yol kullanılabilir.
-
 Kaynak API key istiyorsa:
 
 - `MarketRateFeed__ApiKeyHeader=X-Api-Key`
 - `MarketRateFeed__ApiKey=SECRET`
 
-Otomatik kaynak hata verirse son başarılı `gb_try_rate` korunur; admin manuel kur girmeye devam edebilir.
+Kaynak hata verirse son başarılı `gb_try_rate` korunur ve admin manuel kur girebilir.
 
-## iyzico ile ücretli ilan hakkı
+## iyzico ücretli ilan hakkı
 
-Ödeme sistemi genel KOTAKAS bakiyesi yüklemek için değil, aylık ücretsiz satış talebi hakkı bittikten sonra **ücretli ilan hakkı satın almak** için hazırlanmıştır.
+Ödeme genel kullanıcı bakiyesi yüklemek için değil, aylık ücretsiz satış talebi bittikten sonraki ücretli ilan hakkı içindir.
 
-Önce sandbox ile test edin:
+Sandbox:
 
 - `Payments__Provider=iyzico`
 - `Payments__BaseUrl=https://sandbox-api.iyzipay.com`
@@ -67,40 +128,23 @@ Otomatik kaynak hata verirse son başarılı `gb_try_rate` korunur; admin manuel
 - `Payments__SecretKey=SANDBOX_SECRET_KEY`
 - `Payments__CallbackBaseUrl=https://SENIN-DOMAININ`
 
-Canlı iyzico hesabı açılıp sandbox testi tamamlandıktan sonra canlı anahtarlar kullanılır:
+Canlı:
 
 - `Payments__BaseUrl=https://api.iyzipay.com`
-- `Payments__ApiKey=LIVE_API_KEY`
-- `Payments__SecretKey=LIVE_SECRET_KEY`
+- canlı API key / secret
 
-Callback yolu:
+Callback:
 
 `https://SENIN-DOMAININ/api/payments/iyzico/callback`
 
-Ödeme sağlayıcısı kapalı tutulacaksa:
+## V12 güvenlik varsayımları
 
-- `Payments__Provider=disabled`
-
-## Veritabanı ve yedek
-
-Şu anki doğrulanmış sürüm SQLite kullanır:
-
-`ConnectionStrings__Default=Data Source=App_Data/kotakas.db`
-
-Hosting hesabının `App_Data` klasörüne yazma izni olmalıdır.
-
-Uygulama SQLite kullanırken her 24 saatte otomatik backup alır. Veritabanı ve `wwwroot/uploads/requests` item görselleri tek ZIP içinde `App_Data/backups` altında tutulur. Son 14 otomatik yedek korunur. Bu klasör web root değildir ve internetten doğrudan servis edilmez.
-
-Admin Owner/Tam Admin panelinden manuel yedek de oluşturabilir.
-
-Harici PostgreSQL/SQL Server gibi üretim veritabanına geçildiğinde uygulama içi SQLite backup yerine hosting/veritabanı sağlayıcısının point-in-time/managed backup özelliği kullanılmalıdır.
-
-## V11 güvenlik varsayımları
-
-- Production ortamında auth cookie yalnız HTTPS üzerinden gönderilir.
-- HSTS + HTTPS redirect aktiftir.
-- CSRF/origin kontrolü vardır.
-- API rate-limit aktiftir.
-- Kritik finans/işlem endpointleri idempotency anahtarı ister.
-- Kullanıcı cihaz oturumları ayrı takip edilir ve kullanıcı diğer cihazları kapatabilir.
-- Admin yazma işlemleri audit log'a kaydedilir.
+- Production auth cookie yalnız HTTPS.
+- HSTS + HTTPS redirect.
+- CSRF/origin kontrolü.
+- API rate-limit.
+- Kritik işlemlerde idempotency.
+- SQLite tek instance için local işlem kilidi; PostgreSQL için DB-wide advisory lock.
+- Kullanıcı cihaz oturum yönetimi.
+- Admin audit log.
+- PostgreSQL için managed backup zorunluluğu açıkça gösterilir.
