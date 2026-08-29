@@ -157,6 +157,7 @@ export async function getListingDetail(listingId) {
   ]);
   const seller = sellerResult.rows[0] || {};
   const parsedEnhancement = parseEnhancement(row.title);
+  const enhancement = metadata?.enhancement ?? parsedEnhancement;
 
   return {
     id: String(row.id),
