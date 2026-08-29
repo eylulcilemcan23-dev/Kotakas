@@ -35,4 +35,41 @@ create index if not exists admin_notifications_unread_idx
 create index if not exists admin_notifications_target_idx
   on admin_notifications(target_type, target_id, created_at desc);
 
+create or replace function kotakas_dispute_admin_notification()
+returns trigger
+language plpgsql
+as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into admin_notifications (kind, title, body, target_type, target_id, created_by, created_at)
+    values (
+      'dispute_opened',
+      'Yeni ihtilaf #' || new.id,
+      'İşlem #' || new.order_id || ' için yeni bir ihtilaf açıldı.',
+      'dispute',
+      new.id::text,
+      new.opened_by,
+      now()
+    );
+  elsif tg_op = 'UPDATE' and old.status = 'open' and new.status = 'resolved' then
+    insert into admin_notifications (kind, title, body, target_type, target_id, created_by, created_at)
+    values (
+      'dispute_resolved',
+      'İhtilaf #' || new.id || ' sonuçlandı',
+      'Karar: ' || coalesce(new.resolution, 'belirtilmedi'),
+      'dispute',
+      new.id::text,
+      new.resolved_by,
+      now()
+    );
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists disputes_admin_notification_trigger on disputes;
+create trigger disputes_admin_notification_trigger
+after insert or update of status on disputes
+for each row execute function kotakas_dispute_admin_notification();
+
 commit;
