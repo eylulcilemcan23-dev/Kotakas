@@ -92,6 +92,7 @@ else
     await StartupSeeder.InitializeAsync(app);
     await StartupFeatureSeeder.InitializeAsync(app);
 }
+await SchemaVersionSeeder.InitializeAsync(app);
 
 if (app.Environment.IsProduction())
 {
