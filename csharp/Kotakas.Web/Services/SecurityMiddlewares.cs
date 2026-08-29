@@ -1,0 +1,126 @@
+using Kotakas.Web.Api;
+using Kotakas.Web.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace Kotakas.Web.Services;
+
+public sealed class SecurityHeadersMiddleware(RequestDelegate next)
+{
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var h = context.Response.Headers;
+        h["X-Content-Type-Options"] = "nosniff";
+        h["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        h["X-Frame-Options"] = "DENY";
+        h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(self)";
+        h["Cross-Origin-Opener-Policy"] = "same-origin";
+        h["Cross-Origin-Resource-Policy"] = "same-origin";
+        h["Content-Security-Policy"] = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: blob:; connect-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; form-action 'self' https://*.iyzico.com https://*.iyzipay.com";
+        await next(context);
+    }
+}
+
+public sealed class CsrfProtectionMiddleware(RequestDelegate next)
+{
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var req = context.Request;
+        if (!req.Path.StartsWithSegments("/api") || HttpMethods.IsGet(req.Method) || HttpMethods.IsHead(req.Method) || HttpMethods.IsOptions(req.Method))
+        {
+            await next(context);
+            return;
+        }
+
+        if (req.Path.Equals("/api/payments/iyzico/callback", StringComparison.OrdinalIgnoreCase))
+        {
+            await next(context);
+            return;
+        }
+
+        var headerOk = string.Equals(req.Headers["X-KOTAKAS-CSRF"], "1", StringComparison.Ordinal);
+        var fetchSite = req.Headers["Sec-Fetch-Site"].ToString();
+        var browserSameSite = fetchSite is "same-origin" or "same-site" or "none";
+        var originOk = true;
+        var origin = req.Headers.Origin.ToString();
+        if (!string.IsNullOrWhiteSpace(origin) && Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
+            originOk = string.Equals(originUri.Host, req.Host.Host, StringComparison.OrdinalIgnoreCase);
+
+        if ((!headerOk && !browserSameSite) || !originOk)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json; charset=utf-8";
+            await context.Response.WriteAsJsonAsync(new { error = "csrf_validation_failed" });
+            return;
+        }
+
+        await next(context);
+    }
+}
+
+public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
+{
+    private static readonly SemaphoreSlim CriticalCommerceLock = new(1, 1);
+
+    public async Task InvokeAsync(HttpContext context, AppDbContext db)
+    {
+        if (!IsCritical(context.Request))
+        {
+            await next(context);
+            return;
+        }
+
+        var uid = ApiHelpers.UserId(context.User);
+        if (string.IsNullOrWhiteSpace(uid))
+        {
+            await next(context);
+            return;
+        }
+
+        var key = context.Request.Headers["Idempotency-Key"].ToString().Trim();
+        if (key.Length is < 8 or > 120)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { error = "idempotency_key_required" });
+            return;
+        }
+
+        var scope = $"{context.Request.Method}:{context.Request.Path}";
+        await CriticalCommerceLock.WaitAsync(context.RequestAborted);
+        try
+        {
+            var exists = await db.IdempotencyRecords.AsNoTracking()
+                .AnyAsync(x => x.UserId == uid && x.Scope == scope && x.RequestKey == key, context.RequestAborted);
+            if (exists)
+            {
+                context.Response.StatusCode = StatusCodes.Status409Conflict;
+                await context.Response.WriteAsJsonAsync(new { error = "duplicate_request" }, context.RequestAborted);
+                return;
+            }
+
+            db.IdempotencyRecords.Add(new Models.IdempotencyRecord
+            {
+                UserId = uid,
+                Scope = scope,
+                RequestKey = key,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync(context.RequestAborted);
+            await next(context);
+        }
+        finally
+        {
+            CriticalCommerceLock.Release();
+        }
+    }
+
+    private static bool IsCritical(HttpRequest request)
+    {
+        if (!HttpMethods.IsPost(request.Method) && !HttpMethods.IsPatch(request.Method) && !HttpMethods.IsDelete(request.Method)) return false;
+        var path = request.Path.Value?.ToLowerInvariant() ?? "";
+        return path.Contains("/api/listings/") && path.EndsWith("/buy") ||
+               path.Contains("/api/offers/") && path.EndsWith("/accept") ||
+               path.Contains("/api/deals/") && (path.EndsWith("/confirm") || path.EndsWith("/cancel") || path.EndsWith("/dispute") || path.EndsWith("/delivered")) ||
+               path.EndsWith("/api/payments/paid-listing/create-request") ||
+               path.Contains("/api/admin/wallet");
+    }
+}
