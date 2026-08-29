@@ -1,8 +1,9 @@
-name: Phase 21 CI
+name: KOTAKAS CI
 
 on:
   push:
     branches:
+      - main
       - phase-21-source-baseline
   pull_request:
     branches:
