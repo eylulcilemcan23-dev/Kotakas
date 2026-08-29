@@ -1,4 +1,5 @@
 import { pool } from './db.js';
+import { catalogSearchRankExpression, parseCatalogSearchQuery } from './item-catalog-search.js';
 
 const REQUIRED = Object.freeze({
   item_catalog: [
@@ -58,7 +59,7 @@ function levelKeys(variants, branch) {
     .sort((a, b) => a - b);
 }
 
-function catalogView(row) {
+function catalogView(row, matchedEnhancement = null) {
   const variants = objectValue(row.variants);
   return {
     id: String(row.id),
@@ -72,6 +73,7 @@ function catalogView(row) {
     baseAttributes: objectValue(row.base_attributes),
     normalLevels: levelKeys(variants, 'normal'),
     reverseLevels: levelKeys(variants, 'reverse'),
+    matchedEnhancement,
     source: {
       name: row.source_name || null,
       ref: row.source_ref || null,
@@ -87,7 +89,7 @@ export async function detectItemCatalogCompatibility({ force = false } = {}) {
   const result = await pool.query(`
     select table_name,column_name
     from information_schema.columns
-    where table_schema='public' and table_name=any($1::text[])
+    where table_schema = 'public' and table_name = any($1::text[])
   `, [Object.keys(REQUIRED)]);
   const tables = new Map();
   for (const row of result.rows) {
@@ -139,7 +141,7 @@ export async function getCatalogItemRecord(itemId, queryable = pool) {
   const result = await queryable.query(`
     select id,canonical_name,slug,image_url,class_info,base_attributes,category,subcategory,keywords,
            variants,source_name,source_ref,source_license,active
-    from item_catalog where id=$1 limit 1
+    from item_catalog where id = $1 limit 1
   `, [id]);
   if (!result.rowCount || !result.rows[0].active) throw new Error('catalog item not found');
   return result.rows[0];
@@ -149,25 +151,44 @@ export async function getCatalogItem(itemId) {
   return catalogView(await getCatalogItemRecord(itemId));
 }
 
-export async function searchItemCatalog({ q = '', category = '', limit = 20 } = {}) {
+export async function searchItemCatalog({ q = '', category = '', subcategory = '', classInfo = '', limit = 20 } = {}) {
   await assertCatalogReady();
-  const query = text(q, 80);
+  const parsedQuery = parseCatalogSearchQuery(q);
+  const query = text(parsedQuery.itemQuery, 80);
   const categoryText = text(category, 80);
+  const subcategoryText = text(subcategory, 80);
+  const classText = text(classInfo, 80);
   const safe = safeLimit(limit, 20, 50);
   const params = [];
-  const filters = ['active=true'];
+  const filters = ['active = true'];
+  let rank = '0';
+
   if (query) {
-    params.push(`%${query.toLowerCase()}%`);
-    const p = `$${params.length}`;
+    const lower = query.toLowerCase();
+    params.push(`%${lower}%`);
+    const likeParam = `$${params.length}`;
+    params.push(lower);
+    const exactParam = `$${params.length}`;
+    params.push(`${lower}%`);
+    const prefixParam = `$${params.length}`;
     filters.push(`(
-      lower(canonical_name) like ${p}
-      or lower(slug) like ${p}
-      or exists (select 1 from unnest(coalesce(keywords,'{}'::text[])) k where lower(k) like ${p})
+      lower(canonical_name) like ${likeParam}
+      or lower(slug) like ${likeParam}
+      or exists (select 1 from unnest(coalesce(keywords,'{}'::text[])) k where lower(k) like ${likeParam})
     )`);
+    rank = catalogSearchRankExpression(exactParam, prefixParam);
   }
   if (categoryText) {
     params.push(categoryText.toLowerCase());
-    filters.push(`lower(coalesce(category,''))=$${params.length}`);
+    filters.push(`lower(coalesce(category,'')) = $${params.length}`);
+  }
+  if (subcategoryText) {
+    params.push(subcategoryText.toLowerCase());
+    filters.push(`lower(coalesce(subcategory,'')) = $${params.length}`);
+  }
+  if (classText) {
+    params.push(`%${classText.toLowerCase()}%`);
+    filters.push(`lower(coalesce(class_info,'')) like $${params.length}`);
   }
   params.push(safe);
   const result = await pool.query(`
@@ -175,10 +196,10 @@ export async function searchItemCatalog({ q = '', category = '', limit = 20 } = 
            variants,source_name,source_ref,source_license,active
     from item_catalog
     where ${filters.join(' and ')}
-    order by canonical_name asc
+    order by ${rank} asc, canonical_name asc
     limit $${params.length}
   `, params);
-  return result.rows.map(catalogView);
+  return result.rows.map((row) => catalogView(row, parsedQuery.enhancement));
 }
 
 export async function listCatalogCategories() {
@@ -186,17 +207,47 @@ export async function listCatalogCategories() {
   const result = await pool.query(`
     select category, count(*)::int as count
     from item_catalog
-    where active=true and category is not null and btrim(category)<>''
+    where active = true and category is not null and btrim(category) <> ''
     group by category
     order by category asc
   `);
   return result.rows.map((row) => ({ name: row.category, count: Number(row.count || 0) }));
 }
 
-export async function listCatalogMarketListings({ q = '', category = '', server = '', sort = 'new', minPrice = null, maxPrice = null, limit = 40, offset = 0 } = {}) {
+export async function listCatalogFacets() {
+  await assertCatalogReady();
+  const [categories, subcategories, classes] = await Promise.all([
+    pool.query(`
+      select category as name, count(*)::int as count
+      from item_catalog
+      where active = true and category is not null and btrim(category) <> ''
+      group by category order by category asc
+    `),
+    pool.query(`
+      select subcategory as name, count(*)::int as count
+      from item_catalog
+      where active = true and subcategory is not null and btrim(subcategory) <> ''
+      group by subcategory order by subcategory asc
+    `),
+    pool.query(`
+      select btrim(class_name) as name, count(*)::int as count
+      from item_catalog
+      cross join lateral regexp_split_to_table(coalesce(class_info,''), ',') class_name
+      where active = true and btrim(class_name) <> ''
+      group by btrim(class_name) order by btrim(class_name) asc
+    `),
+  ]);
+  const view = (rows) => rows.map((row) => ({ name: row.name, count: Number(row.count || 0) }));
+  return { categories: view(categories.rows), subcategories: view(subcategories.rows), classes: view(classes.rows) };
+}
+
+export async function listCatalogMarketListings({ q = '', category = '', subcategory = '', classInfo = '', server = '', sort = 'new', minPrice = null, maxPrice = null, limit = 40, offset = 0 } = {}) {
   await assertCatalogReady({ requireListingMetadata: true });
-  const query = text(q, 80);
+  const parsedQuery = parseCatalogSearchQuery(q);
+  const query = text(parsedQuery.itemQuery, 80);
   const categoryText = text(category, 80);
+  const subcategoryText = text(subcategory, 80);
+  const classText = text(classInfo, 80);
   const serverText = text(server, 32).toUpperCase();
   const safe = safeLimit(limit, 40, 80);
   const safeOffsetValue = safeOffset(offset);
@@ -207,7 +258,7 @@ export async function listCatalogMarketListings({ q = '', category = '', server 
   if (min != null && max != null && min > max) throw new Error('invalid price range');
 
   const params = [];
-  const filters = ["l.status='active'"];
+  const filters = ["l.status = 'active'"];
   if (query) {
     params.push(`%${query.toLowerCase()}%`);
     const p = `$${params.length}`;
@@ -218,13 +269,25 @@ export async function listCatalogMarketListings({ q = '', category = '', server 
       or exists (select 1 from unnest(coalesce(c.keywords,'{}'::text[])) k where lower(k) like ${p})
     )`);
   }
+  if (parsedQuery.enhancement != null) {
+    params.push(parsedQuery.enhancement);
+    filters.push(`m.enhancement = $${params.length}::int`);
+  }
   if (categoryText) {
     params.push(categoryText.toLowerCase());
-    filters.push(`lower(coalesce(c.category,''))=$${params.length}`);
+    filters.push(`lower(coalesce(c.category,'')) = $${params.length}`);
+  }
+  if (subcategoryText) {
+    params.push(subcategoryText.toLowerCase());
+    filters.push(`lower(coalesce(c.subcategory,'')) = $${params.length}`);
+  }
+  if (classText) {
+    params.push(`%${classText.toLowerCase()}%`);
+    filters.push(`lower(coalesce(c.class_info,'')) like $${params.length}`);
   }
   if (serverText) {
     params.push(serverText);
-    filters.push(`upper(l.server)=$${params.length}`);
+    filters.push(`upper(l.server) = $${params.length}`);
   }
   if (min != null) {
     params.push(min);
@@ -247,8 +310,8 @@ export async function listCatalogMarketListings({ q = '', category = '', server 
            m.enhancement,m.reverse,m.delivery_window,
            c.id as catalog_id,c.canonical_name,c.image_url,c.class_info,c.category,c.subcategory,c.base_attributes
     from listings l
-    left join listing_item_metadata m on m.listing_id=l.id
-    left join item_catalog c on c.id=m.item_id and c.active=true
+    left join listing_item_metadata m on m.listing_id = l.id
+    left join item_catalog c on c.id = m.item_id and c.active = true
     where ${filters.join(' and ')}
     order by ${orderBy}
     limit $${params.length - 1} offset $${params.length}
