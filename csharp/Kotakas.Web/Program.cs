@@ -86,6 +86,7 @@ app.MapVerificationEndpoints();
 app.MapNotificationPreferenceEndpoints();
 app.MapReportEndpoints();
 app.MapSupportEndpoints();
+app.MapSupportCenterEndpoints();
 app.MapAdminEndpoints();
 app.MapAdminModerationEndpoints();
 app.MapAdminSearchEndpoints();
