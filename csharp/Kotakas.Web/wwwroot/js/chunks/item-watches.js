@@ -35,13 +35,16 @@
     try{await api(`/api/item-watches/${id}`,{method:'PATCH',body:{serverCode:server,query,maxPriceGb}});toast('Item alarmı güncellendi.');await renderItemWatches()}catch(err){toast(err.data?.error||'Item alarmı güncellenemedi.')}
   };
 
+  window.watchBuy=(id,stock,itemEncoded,price)=>buyListing(Number(id),Number(stock),decodeURIComponent(itemEncoded),Number(price));
   window.showItemWatchMatches=async id=>{
     try{
-      const [wd,ld]=await Promise.all([api('/api/item-watches/'),api('/api/listings')]);const w=(wd.watches||[]).find(x=>Number(x.id)===Number(id));if(!w)return toast('Item alarmı bulunamadı.');
+      const [wd,ld,fd]=await Promise.all([api('/api/item-watches/'),api('/api/listings'),api('/api/favorites/').catch(()=>({listingIds:[]}))]);
+      const w=(wd.watches||[]).find(x=>Number(x.id)===Number(id));if(!w)return toast('Item alarmı bulunamadı.');
+      const favoriteIds=new Set((fd.listingIds||[]).map(String));
       const rows=(ld.listings||[]).filter(x=>(w.serverCode==='ALL'||x.serverCode===w.serverCode)&&String(x.itemName||'').toLocaleLowerCase('tr-TR').includes(String(w.query||'').toLocaleLowerCase('tr-TR'))&&(w.maxPriceGb==null||Number(x.priceGb)<=Number(w.maxPriceGb)));
       let modal=$('#itemWatchMatchModal');if(!modal){modal=document.createElement('div');modal.id='itemWatchMatchModal';modal.className='modal';modal.innerHTML='<div class="modalbox"><div class="modalhead"><h3 id="itemWatchMatchTitle">Eşleşen İlanlar</h3><button class="x" onclick="closeModal(\'itemWatchMatchModal\')">✕</button></div><div id="itemWatchMatchList" class="list"></div></div>';document.body.appendChild(modal)}
       $('#itemWatchMatchTitle').textContent=`${w.serverCode} • ${w.query}`;
-      $('#itemWatchMatchList').innerHTML=rows.length?rows.map(x=>`<div class="listitem"><div class="itemhead"><div><div class="itemtitle">${esc(x.itemName)}</div><div class="meta">${esc(x.sellerName)} • Stok ${Number(x.stock||0)}</div></div><div class="spacer"></div><span class="pill gold">${fmtGB(x.priceGb)}</span></div><div class="actions"><button class="btn sm teal" onclick="buyListing(${Number(x.id)},${Number(x.stock)},'${enc(x.itemName)}',${Number(x.priceGb)})">Satın Al</button><button class="btn sm ghost" onclick="toggleFavorite('listing','${Number(x.id)}',this)">♡ Favoriye Al</button></div></div>`).join(''):'<div class="empty">Şu an bu alarma uyan aktif SELL ilanı yok.</div>';
+      $('#itemWatchMatchList').innerHTML=rows.length?rows.map(x=>{const liked=favoriteIds.has(String(x.id));return `<div class="listitem"><div class="itemhead"><div><div class="itemtitle">${esc(x.itemName)}</div><div class="meta">${esc(x.sellerName)} • Stok ${Number(x.stock||0)}</div></div><div class="spacer"></div><span class="pill gold">${fmtGB(x.priceGb)}</span></div><div class="actions"><button class="btn sm teal" onclick="watchBuy(${Number(x.id)},${Number(x.stock)},'${enc(x.itemName)}',${Number(x.priceGb)})">Satın Al</button><button class="btn sm ${liked?'teal':'ghost'}" data-favorite-type="listing" data-favorite-id="${Number(x.id)}" onclick="toggleFavorite('listing','${Number(x.id)}',this)">${liked?'♥ Favoride':'♡ Favoriye Al'}</button></div></div>`}).join(''):'<div class="empty">Şu an bu alarma uyan aktif SELL ilanı yok.</div>';
       modal.classList.add('open');
     }catch{toast('Eşleşen ilanlar yüklenemedi.')}
   };
