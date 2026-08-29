@@ -21,6 +21,15 @@ export const config = {
   passwordResetTtl: process.env.PASSWORD_RESET_TTL || '30m',
   passwordResetDeliveryEnabled: false,
   financeWritesEnabled: envFlag('FINANCE_WRITES_ENABLED', false),
+  paymentWritesEnabled: envFlag('PAYMENT_WRITES_ENABLED', false),
+  withdrawalWritesEnabled: envFlag('WITHDRAWAL_WRITES_ENABLED', false),
+  paymentProvider: String(process.env.PAYMENT_PROVIDER || 'disabled').trim().toLowerCase(),
+  paymentWebhookSecret: process.env.PAYMENT_WEBHOOK_SECRET || '',
+  // Gerçek ödeme sağlayıcısının checkout adapteri kodla bağlanmadan true yapılmaz.
+  paymentCheckoutReady: false,
+  withdrawalMinAmount: Number(process.env.WITHDRAWAL_MIN_AMOUNT || 100),
+  withdrawalMaxAmount: Number(process.env.WITHDRAWAL_MAX_AMOUNT || 100000),
+  withdrawalFeeRate: Number(process.env.WITHDRAWAL_FEE_RATE || 0),
   escrowApiEnabled: envFlag('ESCROW_API_ENABLED', false),
   directEscrowEnabled: envFlag('DIRECT_ESCROW_ENABLED', false),
   marketWritesEnabled: envFlag('MARKET_WRITES_ENABLED', false),
@@ -45,6 +54,12 @@ config.googleOAuthReady = Boolean(
   config.googleClientId &&
   config.googleClientSecret &&
   config.googleCallbackUrl,
+);
+config.paymentProviderConfigured = Boolean(
+  config.paymentProvider &&
+  config.paymentProvider !== 'disabled' &&
+  config.paymentWebhookSecret &&
+  config.paymentWebhookSecret.length >= 16,
 );
 
 export const isProduction = config.nodeEnv === 'production';
