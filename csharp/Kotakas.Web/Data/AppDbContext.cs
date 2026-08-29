@@ -21,6 +21,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<TraderReview> TraderReviews => Set<TraderReview>();
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<ItemWatch> ItemWatches => Set<ItemWatch>();
+    public DbSet<UserReport> UserReports => Set<UserReport>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -43,6 +45,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<PaymentIntent>().Property(x => x.AmountTry).HasPrecision(18, 2);
         b.Entity<ItemWatch>().Property(x => x.MaxPriceGb).HasPrecision(18, 4);
         b.Entity<SiteSetting>().HasKey(x => x.Key);
+        b.Entity<NotificationPreference>().HasKey(x => x.UserId);
         b.Entity<SaleRequest>().HasMany(x => x.Offers).WithOne(x => x.SaleRequest).HasForeignKey(x => x.SaleRequestId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<SaleRequest>().HasIndex(x => new { x.Status, x.ServerCode, x.CreatedAt });
         b.Entity<Offer>().HasIndex(x => new { x.SaleRequestId, x.TraderUserId });
@@ -64,5 +67,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<Favorite>().HasIndex(x => new { x.TargetType, x.TargetId, x.CreatedAt });
         b.Entity<ItemWatch>().HasIndex(x => new { x.UserId, x.ServerCode, x.Query }).IsUnique();
         b.Entity<ItemWatch>().HasIndex(x => new { x.ServerCode, x.Query, x.CreatedAt });
+        b.Entity<UserReport>().HasIndex(x => new { x.Status, x.CreatedAt });
+        b.Entity<UserReport>().HasIndex(x => new { x.ReporterUserId, x.TargetType, x.TargetId, x.Status });
     }
 }
