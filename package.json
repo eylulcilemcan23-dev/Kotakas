@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js && node --check src/api.js && node --check src/roles.js && node --check src/authz.js && node --check src/session.js && node --check src/user-adapter.js && node --check src/account-write-adapter.js && node --check src/account.js && node --check src/auth.js && node --check src/google-auth.js && node --check src/auth-status.js && node --check src/finance-adapter.js && node --check src/finance-write-adapter.js && node --check src/finance-status.js && node --check src/escrow.js && node --check src/escrow-api.js && node --check src/wallet-api.js && node --check src/legacy-contract.js && node --check public/assets/app.js && node --check public/assets/account.js",
+    "check": "node --check src/server.js && node --check src/config.js && node --check src/db.js && node --check src/api.js && node --check src/roles.js && node --check src/authz.js && node --check src/session.js && node --check src/user-adapter.js && node --check src/account-write-adapter.js && node --check src/account.js && node --check src/auth.js && node --check src/google-auth.js && node --check src/auth-status.js && node --check src/finance-adapter.js && node --check src/finance-write-adapter.js && node --check src/finance-status.js && node --check src/escrow.js && node --check src/escrow-api.js && node --check src/wallet-api.js && node --check src/legacy-contract.js && node --check public/assets/app.js && node --check public/assets/account.js && node --check public/assets/wallet.js",
     "test": "node --test"
   },
   "dependencies": {
