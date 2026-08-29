@@ -26,6 +26,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
     public DbSet<AdminAuditEvent> AdminAuditEvents => Set<AdminAuditEvent>();
+    public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -77,5 +79,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<VerificationRequest>().HasIndex(x => new { x.UserId, x.Kind, x.Status });
         b.Entity<AdminAuditEvent>().HasIndex(x => new { x.AdminUserId, x.CreatedAt });
         b.Entity<AdminAuditEvent>().HasIndex(x => new { x.Method, x.Path, x.CreatedAt });
+        b.Entity<IdempotencyRecord>().HasIndex(x => new { x.UserId, x.Scope, x.RequestKey }).IsUnique();
+        b.Entity<IdempotencyRecord>().HasIndex(x => x.CreatedAt);
+        b.Entity<UserSession>().HasIndex(x => new { x.UserId, x.DeviceId }).IsUnique();
+        b.Entity<UserSession>().HasIndex(x => new { x.UserId, x.LastSeenAt });
     }
 }
