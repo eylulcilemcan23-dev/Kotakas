@@ -166,13 +166,61 @@
         method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: '{}',
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'release_failed');
+      if (!response.ok) {
+        if (data.error === 'open_dispute') {
+          alert('Bu işlemde açık ihtilaf var. Ödeme yalnızca yönetici kararıyla sonuçlandırılabilir.');
+          return;
+        }
+        throw new Error(data.error || 'release_failed');
+      }
       alert('Teslim onaylandı. Satıcı ödemesi ve KOTAKAS komisyonu işlendi.');
       await renderDeals(true);
     } catch (_) {
       alert('Teslim onayı şu anda tamamlanamadı.');
     } finally {
       button.disabled = false;
+    }
+  }
+
+  async function openDispute(button, orderId) {
+    const reason = prompt('Sorunu kısaca anlat. En az 10 karakter yazmalısın.');
+    if (reason == null) return;
+    if (reason.trim().length < 10) {
+      alert('Lütfen sorunu biraz daha ayrıntılı yaz.');
+      return;
+    }
+    button.disabled = true;
+    try {
+      const response = await fetch('/api/disputes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ orderId, reason: reason.trim() }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const messages = {
+          dispute_already_open: 'Bu işlem için zaten açık bir ihtilaf var.',
+          order_not_disputable: 'Bu işlem artık ihtilafa açılamıyor.',
+          disputes_temporarily_unavailable: 'İhtilaf sistemi staging doğrulamasına kadar kapalı.',
+        };
+        alert(messages[data.error] || 'İhtilaf şu anda açılamadı.');
+        return;
+      }
+      alert(`İhtilaf #${data.dispute.id} açıldı. Para blokede kalacak ve yönetici inceleyecek.`);
+      await renderDeals(true);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function fetchMyDisputes() {
+    try {
+      const response = await fetch('/api/disputes/mine?limit=100', { headers: { Accept: 'application/json' } });
+      if (!response.ok) return [];
+      const data = await response.json().catch(() => ({}));
+      return Array.isArray(data.disputes) ? data.disputes : [];
+    } catch (_) {
+      return [];
     }
   }
 
@@ -184,7 +232,10 @@
     const existing = main.querySelector('.card.full');
     if (existing) existing.innerHTML = '<div class="empty">İşlemler yükleniyor…</div>';
     try {
-      const response = await fetch('/api/market/orders/mine?limit=50', { headers: { Accept: 'application/json' } });
+      const [response, disputes] = await Promise.all([
+        fetch('/api/market/orders/mine?limit=50', { headers: { Accept: 'application/json' } }),
+        fetchMyDisputes(),
+      ]);
       if (response.status === 401) {
         if (existing) existing.innerHTML = '<div class="empty"><a class="btn" href="/login.html?next=%2Fdeals.html">İşlemler için giriş yap</a></div>';
         return;
@@ -193,6 +244,7 @@
       if (!response.ok) throw new Error(data.error || 'orders_failed');
       const orders = Array.isArray(data.orders) ? data.orders : [];
       const actor = String(data.actorId || '');
+      const openByOrder = new Map(disputes.filter((d) => d.status === 'open').map((d) => [String(d.orderId), d]));
       if (!existing) return;
       if (!orders.length) {
         existing.innerHTML = '<div class="empty">Henüz alım veya satış işlemin yok.</div>';
@@ -202,12 +254,19 @@
         const isBuyer = String(order.buyerId) === actor;
         const roleText = isBuyer ? 'Alım' : 'Satış';
         const payout = isBuyer ? money.format(order.amount) : `${money.format(order.sellerNet)} net`;
-        const action = order.escrowState === 'held' && isBuyer
-          ? `<button class="btn success" data-release-order="${esc(order.id)}">Teslim Aldım</button>`
-          : `<span class="badge ${order.escrowState === 'released' ? 'green' : order.escrowState === 'refunded' ? 'yellow' : ''}">${esc(stateLabel(order.escrowState))}</span>`;
-        return `<div class="list-item"><div style="flex:1"><strong>${esc(order.title)} · ${esc(roleText)}</strong><span>${esc(order.server)} · İşlem #${esc(order.id)} · ${esc(payout)}</span></div><div>${action}</div></div>`;
+        const dispute = openByOrder.get(String(order.id));
+        let action = `<span class="badge ${order.escrowState === 'released' ? 'green' : order.escrowState === 'refunded' ? 'yellow' : ''}">${esc(stateLabel(order.escrowState))}</span>`;
+        if (order.escrowState === 'held') {
+          if (dispute) {
+            action = `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><span class="badge yellow">İhtilaf #${esc(dispute.id)} Açık</span></div>`;
+          } else {
+            action = `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">${isBuyer ? `<button class="btn success" data-release-order="${esc(order.id)}">Teslim Aldım</button>` : ''}<button class="btn ghost" data-dispute-order="${esc(order.id)}">Sorun Bildir</button></div>`;
+          }
+        }
+        return `<div class="list-item" data-order-id="${esc(order.id)}"><div style="flex:1"><strong>${esc(order.title)} · ${esc(roleText)}</strong><span>${esc(order.server)} · İşlem #${esc(order.id)} · ${esc(payout)}</span></div><div>${action}</div></div>`;
       }).join('')}</div>`;
       document.querySelectorAll('[data-release-order]').forEach((button) => button.addEventListener('click', () => releaseOrder(button, button.dataset.releaseOrder)));
+      document.querySelectorAll('[data-dispute-order]').forEach((button) => button.addEventListener('click', () => openDispute(button, button.dataset.disputeOrder)));
     } catch (_) {
       if (existing) existing.innerHTML = '<div class="empty">İşlem geçmişi staging şeması doğrulandıktan sonra burada görünecek.</div>';
     }
