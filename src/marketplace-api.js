@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { config } from './config.js';
+import { pool } from './db.js';
 import { requireAuthenticated } from './authz.js';
 import {
   cancelListing,
@@ -16,6 +17,12 @@ function actorId(req) {
   const value = (req.user || req.auth)?.id;
   const text = value == null ? '' : String(value);
   return /^\d+$/.test(text) ? text : null;
+}
+
+function safeLimit(value, fallback = 30) {
+  const parsed = Number.parseInt(String(value ?? fallback), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(100, Math.max(1, parsed));
 }
 
 function marketError(res, error) {
@@ -47,6 +54,45 @@ marketplaceApiRouter.get('/market/listings/mine', requireAuthenticated, async (r
     if (!sellerId) return res.status(400).json({ ok: false, error: 'invalid_user' });
     const listings = await listSellerListings(sellerId, { limit: req.query.limit });
     return res.json({ ok: true, listings });
+  } catch (error) {
+    return marketError(res, error);
+  }
+});
+
+marketplaceApiRouter.get('/market/orders/mine', requireAuthenticated, async (req, res) => {
+  const userId = actorId(req);
+  if (!userId) return res.status(400).json({ ok: false, error: 'invalid_user' });
+  if (!pool) return res.status(503).json({ ok: false, error: 'market_temporarily_unavailable' });
+  try {
+    const compatibility = await detectMarketplaceCompatibility();
+    if (!compatibility.ready) return res.status(503).json({ ok: false, error: 'market_temporarily_unavailable' });
+    const result = await pool.query(`
+      select
+        o.id, o.listing_id, o.buyer_id, o.seller_id, o.amount, o.commission_amount,
+        o.seller_net, o.escrow_state, o.created_at, o.updated_at,
+        l.title, l.server, l.status as listing_status
+      from orders o
+      left join listings l on l.id = o.listing_id
+      where o.buyer_id = $1 or o.seller_id = $1
+      order by o.id desc
+      limit $2
+    `, [userId, safeLimit(req.query.limit)]);
+    const orders = result.rows.map((row) => ({
+      id: String(row.id),
+      listingId: row.listing_id == null ? null : String(row.listing_id),
+      buyerId: String(row.buyer_id),
+      sellerId: String(row.seller_id),
+      amount: Number(row.amount),
+      commissionAmount: Number(row.commission_amount),
+      sellerNet: Number(row.seller_net),
+      escrowState: row.escrow_state,
+      title: row.title || 'İlan',
+      server: row.server || '',
+      listingStatus: row.listing_status || null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+    return res.json({ ok: true, actorId: userId, orders });
   } catch (error) {
     return marketError(res, error);
   }
