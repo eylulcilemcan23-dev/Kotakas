@@ -10,5 +10,7 @@ public sealed class ApplicationUser : IdentityUser
     public bool UserVerified { get; set; }
     public DateTimeOffset? UserVerifiedAt { get; set; }
     public string? UserVerifiedByUserId { get; set; }
+    public DateTimeOffset? LastSeenAt { get; set; }
+    public bool TraderAcceptingOffers { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
