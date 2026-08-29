@@ -1,0 +1,93 @@
+using System.Security.Claims;
+using Kotakas.Web.Data;
+using Kotakas.Web.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace Kotakas.Web.Api;
+
+public static class MarketplaceEndpoints
+{
+    public static IEndpointRouteBuilder MapMarketplaceEndpoints(this IEndpointRouteBuilder app)
+    {
+        app.MapGet("/api/sale-requests", async (string? server, string? search, AppDbContext db) =>
+        {
+            var q = db.SaleRequests.AsNoTracking().Include(x => x.Offers).Where(x => x.Status == "open");
+            if (!string.IsNullOrWhiteSpace(server) && !server.Equals("ALL", StringComparison.OrdinalIgnoreCase)) q = q.Where(x => x.ServerCode == server.ToUpper());
+            if (!string.IsNullOrWhiteSpace(search)) q = q.Where(x => x.ItemName.Contains(search));
+            var rows = await q.OrderByDescending(x => x.Id).Take(200).ToListAsync();
+            return Results.Ok(new { requests = rows.Select(ApiHelpers.RequestDto) });
+        });
+        app.MapGet("/api/sale-requests/mine", async (ClaimsPrincipal p, AppDbContext db) =>
+        {
+            var rows = await db.SaleRequests.AsNoTracking().Include(x => x.Offers).Where(x => x.UserId == ApiHelpers.UserId(p)).OrderByDescending(x => x.Id).Take(200).ToListAsync();
+            return Results.Ok(new { requests = rows.Select(ApiHelpers.RequestDto) });
+        }).RequireAuthorization();
+        app.MapPost("/api/sale-requests", async (ClaimsPrincipal p, SaleRequestInput input, AppDbContext db) =>
+        {
+            var uid = ApiHelpers.UserId(p); var item = (input.ItemName ?? "").Trim(); var note = (input.Note ?? "").Trim();
+            if (item.Length < 2 || input.MinimumGb <= 0 || input.Quantity < 1 || ApiHelpers.HasExternalContact(item + " " + note)) return Results.BadRequest(new { error = "invalid_or_external_contact" });
+            var start = new DateTimeOffset(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
+            var used = await db.SaleRequests.CountAsync(x => x.UserId == uid && x.CreatedAt >= start);
+            if (used >= 1 && !p.IsInRole("trader") && !ApiHelpers.IsFullAdmin(p)) return Results.Json(new { error = "free_monthly_request_used", requiresPayment = true }, statusCode: 402);
+            var row = new SaleRequest { UserId = uid, ItemName = item, ServerCode = (input.ServerCode ?? "ZERO").Trim().ToUpperInvariant(), Quantity = input.Quantity, MinimumGb = input.MinimumGb, Note = note };
+            db.SaleRequests.Add(row); await db.SaveChangesAsync();
+            var traders = await db.Users.AsNoTracking().Where(x => x.VerifiedTrader && x.AccountStatus == "active").Select(x => x.Id).ToListAsync();
+            db.Notifications.AddRange(traders.Select(id => new AppNotification { UserId = id, Title = "Yeni satış talebi", Body = $"{row.ServerCode} • {row.ItemName} • minimum {row.MinimumGb:0.##} GB" }));
+            await db.SaveChangesAsync(); return Results.Json(new { ok = true, request = row }, statusCode: 201);
+        }).RequireAuthorization();
+        app.MapPost("/api/sale-requests/{id:long}/offers", async (long id, ClaimsPrincipal p, OfferInput input, UserManager<ApplicationUser> users, AppDbContext db) =>
+        {
+            if (!p.IsInRole("trader") && !ApiHelpers.IsFullAdmin(p)) return Results.Forbid();
+            if (input.PriceGb <= 0) return Results.BadRequest(new { error = "invalid_price" });
+            var request = await db.SaleRequests.FirstOrDefaultAsync(x => x.Id == id && x.Status == "open"); if (request is null) return Results.NotFound();
+            var uid = ApiHelpers.UserId(p); var user = await users.GetUserAsync(p);
+            var offer = await db.Offers.FirstOrDefaultAsync(x => x.SaleRequestId == id && x.TraderUserId == uid && x.Status == "active");
+            if (offer is null) { offer = new Offer { SaleRequestId = id, TraderUserId = uid, TraderName = user?.DisplayName ?? "Pazarcı" }; db.Offers.Add(offer); }
+            offer.PriceGb = input.PriceGb; offer.ExpiryMinutes = Math.Clamp(input.ExpiryMinutes, 5, 1440); offer.CreatedAt = DateTimeOffset.UtcNow;
+            db.Notifications.Add(new AppNotification { UserId = request.UserId, Title = "Yeni teklif", Body = $"{request.ItemName} için {offer.TraderName} {offer.PriceGb:0.##} GB teklif verdi." });
+            await db.SaveChangesAsync(); return Results.Ok(new { ok = true, offer });
+        }).RequireAuthorization();
+        app.MapPost("/api/offers/{id:long}/accept", async (long id, ClaimsPrincipal p, AppDbContext db) =>
+        {
+            var offer = await db.Offers.Include(x => x.SaleRequest).FirstOrDefaultAsync(x => x.Id == id); var uid = ApiHelpers.UserId(p);
+            if (offer?.SaleRequest is null || offer.SaleRequest.UserId != uid || offer.SaleRequest.Status != "open") return Results.NotFound();
+            offer.SaleRequest.Status = "matched";
+            foreach (var sibling in await db.Offers.Where(x => x.SaleRequestId == offer.SaleRequestId).ToListAsync()) sibling.Status = sibling.Id == offer.Id ? "accepted" : "declined";
+            var deal = new Deal { SaleRequestId = offer.SaleRequestId, UserId = uid, TraderUserId = offer.TraderUserId, TraderName = offer.TraderName, ItemName = offer.SaleRequest.ItemName, ServerCode = offer.SaleRequest.ServerCode, PriceGb = offer.PriceGb };
+            db.Deals.Add(deal); db.Notifications.Add(new AppNotification { UserId = offer.TraderUserId, Title = "Teklifin kabul edildi", Body = $"{deal.ItemName} • {deal.PriceGb:0.##} GB" });
+            await db.SaveChangesAsync(); return Results.Ok(new { ok = true, deal });
+        }).RequireAuthorization();
+        app.MapGet("/api/offers/mine", async (ClaimsPrincipal p, AppDbContext db) =>
+        {
+            var rows = await db.Offers.AsNoTracking().Include(x => x.SaleRequest).Where(x => x.TraderUserId == ApiHelpers.UserId(p)).OrderByDescending(x => x.Id).Take(200).ToListAsync();
+            return Results.Ok(new { offers = rows.Select(x => new { x.Id, x.SaleRequestId, itemName = x.SaleRequest!.ItemName, serverCode = x.SaleRequest.ServerCode, x.PriceGb, x.ExpiryMinutes, x.Status, x.CreatedAt }) });
+        }).RequireAuthorization();
+        app.MapGet("/api/listings", async (string? server, string? search, AppDbContext db) =>
+        {
+            var q = db.Listings.AsNoTracking().Where(x => x.Status == "active" && x.Stock > 0);
+            if (!string.IsNullOrWhiteSpace(server) && !server.Equals("ALL", StringComparison.OrdinalIgnoreCase)) q = q.Where(x => x.ServerCode == server.ToUpper());
+            if (!string.IsNullOrWhiteSpace(search)) q = q.Where(x => x.ItemName.Contains(search));
+            return Results.Ok(new { listings = await q.OrderByDescending(x => x.Id).Take(200).ToListAsync() });
+        });
+        app.MapGet("/api/listings/mine", async (ClaimsPrincipal p, AppDbContext db) => Results.Ok(new { listings = await db.Listings.AsNoTracking().Where(x => x.SellerUserId == ApiHelpers.UserId(p)).OrderByDescending(x => x.Id).Take(200).ToListAsync() })).RequireAuthorization();
+        app.MapPost("/api/listings", async (ClaimsPrincipal p, ListingInput input, UserManager<ApplicationUser> users, AppDbContext db) =>
+        {
+            if (!p.IsInRole("trader") && !ApiHelpers.IsFullAdmin(p)) return Results.Forbid();
+            if (string.IsNullOrWhiteSpace(input.ItemName) || input.PriceGb <= 0 || input.Stock < 1 || ApiHelpers.HasExternalContact(input.ItemName)) return Results.BadRequest(new { error = "invalid_listing" });
+            var user = await users.GetUserAsync(p); var row = new TraderListing { SellerUserId = ApiHelpers.UserId(p), SellerName = user?.DisplayName ?? "Pazarcı", ItemName = input.ItemName.Trim(), ServerCode = (input.ServerCode ?? "ZERO").Trim().ToUpperInvariant(), PriceGb = input.PriceGb, Stock = input.Stock };
+            db.Listings.Add(row); await db.SaveChangesAsync(); return Results.Json(new { ok = true, listing = row }, statusCode: 201);
+        }).RequireAuthorization();
+        app.MapGet("/api/wallet", async (ClaimsPrincipal p, AppDbContext db) =>
+        {
+            var uid = ApiHelpers.UserId(p); var wallet = await db.Wallets.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == uid);
+            var start = new DateTimeOffset(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero); var used = await db.SaleRequests.CountAsync(x => x.UserId == uid && x.CreatedAt >= start);
+            return Results.Ok(new { balanceTry = wallet?.BalanceTry ?? 0m, monthlyFreeUsed = Math.Min(used, 1), monthlyFreeRemaining = Math.Max(0, 1 - used) });
+        }).RequireAuthorization();
+        return app;
+    }
+}
+
+public record SaleRequestInput(string? ItemName, string? ServerCode, int Quantity, decimal MinimumGb, string? Note);
+public record OfferInput(decimal PriceGb, int ExpiryMinutes = 10);
+public record ListingInput(string? ItemName, string? ServerCode, decimal PriceGb, int Stock = 1);
