@@ -18,6 +18,8 @@ public static class StartupSeeder
         await EnsureColumn(db, "Deals", "UnitPriceGb", "TEXT NOT NULL DEFAULT '0'");
         await EnsurePaymentIntentTable(db);
         await EnsureTraderReviewTable(db);
+        await EnsureFavoriteTable(db);
+        await EnsureFavoriteNotificationTriggers(db);
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         foreach (var role in new[] { "admin_owner", "admin_full", "admin_limited", "trader", "user" })
             if (!await roles.RoleExistsAsync(role)) await roles.CreateAsync(new IdentityRole(role));
@@ -77,6 +79,60 @@ public static class StartupSeeder
             """);
         await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_TraderReviews_DealId ON TraderReviews (DealId);");
         await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_TraderReviews_TraderUserId_CreatedAt ON TraderReviews (TraderUserId, CreatedAt);");
+    }
+
+    private static async Task EnsureFavoriteTable(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS Favorites (
+                Id INTEGER NOT NULL CONSTRAINT PK_Favorites PRIMARY KEY AUTOINCREMENT,
+                UserId TEXT NOT NULL,
+                TargetType TEXT NOT NULL,
+                TargetId TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_Favorites_UserId_TargetType_TargetId ON Favorites (UserId, TargetType, TargetId);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_Favorites_TargetType_TargetId_CreatedAt ON Favorites (TargetType, TargetId, CreatedAt);");
+    }
+
+    private static async Task EnsureFavoriteNotificationTriggers(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TRIGGER IF NOT EXISTS TR_Favorites_ListingPriceDrop
+            AFTER UPDATE OF PriceGb ON Listings
+            WHEN NEW.PriceGb < OLD.PriceGb
+            BEGIN
+                INSERT INTO Notifications (UserId, Title, Body, IsRead, CreatedAt)
+                SELECT f.UserId,
+                       'Favorindeki ilanın fiyatı düştü',
+                       NEW.ItemName || ' artık ' || NEW.PriceGb || ' GB. Eski fiyat: ' || OLD.PriceGb || ' GB.',
+                       0,
+                       strftime('%Y-%m-%dT%H:%M:%f+00:00','now')
+                FROM Favorites f
+                WHERE f.TargetType = 'listing'
+                  AND f.TargetId = CAST(NEW.Id AS TEXT)
+                  AND f.UserId <> NEW.SellerUserId;
+            END;
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TRIGGER IF NOT EXISTS TR_Favorites_TraderNewListing
+            AFTER INSERT ON Listings
+            WHEN NEW.Status = 'active'
+            BEGIN
+                INSERT INTO Notifications (UserId, Title, Body, IsRead, CreatedAt)
+                SELECT f.UserId,
+                       'Favori pazarcın yeni ilan açtı',
+                       NEW.SellerName || ' • ' || NEW.ItemName || ' • ' || NEW.PriceGb || ' GB',
+                       0,
+                       strftime('%Y-%m-%dT%H:%M:%f+00:00','now')
+                FROM Favorites f
+                WHERE f.TargetType = 'trader'
+                  AND f.TargetId = NEW.SellerUserId
+                  AND f.UserId <> NEW.SellerUserId;
+            END;
+            """);
     }
 
     private static async Task EnsureColumn(AppDbContext db, string table, string column, string definition)
