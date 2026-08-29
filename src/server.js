@@ -8,11 +8,14 @@ import { createAuthRouter } from './auth/routes.js';
 import { landingPathForRole, requirePanelPage } from './auth/panel-access.js';
 import { createFinanceRepository } from './finance/repository.js';
 import { createFinanceRouter } from './finance/routes.js';
+import { createListingRepository } from './listings/repository.js';
+import { createListingRouter } from './listings/routes.js';
 
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
 const users = db ? createUserRepository(db) : null;
 const finance = db ? createFinanceRepository(db) : null;
+const listings = db ? createListingRepository(db) : null;
 const app = express();
 
 app.disable('x-powered-by');
@@ -57,6 +60,10 @@ if (finance) {
     normalRate: config.normalCommissionRate,
     traderRate: config.traderCommissionRate
   }));
+}
+
+if (listings) {
+  app.use('/api', createListingRouter({ listings }));
 }
 
 app.get('/api/health', async (_req, res) => {
