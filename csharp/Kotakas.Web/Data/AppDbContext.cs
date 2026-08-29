@@ -23,6 +23,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<ItemWatch> ItemWatches => Set<ItemWatch>();
     public DbSet<UserReport> UserReports => Set<UserReport>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+    public DbSet<VerificationRequest> VerificationRequests => Set<VerificationRequest>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -69,5 +70,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<ItemWatch>().HasIndex(x => new { x.ServerCode, x.Query, x.CreatedAt });
         b.Entity<UserReport>().HasIndex(x => new { x.Status, x.CreatedAt });
         b.Entity<UserReport>().HasIndex(x => new { x.ReporterUserId, x.TargetType, x.TargetId, x.Status });
+        b.Entity<VerificationRequest>().HasIndex(x => new { x.Status, x.CreatedAt });
+        b.Entity<VerificationRequest>().HasIndex(x => new { x.UserId, x.Kind, x.Status });
     }
 }
