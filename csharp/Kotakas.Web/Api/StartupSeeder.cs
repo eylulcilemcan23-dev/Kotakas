@@ -19,7 +19,9 @@ public static class StartupSeeder
         await EnsurePaymentIntentTable(db);
         await EnsureTraderReviewTable(db);
         await EnsureFavoriteTable(db);
+        await EnsureItemWatchTable(db);
         await EnsureFavoriteNotificationTriggers(db);
+        await EnsureItemWatchNotificationTriggers(db);
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         foreach (var role in new[] { "admin_owner", "admin_full", "admin_limited", "trader", "user" })
             if (!await roles.RoleExistsAsync(role)) await roles.CreateAsync(new IdentityRole(role));
@@ -96,6 +98,22 @@ public static class StartupSeeder
         await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_Favorites_TargetType_TargetId_CreatedAt ON Favorites (TargetType, TargetId, CreatedAt);");
     }
 
+    private static async Task EnsureItemWatchTable(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS ItemWatches (
+                Id INTEGER NOT NULL CONSTRAINT PK_ItemWatches PRIMARY KEY AUTOINCREMENT,
+                UserId TEXT NOT NULL,
+                ServerCode TEXT NOT NULL,
+                Query TEXT NOT NULL,
+                MaxPriceGb TEXT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_ItemWatches_UserId_ServerCode_Query ON ItemWatches (UserId, ServerCode, Query);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_ItemWatches_ServerCode_Query_CreatedAt ON ItemWatches (ServerCode, Query, CreatedAt);");
+    }
+
     private static async Task EnsureFavoriteNotificationTriggers(AppDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync("DROP TRIGGER IF EXISTS TR_Favorites_ListingPriceDrop;");
@@ -134,6 +152,53 @@ public static class StartupSeeder
                 WHERE f.TargetType = 'trader'
                   AND f.TargetId = NEW.SellerUserId
                   AND f.UserId <> NEW.SellerUserId;
+            END;
+            """);
+    }
+
+    private static async Task EnsureItemWatchNotificationTriggers(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER IF EXISTS TR_ItemWatches_NewListing;");
+        await db.Database.ExecuteSqlRawAsync("DROP TRIGGER IF EXISTS TR_ItemWatches_PriceThreshold;");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TRIGGER TR_ItemWatches_NewListing
+            AFTER INSERT ON Listings
+            WHEN NEW.Status = 'active'
+            BEGIN
+                INSERT INTO Notifications (UserId, Title, Body, IsRead, CreatedAt)
+                SELECT w.UserId,
+                       'Takip ettiğin item için yeni ilan',
+                       NEW.ServerCode || ' • ' || NEW.ItemName || ' • ' || NEW.PriceGb || ' GB • ' || NEW.SellerName,
+                       0,
+                       strftime('%Y-%m-%dT%H:%M:%f+00:00','now')
+                FROM ItemWatches w
+                WHERE (w.ServerCode = 'ALL' OR w.ServerCode = NEW.ServerCode)
+                  AND lower(NEW.ItemName) LIKE '%' || lower(w.Query) || '%'
+                  AND (w.MaxPriceGb IS NULL OR CAST(w.MaxPriceGb AS REAL) <= 0 OR CAST(NEW.PriceGb AS REAL) <= CAST(w.MaxPriceGb AS REAL))
+                  AND w.UserId <> NEW.SellerUserId;
+            END;
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TRIGGER TR_ItemWatches_PriceThreshold
+            AFTER UPDATE OF PriceGb ON Listings
+            WHEN CAST(NEW.PriceGb AS REAL) < CAST(OLD.PriceGb AS REAL)
+            BEGIN
+                INSERT INTO Notifications (UserId, Title, Body, IsRead, CreatedAt)
+                SELECT w.UserId,
+                       'Item alarmındaki fiyat geldi',
+                       NEW.ServerCode || ' • ' || NEW.ItemName || ' artık ' || NEW.PriceGb || ' GB.',
+                       0,
+                       strftime('%Y-%m-%dT%H:%M:%f+00:00','now')
+                FROM ItemWatches w
+                WHERE (w.ServerCode = 'ALL' OR w.ServerCode = NEW.ServerCode)
+                  AND lower(NEW.ItemName) LIKE '%' || lower(w.Query) || '%'
+                  AND w.MaxPriceGb IS NOT NULL
+                  AND CAST(w.MaxPriceGb AS REAL) > 0
+                  AND CAST(NEW.PriceGb AS REAL) <= CAST(w.MaxPriceGb AS REAL)
+                  AND CAST(OLD.PriceGb AS REAL) > CAST(w.MaxPriceGb AS REAL)
+                  AND w.UserId <> NEW.SellerUserId;
             END;
             """);
     }
