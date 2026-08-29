@@ -63,9 +63,10 @@ public static class FavoriteEndpoints
 
             foreach (var f in favorites.Where(x => x.TargetType == "listing"))
             {
-                if (!long.TryParse(f.TargetId, out var id) || !listingMap.TryGetValue(id, out var x))
+                var parsedId = long.TryParse(f.TargetId, out var candidateId) ? candidateId : 0;
+                if (parsedId <= 0 || !listingMap.TryGetValue(parsedId, out var x))
                 {
-                    listingRows.Add(new FavoriteListingDto(f.Id, 0, true, "", "", "İlan artık mevcut değil", "", 0, 0, "missing", f.CreatedAt, 0, 0));
+                    listingRows.Add(new FavoriteListingDto(f.Id, parsedId, true, "", "", "İlan artık mevcut değil", "", 0, 0, "missing", f.CreatedAt, 0, 0));
                     continue;
                 }
                 var stat = reviewMap.TryGetValue(x.SellerUserId, out var s) ? s : (0d, 0);
@@ -76,7 +77,7 @@ public static class FavoriteEndpoints
             {
                 if (!traderMap.TryGetValue(f.TargetId, out var x))
                 {
-                    traderRows.Add(new FavoriteTraderDto(f.Id, "", true, "Pazarcı artık mevcut değil", false, "missing", f.CreatedAt, 0, 0, 0));
+                    traderRows.Add(new FavoriteTraderDto(f.Id, f.TargetId, true, "Pazarcı artık mevcut değil", false, "missing", f.CreatedAt, 0, 0, 0));
                     continue;
                 }
                 var stat = reviewMap.TryGetValue(x.Id, out var s) ? s : (0d, 0);
