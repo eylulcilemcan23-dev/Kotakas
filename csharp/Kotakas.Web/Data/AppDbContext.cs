@@ -17,6 +17,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<DealMessage> DealMessages => Set<DealMessage>();
+    public DbSet<PaymentIntent> PaymentIntents => Set<PaymentIntent>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -36,6 +37,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<WalletLedger>().Property(x => x.AmountTry).HasPrecision(18, 2);
         b.Entity<WalletLedger>().Property(x => x.BeforeTry).HasPrecision(18, 2);
         b.Entity<WalletLedger>().Property(x => x.AfterTry).HasPrecision(18, 2);
+        b.Entity<PaymentIntent>().Property(x => x.AmountTry).HasPrecision(18, 2);
         b.Entity<SiteSetting>().HasKey(x => x.Key);
         b.Entity<SaleRequest>().HasMany(x => x.Offers).WithOne(x => x.SaleRequest).HasForeignKey(x => x.SaleRequestId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<SaleRequest>().HasIndex(x => new { x.Status, x.ServerCode, x.CreatedAt });
@@ -49,5 +51,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<WalletLedger>().HasIndex(x => new { x.UserId, x.CreatedAt });
         b.Entity<SupportTicket>().HasIndex(x => new { x.Status, x.Priority, x.CreatedAt });
         b.Entity<DealMessage>().HasIndex(x => new { x.DealId, x.CreatedAt });
+        b.Entity<PaymentIntent>().HasIndex(x => x.ConversationId).IsUnique();
+        b.Entity<PaymentIntent>().HasIndex(x => new { x.UserId, x.Purpose, x.Status, x.CreatedAt });
+        b.Entity<PaymentIntent>().HasIndex(x => x.ProviderToken);
     }
 }
