@@ -1,0 +1,37 @@
+.trader-analytics-panel{overflow:hidden}
+.trader-analytics-content{display:grid;gap:16px}
+.trader-analytics-toolbar{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.trader-analytics-toolbar h2{margin:0;font-size:21px}
+.trader-analytics-toolbar p{margin:4px 0 0;color:var(--muted);font-size:12px;line-height:1.5;max-width:720px}
+.trader-range-tabs{display:flex;gap:6px;padding:4px;border:1px solid var(--line);border-radius:13px;background:#091525;flex:0 0 auto}
+.trader-range-tabs button{border:0;background:transparent;color:var(--muted);padding:8px 11px;border-radius:9px;font-size:11px;font-weight:800;cursor:pointer}
+.trader-range-tabs button.active{background:rgba(124,92,255,.2);color:#fff}
+.trader-performance-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.trader-performance-kpis article{border:1px solid var(--line);background:#0a1727;border-radius:15px;padding:14px;min-width:0}
+.trader-performance-kpis span{display:block;color:var(--muted);font-size:11px;font-weight:750}
+.trader-performance-kpis strong{display:block;margin-top:5px;font-size:20px;letter-spacing:-.03em;overflow-wrap:anywhere}
+.trader-performance-kpis small{display:block;margin-top:5px;color:var(--muted);font-size:10px;line-height:1.4}
+.trader-best-day{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border:1px solid rgba(124,92,255,.28);background:rgba(124,92,255,.08);border-radius:14px;padding:11px 13px}
+.trader-best-day span,.trader-best-day small{color:var(--muted);font-size:11px}
+.trader-best-day strong{font-size:13px}.trader-best-day b{font-size:14px}
+.trader-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.trader-chart-card{border:1px solid var(--line);background:#0a1727;border-radius:16px;padding:14px;min-width:0}
+.trader-chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.trader-chart-head strong{display:block;font-size:14px}
+.trader-chart-head span{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.trader-chart-head b{font-size:12px;white-space:nowrap}
+.trader-line-chart{display:block;width:100%;height:auto;margin-top:8px;overflow:visible}
+.trader-chart-axis{stroke:rgba(255,255,255,.12);stroke-width:1}
+.trader-chart-line{fill:none;stroke:#7c5cff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.trader-chart-line.commission{stroke:#2ccf91}
+.trader-chart-label{fill:#8391a7;font-size:11px}
+.trader-top-section{border-top:1px solid var(--line);padding-top:14px}
+.trader-top-section h3{margin:0;font-size:17px}
+.trader-top-items{display:grid;gap:8px}
+.trader-top-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;border:1px solid var(--line);background:#0a1727;border-radius:13px;padding:11px}
+.trader-rank{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:rgba(124,92,255,.15);font-size:12px;font-weight:900}
+.trader-top-item strong{display:block;font-size:13px}.trader-top-item small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.trader-top-money{text-align:right}.trader-top-money b{display:block;font-size:12px}
+.trader-analytics-empty,.trader-analytics-loading{padding:24px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:12px}
+@media(max-width:900px){.trader-performance-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.trader-chart-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.trader-analytics-toolbar{display:grid}.trader-range-tabs{width:100%}.trader-range-tabs button{flex:1}.trader-performance-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.trader-performance-kpis article{padding:12px}.trader-performance-kpis strong{font-size:17px}.trader-top-item{grid-template-columns:auto minmax(0,1fr)}.trader-top-money{grid-column:2;text-align:left}.trader-line-chart{min-width:520px}.trader-chart-card{overflow-x:auto}}
