@@ -16,6 +16,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<WalletLedger> WalletLedgers => Set<WalletLedger>();
     public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SupportReply> SupportReplies => Set<SupportReply>();
     public DbSet<DealMessage> DealMessages => Set<DealMessage>();
     public DbSet<PaymentIntent> PaymentIntents => Set<PaymentIntent>();
     public DbSet<TraderReview> TraderReviews => Set<TraderReview>();
@@ -59,6 +60,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<TraderListing>().HasIndex(x => new { x.Status, x.ServerCode, x.CreatedAt });
         b.Entity<WalletLedger>().HasIndex(x => new { x.UserId, x.CreatedAt });
         b.Entity<SupportTicket>().HasIndex(x => new { x.Status, x.Priority, x.CreatedAt });
+        b.Entity<SupportReply>().HasIndex(x => new { x.TicketId, x.CreatedAt });
         b.Entity<DealMessage>().HasIndex(x => new { x.DealId, x.CreatedAt });
         b.Entity<PaymentIntent>().HasIndex(x => x.ConversationId).IsUnique();
         b.Entity<PaymentIntent>().HasIndex(x => new { x.UserId, x.Purpose, x.Status, x.CreatedAt });
