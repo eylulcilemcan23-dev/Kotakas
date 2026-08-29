@@ -5,6 +5,7 @@ import { createDb, checkDb } from './db.js';
 import { createUserRepository } from './auth/users.js';
 import { createSessionMiddleware } from './auth/session.js';
 import { createAuthRouter } from './auth/routes.js';
+import { landingPathForRole, requirePanelPage } from './auth/panel-access.js';
 
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
@@ -32,6 +33,19 @@ if (users) {
     jwtSecret: config.jwtSecret,
     production: config.production
   }));
+
+  app.get('/api/access', (req, res) => {
+    res.json({
+      ok: true,
+      authenticated: Boolean(req.user),
+      role: req.user?.role || null,
+      landingPath: req.user ? landingPathForRole(req.user.role) : '/login.html'
+    });
+  });
+
+  app.get('/admin.html', requirePanelPage('admin'), (_req, _res, next) => next());
+  app.get('/trader.html', requirePanelPage('trader'), (_req, _res, next) => next());
+  app.get('/dashboard.html', requirePanelPage('user'), (_req, _res, next) => next());
 }
 
 app.get('/api/health', async (_req, res) => {
