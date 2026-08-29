@@ -2,6 +2,12 @@
 
 Bu değerleri koda veya GitHub'a gerçek secret olarak yazmayın. Hosting panelindeki Environment Variables / Application Settings alanına girin.
 
+## Ana domain
+
+- `PublicBaseUrl=https://SENIN-DOMAININ`
+
+E-posta doğrulama ve şifre yenileme bağlantıları bu domain ile oluşturulur.
+
 ## Google ile giriş
 
 - `Authentication__Google__ClientId`
@@ -11,9 +17,21 @@ Google Cloud Console'da Authorized redirect URI:
 
 `https://SENIN-DOMAININ/signin-google`
 
-Örnek: `https://kotakas.com/signin-google`
-
 Client ID/Secret boşsa Google butonu otomatik gizlenir.
+
+## E-posta doğrulama ve şifre yenileme
+
+SMTP yapılandırıldığında yeni normal üyeler e-posta doğrulaması yapmadan giriş yapamaz. Google ile gelen doğrulanmış e-posta ayrıca bekletilmez.
+
+- `Email__SmtpHost=smtp...`
+- `Email__SmtpPort=587`
+- `Email__SmtpUsername=...`
+- `Email__SmtpPassword=SECRET`
+- `Email__From=noreply@SENIN-DOMAININ`
+- `Email__FromName=KOTAKAS`
+- `Email__UseSsl=true`
+
+SMTP boşsa geliştirme/test kurulumu kilitlenmez ve e-posta doğrulama zorunlu tutulmaz.
 
 ## Otomatik 1 GB = TL kuru
 
@@ -49,13 +67,13 @@ Otomatik kaynak hata verirse son başarılı `gb_try_rate` korunur; admin manuel
 - `Payments__SecretKey=SANDBOX_SECRET_KEY`
 - `Payments__CallbackBaseUrl=https://SENIN-DOMAININ`
 
-Canlı iyzico hesabı açılıp sandbox testi tamamlandıktan sonra yalnız BaseUrl ve canlı anahtarlar değiştirilir:
+Canlı iyzico hesabı açılıp sandbox testi tamamlandıktan sonra canlı anahtarlar kullanılır:
 
 - `Payments__BaseUrl=https://api.iyzipay.com`
 - `Payments__ApiKey=LIVE_API_KEY`
 - `Payments__SecretKey=LIVE_SECRET_KEY`
 
-Callback yolu uygulama tarafından otomatik olarak şu şekilde oluşturulur:
+Callback yolu:
 
 `https://SENIN-DOMAININ/api/payments/iyzico/callback`
 
@@ -63,12 +81,26 @@ Callback yolu uygulama tarafından otomatik olarak şu şekilde oluşturulur:
 
 - `Payments__Provider=disabled`
 
-API key/secret, BaseUrl veya CallbackBaseUrl eksikse kartla ödeme butonu kullanıcıya aktif edilmez.
+## Veritabanı ve yedek
 
-## Veritabanı
-
-Varsayılan test kurulumu SQLite kullanır:
+Şu anki doğrulanmış sürüm SQLite kullanır:
 
 `ConnectionStrings__Default=Data Source=App_Data/kotakas.db`
 
 Hosting hesabının `App_Data` klasörüne yazma izni olmalıdır.
+
+Uygulama SQLite kullanırken her 24 saatte otomatik backup alır. Veritabanı ve `wwwroot/uploads/requests` item görselleri tek ZIP içinde `App_Data/backups` altında tutulur. Son 14 otomatik yedek korunur. Bu klasör web root değildir ve internetten doğrudan servis edilmez.
+
+Admin Owner/Tam Admin panelinden manuel yedek de oluşturabilir.
+
+Harici PostgreSQL/SQL Server gibi üretim veritabanına geçildiğinde uygulama içi SQLite backup yerine hosting/veritabanı sağlayıcısının point-in-time/managed backup özelliği kullanılmalıdır.
+
+## V11 güvenlik varsayımları
+
+- Production ortamında auth cookie yalnız HTTPS üzerinden gönderilir.
+- HSTS + HTTPS redirect aktiftir.
+- CSRF/origin kontrolü vardır.
+- API rate-limit aktiftir.
+- Kritik finans/işlem endpointleri idempotency anahtarı ister.
+- Kullanıcı cihaz oturumları ayrı takip edilir ve kullanıcı diğer cihazları kapatabilir.
+- Admin yazma işlemleri audit log'a kaydedilir.
