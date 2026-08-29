@@ -17,8 +17,8 @@ var sourceOptions = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(sqlite
 var targetOptions = new DbContextOptionsBuilder<AppDbContext>()
     .UseNpgsql(postgres, o => o.EnableRetryOnFailure(3, TimeSpan.FromSeconds(3), null)).Options;
 
-await using var source = new AppDbContext(sourceOptions);
-await using var target = new AppDbContext(targetOptions);
+await using var source = new AppDbContext(sourceOptions) { SuppressAutomation = true };
+await using var target = new AppDbContext(targetOptions) { SuppressAutomation = true };
 
 if (!await source.Database.CanConnectAsync()) Fail("SQLite kaynağa bağlanılamadı.");
 if (!await target.Database.CanConnectAsync()) Fail("PostgreSQL sunucusuna bağlanılamadı.");
@@ -182,7 +182,8 @@ static async Task ResetPostgresSequences(AppDbContext db)
     };
     foreach (var table in tables)
     {
-        var sql = $"SELECT setval(pg_get_serial_sequence('\\\"{table}\\\"', 'Id'), COALESCE(MAX(\\\"Id\\\"), 1), MAX(\\\"Id\\\") IS NOT NULL) FROM \\\"{table}\\\";";
+        var quotedTable = $"\"{table}\"";
+        var sql = $"SELECT setval(pg_get_serial_sequence('{quotedTable}', 'Id'), COALESCE(MAX(\"Id\"), 1), MAX(\"Id\") IS NOT NULL) FROM {quotedTable};";
         await db.Database.ExecuteSqlRawAsync(sql);
     }
 }
