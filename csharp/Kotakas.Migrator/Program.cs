@@ -14,8 +14,9 @@ Console.WriteLine("KOTAKAS SQLite → PostgreSQL Migrator V12");
 Console.WriteLine(execute ? "MOD: GERÇEK TAŞIMA" : "MOD: DRY-RUN (veri yazılmaz)");
 
 var sourceOptions = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(sqlite).Options;
-var targetOptions = new DbContextOptionsBuilder<AppDbContext>()
-    .UseNpgsql(postgres, o => o.EnableRetryOnFailure(3, TimeSpan.FromSeconds(3), null)).Options;
+// Migrator tek ve kontrollü bir transaction çalıştırır. Production web uygulamasındaki
+// retry stratejisini burada kullanmayız; taşıma ya tamamen commit olur ya tamamen rollback.
+var targetOptions = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(postgres).Options;
 
 await using var source = new AppDbContext(sourceOptions) { SuppressAutomation = true };
 await using var target = new AppDbContext(targetOptions) { SuppressAutomation = true };
