@@ -1,7 +1,7 @@
 (()=>{
   const state={listingIds:new Set(),traderIds:new Set(),data:null};
-  const favKey=(type,id)=>String(type)==='listing'?state.listingIds:state.traderIds;
-  const isFav=(type,id)=>favKey(type,id).has(String(id));
+  const favKey=type=>String(type)==='listing'?state.listingIds:state.traderIds;
+  const isFav=(type,id)=>favKey(type).has(String(id));
 
   async function loadFavoriteState(){
     if(!ME)return null;
@@ -18,23 +18,26 @@
   function updateFavoriteNav(total){
     if(!ME)return;
     $$('[data-auth]').forEach(wrap=>{
-      if(wrap.querySelector('.favorite-nav-link'))return;
-      const a=document.createElement('a');
-      a.href='/favorites.html';a.className='favorite-nav-link';
-      a.innerHTML=`❤ Favoriler <span class="notif-badge favorite-count">${Number(total||0)||''}</span>`;
-      const notif=wrap.querySelector('a[href$="notifications.html"]');
-      wrap.insertBefore(a,notif||wrap.firstChild);
+      let a=wrap.querySelector('.favorite-nav-link')||wrap.querySelector('a[href$="favorites.html"]');
+      if(!a){
+        a=document.createElement('a');a.href='/favorites.html';
+        const notif=wrap.querySelector('a[href$="notifications.html"]');wrap.insertBefore(a,notif||wrap.firstChild);
+      }
+      a.classList.add('favorite-nav-link');
+      a.innerHTML=`❤ Favoriler <span class="notif-badge favorite-count">${Number(total||0)>0?Number(total):''}</span>`;
     });
     $$('.favorite-count').forEach(x=>x.textContent=Number(total||0)>0?String(total):'');
     const mobile=$('#mobileNav');
-    if(mobile&&!mobile.querySelector('.favorite-mobile-link')){
+    if(mobile&&!mobile.querySelector('a[href$="favorites.html"]')){
       const a=document.createElement('a');a.href='/favorites.html';a.className='favorite-mobile-link';a.textContent='❤ Favorilerim';
       const account=mobile.querySelector('a[href$="dashboard.html"]');mobile.insertBefore(a,account||null);
     }
     if(location.pathname.endsWith('/dashboard.html')){
       const actions=$('.v5-head .head-actions');
-      if(actions&&!actions.querySelector('.dashboard-favorites')){
-        const a=document.createElement('a');a.href='/favorites.html';a.className='btn ghost dashboard-favorites';a.textContent=`❤ Favoriler (${Number(total||0)})`;actions.prepend(a);
+      if(actions){
+        let a=actions.querySelector('.dashboard-favorites');
+        if(!a){a=document.createElement('a');a.href='/favorites.html';a.className='btn ghost dashboard-favorites';actions.prepend(a)}
+        a.textContent=`❤ Favoriler (${Number(total||0)})`;
       }
     }
   }
@@ -45,20 +48,20 @@
     if(button)button.disabled=true;
     try{
       await api(`/api/favorites/${encodeURIComponent(type)}/${encodeURIComponent(id)}`,{method:active?'DELETE':'POST'});
-      if(active)favKey(type,id).delete(id);else favKey(type,id).add(id);
+      if(active)favKey(type).delete(id);else favKey(type).add(id);
       const total=state.listingIds.size+state.traderIds.size;updateFavoriteNav(total);
       syncFavoriteButtons(type,id);
       if(location.pathname.endsWith('/favorites.html'))await renderFavorites();
       toast(active?'Favorilerden çıkarıldı.':'Favorilere eklendi.');
     }catch(err){
-      const map={cannot_favorite_own_listing:'Kendi ilanını favorileyemezsin.',cannot_favorite_self:'Kendini favorileyemezsin.',invalid_favorite_target:'Favori hedefi geçersiz.'};
+      const map={cannot_favorite_own_listing:'Kendi ilanını favorileyemezsin.',cannot_favorite_self:'Kendini favorileyemezsin.',invalid_favorite_target:'Favori hedefi geçersiz.',invalid_listing:'İlan bulunamadı.'};
       toast(map[err.data?.error]||'Favori işlemi yapılamadı.');
     }finally{if(button)button.disabled=false}
   };
 
   function syncFavoriteButtons(type,id){
-    const active=isFav(type,id);
-    $$(`[data-favorite-type="${CSS.escape(String(type))}"][data-favorite-id="${CSS.escape(String(id))}"]`).forEach(btn=>{
+    const active=isFav(type,id),safeType=window.CSS?.escape?CSS.escape(String(type)):String(type),safeId=window.CSS?.escape?CSS.escape(String(id)):String(id);
+    $$(`[data-favorite-type="${safeType}"][data-favorite-id="${safeId}"]`).forEach(btn=>{
       btn.classList.toggle('teal',active);btn.classList.toggle('ghost',!active);
       if(type==='listing')btn.textContent=active?'♥ Favoride':'♡ Favoriye Al';
       else btn.textContent=active?'★ Pazarcı Takipte':'☆ Pazarcıyı Takip Et';
@@ -90,7 +93,9 @@
     });
   }
 
-  window.showFavoriteTraderListings=async(id,name)=>{
+  window.favoriteBuy=(id,stock,itemEncoded,price)=>buyListing(Number(id),Number(stock),decodeURIComponent(itemEncoded),Number(price));
+  window.showFavoriteTraderListings=async(idEncoded,nameEncoded)=>{
+    const id=decodeURIComponent(idEncoded),name=decodeURIComponent(nameEncoded);
     try{
       const d=await api('/api/listings'),rows=(d.listings||[]).filter(x=>x.sellerUserId===id),box=$('#favoriteListings');
       if(!box)return;if(!rows.length){toast(`${name} için aktif SELL ilanı yok.`);return}
@@ -100,15 +105,17 @@
   };
 
   function favoriteListingHtml(x){
-    if(x.missing)return `<div class="listitem"><div class="itemhead"><div><div class="itemtitle">${esc(x.itemName||'İlan artık mevcut değil')}</div><div class="meta">Bu kayıt artık bulunamıyor.</div></div><div class="spacer"></div><button class="btn sm ghost" data-favorite-type="listing" data-favorite-id="${x.id||0}" onclick="toggleFavorite('listing','${x.id||0}',this)">Favoriden Çıkar</button></div></div>`;
-    const active=x.status==='active'&&Number(x.stock)>0,stars=Number(x.rating||0)>0?`⭐ ${Number(x.rating).toFixed(1)} (${x.reviews||0})`:'Henüz puan yok';
-    return `<div class="listitem"><div class="itemhead"><div><div class="itemtitle">${esc(x.itemName)}</div><div class="meta">${esc(x.serverCode)} • ${esc(x.sellerName)} • ${stars}</div></div><div class="spacer"></div><span class="pill ${active?'green':'red'}">${active?'AKTİF':esc(x.status||'PASİF')}</span></div><div class="actions"><span class="pill gold">${fmtGB(x.priceGb)} • Stok ${Number(x.stock||0)}</span>${active?`<button class="btn sm teal" onclick="buyListing(${Number(x.id)},${Number(x.stock)},'${esc(x.itemName).replaceAll("'","\\'")}',${Number(x.priceGb)})">Satın Al</button>`:''}<button class="btn sm ghost" data-favorite-type="listing" data-favorite-id="${x.id}" onclick="toggleFavorite('listing','${x.id}',this)">♥ Favoriden Çıkar</button></div></div>`;
+    const id=Number(x.id||0);
+    if(x.missing)return `<div class="listitem"><div class="itemhead"><div><div class="itemtitle">${esc(x.itemName||'İlan artık mevcut değil')}</div><div class="meta">Bu kayıt artık bulunamıyor.</div></div><div class="spacer"></div><button class="btn sm ghost" data-favorite-type="listing" data-favorite-id="${id}" onclick="toggleFavorite('listing','${id}',this)">♥ Favoriden Çıkar</button></div></div>`;
+    const active=x.status==='active'&&Number(x.stock)>0,stars=Number(x.rating||0)>0?`⭐ ${Number(x.rating).toFixed(1)} (${x.reviews||0})`:'Henüz puan yok',liked=isFav('listing',id),encodedItem=encodeURIComponent(String(x.itemName||''));
+    return `<div class="listitem"><div class="itemhead"><div><div class="itemtitle">${esc(x.itemName)}</div><div class="meta">${esc(x.serverCode)} • ${esc(x.sellerName)} • ${stars}</div></div><div class="spacer"></div><span class="pill ${active?'green':'red'}">${active?'AKTİF':esc(x.status||'PASİF')}</span></div><div class="actions"><span class="pill gold">${fmtGB(x.priceGb)} • Stok ${Number(x.stock||0)}</span>${active?`<button class="btn sm teal" onclick="favoriteBuy(${id},${Number(x.stock)},'${encodedItem}',${Number(x.priceGb)})">Satın Al</button>`:''}<button class="btn sm ${liked?'teal':'ghost'}" data-favorite-type="listing" data-favorite-id="${id}" onclick="toggleFavorite('listing','${id}',this)">${liked?'♥ Favoride':'♡ Favoriye Al'}</button></div></div>`;
   }
 
   function favoriteTraderHtml(t){
-    if(t.missing)return `<div class="v5-mini"><div class="micon">🏪</div><div><strong>${esc(t.displayName)}</strong><span>Bu pazarcı artık mevcut değil.</span></div></div>`;
+    const id=String(t.id||''),idEncoded=encodeURIComponent(id),nameEncoded=encodeURIComponent(String(t.displayName||''));
+    if(t.missing)return `<div class="v5-mini" style="align-items:flex-start"><div class="micon">🏪</div><div style="flex:1"><strong>${esc(t.displayName)}</strong><span>Bu pazarcı artık mevcut değil.</span><div class="actions" style="margin-top:8px"><button class="btn sm ghost" data-favorite-type="trader" data-favorite-id="${esc(id)}" onclick="toggleFavorite('trader','${esc(id)}',this)">★ Takipten Çıkar</button></div></div></div>`;
     const active=t.accountStatus==='active'&&t.verifiedTrader,rating=Number(t.rating||0)>0?`⭐ ${Number(t.rating).toFixed(1)} • ${t.reviews||0} yorum`:'Henüz puan yok';
-    return `<div class="v5-mini" style="align-items:flex-start"><div class="micon">🏪</div><div style="flex:1"><strong>${esc(t.displayName)} ${active?'✓':''}</strong><span>${rating} • ${t.completedDeals||0} tamamlanan işlem</span><div class="actions" style="margin-top:8px"><button class="btn sm teal" onclick="showFavoriteTraderListings('${esc(t.id).replaceAll("'","\\'")}','${esc(t.displayName).replaceAll("'","\\'")}')">Aktif İlanları</button><button class="btn sm ghost" data-favorite-type="trader" data-favorite-id="${esc(t.id)}" onclick="toggleFavorite('trader','${esc(t.id).replaceAll("'","\\'")}',this)">★ Takipten Çıkar</button></div></div></div>`;
+    return `<div class="v5-mini" style="align-items:flex-start"><div class="micon">🏪</div><div style="flex:1"><strong>${esc(t.displayName)} ${active?'✓':''}</strong><span>${rating} • ${t.completedDeals||0} tamamlanan işlem</span><div class="actions" style="margin-top:8px"><button class="btn sm teal" onclick="showFavoriteTraderListings('${idEncoded}','${nameEncoded}')">Aktif İlanları</button><button class="btn sm ghost" data-favorite-type="trader" data-favorite-id="${esc(id)}" onclick="toggleFavorite('trader','${esc(id)}',this)">★ Takipten Çıkar</button></div></div></div>`;
   }
 
   window.renderFavorites=async()=>{
