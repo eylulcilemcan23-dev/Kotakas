@@ -6,6 +6,7 @@ import {
   cancelListing,
   createListing,
   detectMarketplaceCompatibility,
+  getSellerListingAllowance,
   listActiveListings,
   listSellerListings,
   purchaseListing,
@@ -13,10 +14,11 @@ import {
 
 export const marketplaceApiRouter = Router();
 
-function actorId(req) {
-  const value = (req.user || req.auth)?.id;
+function actor(req) {
+  const user = req.user || req.auth || {};
+  const value = user.id;
   const text = value == null ? '' : String(value);
-  return /^\d+$/.test(text) ? text : null;
+  return { id: /^\d+$/.test(text) ? text : null, role: String(user.role || 'user') };
 }
 
 function safeLimit(value, fallback = 30) {
@@ -28,6 +30,8 @@ function safeLimit(value, fallback = 30) {
 function marketError(res, error) {
   const message = String(error?.message || 'market_error');
   if (message.includes('not found')) return res.status(404).json({ ok: false, error: 'listing_not_found' });
+  if (message.includes('external contact info')) return res.status(400).json({ ok: false, error: 'external_contact_not_allowed' });
+  if (message.includes('monthly listing limit')) return res.status(409).json({ ok: false, error: 'monthly_listing_limit_reached' });
   if (message.includes('not available') || message.includes('not cancellable')) return res.status(409).json({ ok: false, error: 'listing_not_available' });
   if (message.includes('insufficient balance')) return res.status(409).json({ ok: false, error: 'insufficient_balance' });
   if (message.includes('idempotency key conflict')) return res.status(409).json({ ok: false, error: 'idempotency_conflict' });
@@ -50,18 +54,29 @@ marketplaceApiRouter.get('/market/listings', async (req, res) => {
 
 marketplaceApiRouter.get('/market/listings/mine', requireAuthenticated, async (req, res) => {
   try {
-    const sellerId = actorId(req);
-    if (!sellerId) return res.status(400).json({ ok: false, error: 'invalid_user' });
-    const listings = await listSellerListings(sellerId, { limit: req.query.limit });
+    const user = actor(req);
+    if (!user.id) return res.status(400).json({ ok: false, error: 'invalid_user' });
+    const listings = await listSellerListings(user.id, { limit: req.query.limit });
     return res.json({ ok: true, listings });
   } catch (error) {
     return marketError(res, error);
   }
 });
 
+marketplaceApiRouter.get('/market/listing-allowance/mine', requireAuthenticated, async (req, res) => {
+  try {
+    const user = actor(req);
+    if (!user.id) return res.status(400).json({ ok: false, error: 'invalid_user' });
+    const allowance = await getSellerListingAllowance({ sellerId: user.id, sellerRole: user.role });
+    return res.json({ ok: true, allowance });
+  } catch (error) {
+    return marketError(res, error);
+  }
+});
+
 marketplaceApiRouter.get('/market/orders/mine', requireAuthenticated, async (req, res) => {
-  const userId = actorId(req);
-  if (!userId) return res.status(400).json({ ok: false, error: 'invalid_user' });
+  const user = actor(req);
+  if (!user.id) return res.status(400).json({ ok: false, error: 'invalid_user' });
   if (!pool) return res.status(503).json({ ok: false, error: 'market_temporarily_unavailable' });
   try {
     const compatibility = await detectMarketplaceCompatibility();
@@ -76,7 +91,7 @@ marketplaceApiRouter.get('/market/orders/mine', requireAuthenticated, async (req
       where o.buyer_id = $1 or o.seller_id = $1
       order by o.id desc
       limit $2
-    `, [userId, safeLimit(req.query.limit)]);
+    `, [user.id, safeLimit(req.query.limit)]);
     const orders = result.rows.map((row) => ({
       id: String(row.id),
       listingId: row.listing_id == null ? null : String(row.listing_id),
@@ -92,7 +107,7 @@ marketplaceApiRouter.get('/market/orders/mine', requireAuthenticated, async (req
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
-    return res.json({ ok: true, actorId: userId, orders });
+    return res.json({ ok: true, actorId: user.id, orders });
   } catch (error) {
     return marketError(res, error);
   }
@@ -101,10 +116,11 @@ marketplaceApiRouter.get('/market/orders/mine', requireAuthenticated, async (req
 marketplaceApiRouter.post('/market/listings', requireAuthenticated, async (req, res) => {
   if (!config.marketWritesEnabled) return res.status(503).json({ ok: false, error: 'market_writes_disabled' });
   try {
-    const sellerId = actorId(req);
-    if (!sellerId) return res.status(400).json({ ok: false, error: 'invalid_user' });
+    const user = actor(req);
+    if (!user.id) return res.status(400).json({ ok: false, error: 'invalid_user' });
     const listing = await createListing({
-      sellerId,
+      sellerId: user.id,
+      sellerRole: user.role,
       title: req.body?.title,
       server: req.body?.server,
       description: req.body?.description,
@@ -119,9 +135,9 @@ marketplaceApiRouter.post('/market/listings', requireAuthenticated, async (req, 
 marketplaceApiRouter.post('/market/listings/:listingId/cancel', requireAuthenticated, async (req, res) => {
   if (!config.marketWritesEnabled) return res.status(503).json({ ok: false, error: 'market_writes_disabled' });
   try {
-    const sellerId = actorId(req);
-    if (!sellerId) return res.status(400).json({ ok: false, error: 'invalid_user' });
-    const listing = await cancelListing({ sellerId, listingId: req.params.listingId });
+    const user = actor(req);
+    if (!user.id) return res.status(400).json({ ok: false, error: 'invalid_user' });
+    const listing = await cancelListing({ sellerId: user.id, listingId: req.params.listingId });
     return res.json({ ok: true, listing });
   } catch (error) {
     return marketError(res, error);
@@ -133,10 +149,10 @@ marketplaceApiRouter.post('/market/listings/:listingId/buy', requireAuthenticate
     return res.status(503).json({ ok: false, error: 'secure_purchase_disabled' });
   }
   try {
-    const buyerId = actorId(req);
-    if (!buyerId) return res.status(400).json({ ok: false, error: 'invalid_user' });
+    const user = actor(req);
+    if (!user.id) return res.status(400).json({ ok: false, error: 'invalid_user' });
     const idempotencyKey = String(req.get('x-idempotency-key') || req.body?.idempotencyKey || '').trim();
-    const order = await purchaseListing({ buyerId, listingId: req.params.listingId, idempotencyKey });
+    const order = await purchaseListing({ buyerId: user.id, listingId: req.params.listingId, idempotencyKey });
     return res.status(201).json({ ok: true, order });
   } catch (error) {
     return marketError(res, error);

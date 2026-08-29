@@ -28,6 +28,8 @@ export const config = {
   communicationWritesEnabled: envFlag('COMMUNICATION_WRITES_ENABLED', false),
   auditLogEnabled: envFlag('AUDIT_LOG_ENABLED', false),
   commissionRate: Number(process.env.COMMISSION_RATE || 0),
+  traderCommissionRate: Number(process.env.TRADER_COMMISSION_RATE ?? process.env.COMMISSION_RATE ?? 0),
+  normalUserMonthlyListingLimit: Number(process.env.NORMAL_USER_MONTHLY_LISTING_LIMIT || 1),
   traderDebtLimitGb: Number(process.env.TRADER_DEBT_LIMIT_GB || 0),
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',

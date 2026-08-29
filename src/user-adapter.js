@@ -72,23 +72,41 @@ export async function detectUserSchema({ force = false } = {}) {
   return null;
 }
 
-export async function findUserByEmail(email) {
-  const schema = await detectUserSchema();
-  if (!schema) return null;
-
-  const selects = [
+function userSelects(schema) {
+  return [
     `${qi(schema.id)} as id`,
     `${qi(schema.email)} as email`,
     `${qi(schema.password)} as password_hash`,
     schema.role ? `${qi(schema.role)} as role` : `'user'::text as role`,
     schema.name ? `${qi(schema.name)} as name` : `null::text as name`,
   ];
+}
 
-  const sql = `select ${selects.join(', ')} from ${qi(schema.table)} where lower(${qi(schema.email)}) = lower($1) limit 1`;
+function normalizeUserRow(row) {
+  return row ? { ...row, role: normalizeRole(row.role) } : null;
+}
+
+export async function findUserByEmail(email) {
+  const schema = await detectUserSchema();
+  if (!schema) return null;
+  const sql = `select ${userSelects(schema).join(', ')} from ${qi(schema.table)} where lower(${qi(schema.email)}) = lower($1) limit 1`;
   const result = await pool.query(sql, [email]);
-  const row = result.rows[0];
-  if (!row) return null;
-  return { ...row, role: normalizeRole(row.role) };
+  return normalizeUserRow(result.rows[0]);
+}
+
+export async function findUserById(id, queryable = pool) {
+  const schema = await detectUserSchema();
+  if (!schema || !queryable) return null;
+  const text = id == null ? '' : String(id);
+  if (!/^\d+$/.test(text)) return null;
+  const sql = `select ${userSelects(schema).join(', ')} from ${qi(schema.table)} where ${qi(schema.id)} = $1 limit 1`;
+  const result = await queryable.query(sql, [text]);
+  return normalizeUserRow(result.rows[0]);
+}
+
+export async function findUserRoleById(id, queryable = pool) {
+  const user = await findUserById(id, queryable);
+  return normalizeRole(user?.role);
 }
 
 export async function verifyUserPassword(user, password) {

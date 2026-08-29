@@ -5,6 +5,8 @@ import { requireAuthenticated } from './authz.js';
 import { buildEscrowSettlement, ESCROW_STATES } from './escrow.js';
 import { detectMarketplaceCompatibility } from './marketplace.js';
 import { createUserNotification } from './dispute-communications.js';
+import { findUserRoleById } from './user-adapter.js';
+import { commissionRateForSellerRole } from './marketplace-policy.js';
 
 export const offersApiRouter = Router();
 
@@ -269,7 +271,8 @@ export async function acceptOffer({ offerId, sellerId, idempotencyKey }) {
     if (listing.status !== 'active') throw new Error('listing not available');
     if (String(offer.offered_by) === seller) throw new Error('buyer and seller must differ');
 
-    const settlement = buildEscrowSettlement(offer.amount, config.commissionRate);
+    const sellerRole = await findUserRoleById(listing.seller_id, client);
+    const settlement = buildEscrowSettlement(offer.amount, commissionRateForSellerRole(sellerRole));
     const walletResult = await client.query('select user_id,available_balance,held_balance from wallets where user_id = $1 for update', [offer.offered_by]);
     if (!walletResult.rowCount) throw new Error('wallet not found');
     if (money(walletResult.rows[0].available_balance) < settlement.buyerDebit) throw new Error('insufficient balance');

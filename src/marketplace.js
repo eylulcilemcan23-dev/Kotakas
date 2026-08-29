@@ -1,6 +1,13 @@
 import { config } from './config.js';
 import { pool } from './db.js';
 import { buildEscrowSettlement, ESCROW_STATES } from './escrow.js';
+import { findUserRoleById } from './user-adapter.js';
+import {
+  assertListingAllowance,
+  assertListingContentSafe,
+  commissionRateForSellerRole,
+  getListingAllowance,
+} from './marketplace-policy.js';
 
 const LISTING_COLUMNS = [
   'id', 'seller_id', 'title', 'server', 'description', 'price', 'status', 'order_id', 'created_at', 'updated_at',
@@ -146,7 +153,12 @@ export async function listSellerListings(sellerId, { limit = 50 } = {}) {
   return result.rows.map(listingView);
 }
 
-export async function createListing({ sellerId, title, server, description, price }) {
+export async function getSellerListingAllowance({ sellerId, sellerRole }) {
+  await assertMarketplaceReady();
+  return getListingAllowance(pool, numericId(sellerId, 'seller id'), sellerRole);
+}
+
+export async function createListing({ sellerId, sellerRole, title, server, description, price }) {
   if (!config.marketWritesEnabled) throw new Error('market writes disabled');
   await assertMarketplaceReady();
   const seller = numericId(sellerId, 'seller id');
@@ -155,13 +167,26 @@ export async function createListing({ sellerId, title, server, description, pric
   const safeDescription = optionalText(description, 2000);
   const safePrice = money(price);
   if (safePrice <= 0) throw new Error('invalid price');
+  assertListingContentSafe({ title: safeTitle, description: safeDescription || '' });
 
-  const result = await pool.query(`
-    insert into listings (seller_id, title, server, description, price, status, order_id, created_at, updated_at)
-    values ($1, $2, $3, $4, $5::numeric, 'active', null, now(), now())
-    returning ${LISTING_COLUMNS.join(', ')}
-  `, [seller, safeTitle, safeServer, safeDescription, moneyParam(safePrice)]);
-  return listingView(result.rows[0]);
+  const client = await pool.connect();
+  try {
+    await client.query('begin');
+    await client.query('select pg_advisory_xact_lock(hashtextextended($1,0))', [`listing-quota:${seller}:${new Date().toISOString().slice(0,7)}`]);
+    await assertListingAllowance(client, seller, sellerRole);
+    const result = await client.query(`
+      insert into listings (seller_id, title, server, description, price, status, order_id, created_at, updated_at)
+      values ($1, $2, $3, $4, $5::numeric, 'active', null, now(), now())
+      returning ${LISTING_COLUMNS.join(', ')}
+    `, [seller, safeTitle, safeServer, safeDescription, moneyParam(safePrice)]);
+    await client.query('commit');
+    return listingView(result.rows[0]);
+  } catch (error) {
+    await client.query('rollback');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function cancelListing({ sellerId, listingId }) {
@@ -208,7 +233,8 @@ export async function purchaseListing({ buyerId, listingId, idempotencyKey }) {
     if (listing.status !== 'active') throw new Error('listing not available');
     if (String(listing.seller_id) === buyer) throw new Error('buyer and seller must differ');
 
-    const settlement = buildEscrowSettlement(listing.price, config.commissionRate);
+    const sellerRole = await findUserRoleById(listing.seller_id, client);
+    const settlement = buildEscrowSettlement(listing.price, commissionRateForSellerRole(sellerRole));
     const walletResult = await client.query(
       'select user_id, available_balance, held_balance from wallets where user_id = $1 for update',
       [buyer],

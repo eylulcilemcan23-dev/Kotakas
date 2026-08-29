@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { config } from '../src/config.js';
 import { pool } from '../src/db.js';
 import { refundEscrow, releaseEscrow } from '../src/finance-write-adapter.js';
+import { detectUserSchema } from '../src/user-adapter.js';
 import {
   createListing,
   detectMarketplaceCompatibility,
@@ -12,8 +13,15 @@ import {
 const dbReady = Boolean(process.env.DATABASE_URL && pool);
 
 async function resetSchema() {
-  await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
+  await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets, users cascade');
   await pool.query(`
+    create table users (
+      id bigint primary key,
+      email text not null unique,
+      password_hash text not null,
+      role text not null,
+      name text
+    );
     create table wallets (
       user_id bigint primary key,
       available_balance numeric(18,2) not null default 0 check (available_balance >= 0),
@@ -63,9 +71,15 @@ async function resetSchema() {
       rate numeric(8,6) not null check (rate >= 0 and rate <= 1),
       created_at timestamptz not null default now()
     );
+    insert into users (id,email,password_hash,role,name) values
+      (101,'buyer1@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','user','Buyer 1'),
+      (202,'trader@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','trader','Trader'),
+      (303,'buyer2@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','user','Buyer 2'),
+      (404,'normal-seller@test.local','$2b$10$abcdefghijklmnopqrstuuuuuuuuuuuuuuuuuuuuuuuuuuuu','user','Normal Seller');
     insert into wallets (user_id, available_balance, held_balance)
-    values (101,500,0),(202,0,0),(303,500,0);
+    values (101,500,0),(202,0,0),(303,500,0),(404,0,0);
   `);
+  await detectUserSchema({ force: true });
   await detectMarketplaceCompatibility({ force: true });
 }
 
@@ -85,29 +99,33 @@ function enableWrites() {
     finance: config.financeWritesEnabled,
     escrow: config.escrowApiEnabled,
     rate: config.commissionRate,
+    traderRate: config.traderCommissionRate,
+    listingLimit: config.normalUserMonthlyListingLimit,
   };
   config.marketWritesEnabled = true;
   config.financeWritesEnabled = true;
   config.escrowApiEnabled = true;
   config.commissionRate = 0.05;
+  config.traderCommissionRate = 0.05;
+  config.normalUserMonthlyListingLimit = 1;
   return () => {
     config.marketWritesEnabled = before.market;
     config.financeWritesEnabled = before.finance;
     config.escrowApiEnabled = before.escrow;
     config.commissionRate = before.rate;
+    config.traderCommissionRate = before.traderRate;
+    config.normalUserMonthlyListingLimit = before.listingLimit;
   };
 }
 
-test('listing purchase uses server-side listing price and reserves it atomically', { skip: !dbReady }, async () => {
+test('trader listing purchase uses server-side price and trader commission', { skip: !dbReady }, async () => {
   await resetSchema();
   const restore = enableWrites();
   try {
     const compatibility = await detectMarketplaceCompatibility({ force: true });
     assert.equal(compatibility.ready, true);
-
-    const listing = await createListing({ sellerId: 202, title: 'Mirage Dagger +8', server: 'ZERO', description: 'Test item', price: 400 });
+    const listing = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Mirage Dagger +8', server: 'ZERO', description: 'Test item', price: 400 });
     const order = await purchaseListing({ buyerId: 101, listingId: listing.id, idempotencyKey: 'listing-buy-1' });
-
     assert.equal(order.amount, 400);
     assert.equal(order.sellerId, '202');
     assert.equal(order.commissionAmount, 20);
@@ -115,7 +133,27 @@ test('listing purchase uses server-side listing price and reserves it atomically
     assert.deepEqual(await listingState(listing.id), { status: 'reserved', order_id: order.id });
   } finally {
     restore();
-    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
+    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets, users cascade');
+  }
+});
+
+test('normal user gets one monthly commission-free listing and cancellation does not restore quota', { skip: !dbReady }, async () => {
+  await resetSchema();
+  const restore = enableWrites();
+  try {
+    const listing = await createListing({ sellerId: 404, sellerRole: 'user', title: 'Normal Seller Item', server: 'ZERO', price: 100 });
+    const order = await purchaseListing({ buyerId: 101, listingId: listing.id, idempotencyKey: 'normal-free-sale' });
+    assert.equal(order.commissionAmount, 0);
+    assert.equal(order.sellerNet, 100);
+    await refundEscrow(order.id);
+    await pool.query("update listings set status='cancelled' where id=$1", [listing.id]);
+    await assert.rejects(
+      createListing({ sellerId: 404, sellerRole: 'user', title: 'Second Item', server: 'ZERO', price: 50 }),
+      /monthly listing limit reached/,
+    );
+  } finally {
+    restore();
+    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets, users cascade');
   }
 });
 
@@ -123,14 +161,13 @@ test('two buyers cannot buy the same listing concurrently', { skip: !dbReady }, 
   await resetSchema();
   const restore = enableWrites();
   try {
-    const listing = await createListing({ sellerId: 202, title: 'Iron Bow +9', server: 'ZERO', price: 300 });
+    const listing = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Iron Bow +9', server: 'ZERO', price: 300 });
     const results = await Promise.allSettled([
       purchaseListing({ buyerId: 101, listingId: listing.id, idempotencyKey: 'race-a' }),
       purchaseListing({ buyerId: 303, listingId: listing.id, idempotencyKey: 'race-b' }),
     ]);
     assert.equal(results.filter((x) => x.status === 'fulfilled').length, 1);
     assert.equal(results.filter((x) => x.status === 'rejected').length, 1);
-
     const orders = await pool.query('select count(*)::int as count from orders where listing_id=$1', [listing.id]);
     assert.equal(orders.rows[0].count, 1);
     const balances = [await wallet(101), await wallet(303)];
@@ -138,7 +175,7 @@ test('two buyers cannot buy the same listing concurrently', { skip: !dbReady }, 
     assert.equal(balances.filter((x) => x.available === '500.00').length, 1);
   } finally {
     restore();
-    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
+    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets, users cascade');
   }
 });
 
@@ -146,27 +183,23 @@ test('buyer cannot purchase own listing', { skip: !dbReady }, async () => {
   await resetSchema();
   const restore = enableWrites();
   try {
-    const listing = await createListing({ sellerId: 202, title: 'Self sale', server: 'ZERO', price: 50 });
-    await assert.rejects(
-      purchaseListing({ buyerId: 202, listingId: listing.id, idempotencyKey: 'self-buy' }),
-      /buyer and seller must differ/,
-    );
+    const listing = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Self sale', server: 'ZERO', price: 50 });
+    await assert.rejects(purchaseListing({ buyerId: 202, listingId: listing.id, idempotencyKey: 'self-buy' }), /buyer and seller must differ/);
     const orders = await pool.query('select count(*)::int as count from orders');
     assert.equal(orders.rows[0].count, 0);
   } finally {
     restore();
-    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
+    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets, users cascade');
   }
 });
 
-test('release credits seller, records commission and marks listing sold in one transaction', { skip: !dbReady }, async () => {
+test('release credits trader seller, records commission and marks listing sold in one transaction', { skip: !dbReady }, async () => {
   await resetSchema();
   const restore = enableWrites();
   try {
-    const listing = await createListing({ sellerId: 202, title: 'Complete sale', server: 'ZERO', price: 200 });
+    const listing = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Complete sale', server: 'ZERO', price: 200 });
     const order = await purchaseListing({ buyerId: 101, listingId: listing.id, idempotencyKey: 'complete-sale' });
     await releaseEscrow(order.id);
-
     assert.deepEqual(await listingState(listing.id), { status: 'sold', order_id: order.id });
     assert.deepEqual(await wallet(101), { available: '300.00', held: '0.00' });
     assert.deepEqual(await wallet(202), { available: '190.00', held: '0.00' });
@@ -174,18 +207,17 @@ test('release credits seller, records commission and marks listing sold in one t
     assert.equal(commission.rows[0].amount, '10.00');
   } finally {
     restore();
-    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
+    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets, users cascade');
   }
 });
 
-test('refund restores buyer balance and reactivates listing in one transaction', { skip: !dbReady }, async () => {
+test('refund restores buyer balance and reactivates trader listing', { skip: !dbReady }, async () => {
   await resetSchema();
   const restore = enableWrites();
   try {
-    const listing = await createListing({ sellerId: 202, title: 'Refund sale', server: 'ZERO', price: 125 });
+    const listing = await createListing({ sellerId: 202, sellerRole: 'trader', title: 'Refund sale', server: 'ZERO', price: 125 });
     const order = await purchaseListing({ buyerId: 101, listingId: listing.id, idempotencyKey: 'refund-listing' });
     await refundEscrow(order.id);
-
     assert.deepEqual(await wallet(101), { available: '500.00', held: '0.00' });
     assert.deepEqual(await wallet(202), { available: '0.00', held: '0.00' });
     assert.deepEqual(await listingState(listing.id), { status: 'active', order_id: null });
@@ -193,6 +225,6 @@ test('refund restores buyer balance and reactivates listing in one transaction',
     assert.equal(commission.rows[0].count, 0);
   } finally {
     restore();
-    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets cascade');
+    await pool.query('drop table if exists commissions, wallet_transactions, orders, listings, wallets, users cascade');
   }
 });
