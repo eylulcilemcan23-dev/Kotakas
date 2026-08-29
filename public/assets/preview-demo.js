@@ -47,7 +47,7 @@
   function traderDashboard(demo) {
     return {
       readiness: { wallet: true, marketplace: true, offers: true, questions: true, swaps: true },
-      commissionRate: 0.05,
+      commissionRate: 0.03,
       wallet: demo.wallet,
       summary: {
         activeListings: 3,
@@ -55,8 +55,8 @@
         completedSales: 27,
         totalSales: 29,
         grossRevenue: 23540,
-        commissionPaid: 1177,
-        netEarnings: 22363,
+        commissionPaid: 706.2,
+        netEarnings: 22833.8,
         openOffers: 2,
         pendingQuestions: 1,
         pendingSwaps: 1,
@@ -67,8 +67,8 @@
         { id: '503', title: 'Shard +8', server: 'ZERO', price: 5250, status: 'reserved', createdAt: now(), updatedAt: now() },
       ],
       sales: [
-        { id: '901', title: 'Shard +8', server: 'ZERO', amount: 5200, commissionAmount: 260, sellerNet: 4940, escrowState: 'released', createdAt: now(), updatedAt: now() },
-        { id: '902', title: 'Mirage Dagger +8', server: 'ZERO', amount: 4100, commissionAmount: 205, sellerNet: 3895, escrowState: 'released', createdAt: now(), updatedAt: now() },
+        { id: '901', title: 'Shard +8', server: 'ZERO', amount: 5200, commissionAmount: 156, sellerNet: 5044, escrowState: 'released', createdAt: now(), updatedAt: now() },
+        { id: '902', title: 'Mirage Dagger +8', server: 'ZERO', amount: 4100, commissionAmount: 123, sellerNet: 3977, escrowState: 'released', createdAt: now(), updatedAt: now() },
       ],
       offers: [
         { id: '701', listingTitle: 'Iron Bow +8', server: 'ZERO', listingPrice: 8450, amount: 8000 },
@@ -97,31 +97,31 @@
       return {
         day: date.toISOString().slice(0, 10),
         gross,
-        commission: gross * 0.05,
+        commission: gross * 0.03,
       };
     });
     return {
       rangeDays: days,
       period: {
         grossRevenue: 23540,
-        netEarnings: 22363,
-        commissionPaid: 1177,
+        netEarnings: 22833.8,
+        commissionPaid: 706.2,
         completedSales: 27,
         refundedSales: 1,
         pendingSales: 1,
         completionRate: 93.1,
-        effectiveCommissionRate: 5,
+        effectiveCommissionRate: 3,
         averageOrderValue: 871.85,
-        netMarginRate: 95,
+        netMarginRate: 97,
         activeStockValue: 21050,
         activeListings: 3,
       },
       bestDay: { day: series[series.length - 2]?.day || new Date().toISOString().slice(0, 10), gross: 3100, sales: 4 },
       series,
       topItems: [
-        { title: 'Iron Bow +8', server: 'ZERO', sales: 8, gross: 9100, net: 8645 },
-        { title: 'Raptor +8', server: 'ZERO', sales: 6, gross: 6500, net: 6175 },
-        { title: 'Shard +8', server: 'ZERO', sales: 5, gross: 4300, net: 4085 },
+        { title: 'Iron Bow +8', server: 'ZERO', sales: 8, gross: 9100, net: 8827 },
+        { title: 'Raptor +8', server: 'ZERO', sales: 6, gross: 6500, net: 6305 },
+        { title: 'Shard +8', server: 'ZERO', sales: 5, gross: 4300, net: 4171 },
       ],
     };
   }
