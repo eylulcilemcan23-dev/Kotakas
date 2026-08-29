@@ -44,7 +44,7 @@ KOTAKAS'in tek canli ortami **Railway / production**'dir.
 5. `/api/health` 200 olmadan yeni deployment saglikli kabul edilmez.
 
 ## Mevcut production durumu — 29 Agustos 2026
-- Son dogrulanmis eski SUCCESS deployment: `53727e2f-acd0-48ce-9f53-4a0152e27bf5bc1f` degil; dogru ID `53727e2f-acd0-48ce-9f53-4a0152e27bf8`.
+- Son dogrulanmis eski SUCCESS deployment: `53727e2f-acd0-48ce-9f53-4a0152e27bf8`.
 - Kaynak gecisi icin `kotakas-live` start/health config hazirlandi.
 - Railway Free plan yeni container provision asamasinda deploylari uygulama logu olusmadan `FAILED` durumuna dusuruyor.
 - Ayri staging servisi olusturma denemesi de `Free plan resource provision limit exceeded` ile engellendi.
