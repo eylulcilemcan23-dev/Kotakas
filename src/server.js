@@ -29,6 +29,7 @@ import { adminWalletApiRouter } from './admin-wallet-api.js';
 import { disputesApiRouter } from './disputes-api.js';
 import { disputeCommunicationsRouter } from './dispute-communications.js';
 import { notificationPreferencesRouter } from './notification-preferences-api.js';
+import { supportApiRouter } from './support-api.js';
 import { optionalSession } from './session.js';
 import { configureRealtime } from './realtime.js';
 
@@ -80,6 +81,7 @@ app.use('/api', adminWalletApiRouter);
 app.use('/api', disputesApiRouter);
 app.use('/api', disputeCommunicationsRouter);
 app.use('/api', notificationPreferencesRouter);
+app.use('/api', supportApiRouter);
 app.use('/api', apiRouter);
 app.use(express.static(publicDir));
 
