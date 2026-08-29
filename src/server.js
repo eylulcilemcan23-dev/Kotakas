@@ -8,6 +8,7 @@ import { createAuthRouter } from './auth/routes.js';
 import { landingPathForRole, requirePanelPage } from './auth/panel-access.js';
 import { createFinanceRepository } from './finance/repository.js';
 import { createFinanceRouter } from './finance/routes.js';
+import { createEscrowRepository } from './finance/escrow.js';
 import { createListingRepository } from './listings/repository.js';
 import { createListingRouter } from './listings/routes.js';
 import { createNotificationRepository } from './notifications/repository.js';
@@ -16,15 +17,19 @@ import { createSellerRequestRepository } from './requests/repository.js';
 import { createSellerRequestRouter } from './requests/routes.js';
 import { createMarketRateRepository } from './market-rates/repository.js';
 import { createMarketRateRouter } from './market-rates/routes.js';
+import { createDealRepository } from './deals/repository.js';
+import { createDealRouter } from './deals/routes.js';
 
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
 const users = db ? createUserRepository(db) : null;
 const finance = db ? createFinanceRepository(db) : null;
+const escrow = db ? createEscrowRepository(db) : null;
 const listings = db ? createListingRepository(db) : null;
 const notifications = db ? createNotificationRepository(db) : null;
 const sellerRequests = db ? createSellerRequestRepository(db) : null;
 const marketRates = db ? createMarketRateRepository(db) : null;
+const deals = db ? createDealRepository(db) : null;
 const app = express();
 
 app.disable('x-powered-by');
@@ -91,6 +96,18 @@ if (marketRates) {
   app.use('/api', createMarketRateRouter({ marketRates }));
 }
 
+if (deals && listings && marketRates && escrow && notifications) {
+  app.use('/api', createDealRouter({
+    deals,
+    listings,
+    marketRates,
+    escrow,
+    notifications,
+    normalRate: config.normalCommissionRate,
+    traderRate: config.traderCommissionRate
+  }));
+}
+
 app.get('/api/health', async (_req, res) => {
   const database = await checkDb(db);
   let authSchema = { ok: false, reason: 'database_not_ready' };
@@ -124,7 +141,8 @@ app.get('/api/meta', (_req, res) => {
     phase: 21,
     normalCommissionRate: config.normalCommissionRate,
     traderCommissionRate: config.traderCommissionRate,
-    freeFormChatEnabled: false
+    freeFormChatEnabled: false,
+    escrowEnabled: true
   });
 });
 
