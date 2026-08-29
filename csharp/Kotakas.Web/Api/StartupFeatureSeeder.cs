@@ -40,6 +40,19 @@ public static class StartupFeatureSeeder
             );
             """);
 
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS AdminAuditEvents (
+                Id INTEGER NOT NULL CONSTRAINT PK_AdminAuditEvents PRIMARY KEY AUTOINCREMENT,
+                AdminUserId TEXT NOT NULL,
+                Method TEXT NOT NULL,
+                Path TEXT NOT NULL,
+                StatusCode INTEGER NOT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_AdminAuditEvents_AdminUserId_CreatedAt ON AdminAuditEvents (AdminUserId, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_AdminAuditEvents_Method_Path_CreatedAt ON AdminAuditEvents (Method, Path, CreatedAt);");
+
         // Additive upgrades for existing SQLite databases. No existing data is removed.
         await EnsureColumn(db, "AspNetUsers", "UserVerified", "INTEGER NOT NULL DEFAULT 0");
         await EnsureColumn(db, "AspNetUsers", "UserVerifiedAt", "TEXT NULL");
