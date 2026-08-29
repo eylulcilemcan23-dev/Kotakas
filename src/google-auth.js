@@ -2,8 +2,11 @@ import crypto from 'node:crypto';
 import { Router } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import { config, isProduction } from './config.js';
+import { pool } from './db.js';
 import { createSessionToken, setSessionCookie } from './session.js';
-import { findUserByEmail } from './user-adapter.js';
+import { findUserByEmail, findUserById } from './user-adapter.js';
+import { createOAuthUser } from './account-write-adapter.js';
+import { detectOauthIdentityCompatibility, findOauthIdentity, linkOauthIdentity } from './oauth-identities.js';
 
 export const googleAuthRouter = Router();
 
@@ -78,16 +81,47 @@ googleAuthRouter.get('/auth/google/callback', async (req, res) => {
     });
     const profile = ticket.getPayload();
     const email = profile?.email?.trim().toLowerCase() || '';
+    const subject = profile?.sub ? String(profile.sub) : '';
     if (!email || profile?.email_verified !== true) return loginError(res, 'google_email_unverified');
+    if (!subject) return loginError(res, 'google_identity_missing');
 
-    const user = await findUserByEmail(email);
-    if (!user) {
-      const codeName = config.googleAutoRegisterEnabled ? 'google_registration_adapter_not_ready' : 'google_account_not_registered';
-      return loginError(res, codeName);
+    const identityStatus = await detectOauthIdentityCompatibility();
+    let user = null;
+
+    if (identityStatus.ready) {
+      const db = await pool.connect();
+      try {
+        await db.query('begin');
+        const identity = await findOauthIdentity({ provider: 'google', subject }, db);
+        if (identity) {
+          user = await findUserById(identity.userId, db);
+          if (!user) throw new Error('oauth identity user missing');
+        } else {
+          user = await findUserByEmail(email, db);
+          if (!user) {
+            if (!config.googleAutoRegisterEnabled || !config.userWritesEnabled) {
+              await db.query('rollback');
+              return loginError(res, 'google_account_not_registered');
+            }
+            user = await createOAuthUser({ email, name: profile?.name || null }, db);
+          }
+          await linkOauthIdentity({ provider: 'google', subject, userId: user.id, email }, db);
+        }
+        await db.query('commit');
+      } catch (error) {
+        await db.query('rollback').catch(() => null);
+        throw error;
+      } finally {
+        db.release();
+      }
+    } else {
+      // Migration 013 uygulanmadan önce yalnız doğrulanmış e-postayla mevcut hesaba giriş korunur; otomatik kayıt açılmaz.
+      user = await findUserByEmail(email);
+      if (!user) return loginError(res, 'google_account_not_registered');
     }
 
-    const token = createSessionToken({ ...user, name: user.name || profile?.name || null });
-    setSessionCookie(res, token);
+    const sessionToken = createSessionToken({ ...user, name: user.name || profile?.name || null });
+    setSessionCookie(res, sessionToken);
     clearState(res);
     return res.redirect('/dashboard.html?google=success');
   } catch (error) {
