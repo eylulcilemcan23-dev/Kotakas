@@ -46,5 +46,24 @@ public static class ApiHelpers
             verifiedTrader = user.VerifiedTrader
         };
     }
-    public static object RequestDto(SaleRequest x) => new { x.Id, x.ItemName, x.ServerCode, quantity = x.Quantity, minimumGb = x.MinimumGb, x.Note, x.Status, x.CreatedAt, offers = x.Offers.OrderByDescending(o => o.PriceGb).Select(o => new { o.Id, o.TraderName, o.PriceGb, o.ExpiryMinutes, o.Status }) };
+    public static object RequestDto(SaleRequest x) => new
+    {
+        x.Id,
+        x.ItemName,
+        x.ServerCode,
+        quantity = x.Quantity,
+        minimumGb = x.MinimumGb,
+        x.Note,
+        x.Status,
+        x.CreatedAt,
+        offers = x.Offers.OrderByDescending(o => o.PriceGb).Select(o => new
+        {
+            o.Id,
+            traderUserId = o.TraderUserId,
+            o.TraderName,
+            o.PriceGb,
+            o.ExpiryMinutes,
+            o.Status
+        })
+    };
 }
