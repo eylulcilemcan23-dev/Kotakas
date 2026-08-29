@@ -65,6 +65,34 @@ public static class StartupFeatureSeeder
             """);
         await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_SupportReplies_TicketId_CreatedAt ON SupportReplies (TicketId, CreatedAt);");
 
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS IdempotencyRecords (
+                Id INTEGER NOT NULL CONSTRAINT PK_IdempotencyRecords PRIMARY KEY AUTOINCREMENT,
+                UserId TEXT NOT NULL,
+                Scope TEXT NOT NULL,
+                RequestKey TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_IdempotencyRecords_User_Scope_Key ON IdempotencyRecords (UserId, Scope, RequestKey);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_IdempotencyRecords_CreatedAt ON IdempotencyRecords (CreatedAt);");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS UserSessions (
+                Id INTEGER NOT NULL CONSTRAINT PK_UserSessions PRIMARY KEY AUTOINCREMENT,
+                UserId TEXT NOT NULL,
+                DeviceId TEXT NOT NULL,
+                DeviceLabel TEXT NOT NULL,
+                UserAgentHash TEXT NOT NULL,
+                IpHint TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                LastSeenAt TEXT NOT NULL,
+                RevokedAt TEXT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_UserSessions_User_Device ON UserSessions (UserId, DeviceId);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_UserSessions_User_LastSeenAt ON UserSessions (UserId, LastSeenAt);");
+
         // Additive upgrades for existing SQLite databases. No existing data is removed.
         await EnsureColumn(db, "AspNetUsers", "UserVerified", "INTEGER NOT NULL DEFAULT 0");
         await EnsureColumn(db, "AspNetUsers", "UserVerifiedAt", "TEXT NULL");
