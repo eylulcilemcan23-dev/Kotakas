@@ -41,5 +41,9 @@ jobs:
         run: npm run check
       - name: Role and integration tests
         run: npm test
+      - name: Staging migration rehearsal
+        env:
+          KOTAKAS_STAGING_REHEARSAL: '1'
+        run: npm run staging:rehearsal
       - name: Source smoke test
         run: bash scripts/smoke.sh
