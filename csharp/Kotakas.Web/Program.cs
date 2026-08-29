@@ -76,6 +76,7 @@ app.MapUploadEndpoints();
 app.MapDealEndpoints();
 app.MapReviewEndpoints();
 app.MapTraderProfileEndpoints();
+app.MapTraderRealtimeEndpoints();
 app.MapFavoriteEndpoints();
 app.MapItemWatchEndpoints();
 app.MapVerificationEndpoints();
