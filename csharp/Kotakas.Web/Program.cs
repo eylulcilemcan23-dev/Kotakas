@@ -56,6 +56,7 @@ builder.Services.ConfigureApplicationCookie(o =>
 builder.Services.AddAuthorization();
 builder.Services.AddHttpClient();
 builder.Services.AddHostedService<MarketRateSyncService>();
+builder.Services.AddHostedService<MarketplaceMaintenanceService>();
 
 var app = builder.Build();
 await StartupSeeder.InitializeAsync(app);
