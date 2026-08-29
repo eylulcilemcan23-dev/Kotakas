@@ -77,6 +77,7 @@ app.MapReviewEndpoints();
 app.MapSupportEndpoints();
 app.MapAdminEndpoints();
 app.MapAdminModerationEndpoints();
+app.MapFinanceReportingEndpoints();
 app.MapIntegrationEndpoints();
 app.MapPaymentEndpoints();
 app.MapFallbackToFile("index.html");
