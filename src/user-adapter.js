@@ -86,11 +86,11 @@ function normalizeUserRow(row) {
   return row ? { ...row, role: normalizeRole(row.role) } : null;
 }
 
-export async function findUserByEmail(email) {
+export async function findUserByEmail(email, queryable = pool) {
   const schema = await detectUserSchema();
-  if (!schema) return null;
+  if (!schema || !queryable) return null;
   const sql = `select ${userSelects(schema).join(', ')} from ${qi(schema.table)} where lower(${qi(schema.email)}) = lower($1) limit 1`;
-  const result = await pool.query(sql, [email]);
+  const result = await queryable.query(sql, [email]);
   return normalizeUserRow(result.rows[0]);
 }
 
