@@ -4,6 +4,7 @@ import { pool } from './db.js';
 import { requireAuthenticated, requirePermission, roleCan } from './authz.js';
 import { PERMISSIONS } from './roles.js';
 import { holdEscrow, refundEscrow, releaseEscrow } from './finance-write-adapter.js';
+import { syncListingForOrder } from './marketplace.js';
 
 export const escrowApiRouter = Router();
 
@@ -47,7 +48,10 @@ function sendEscrowError(res, error) {
   return res.status(503).json({ ok: false, error: 'escrow_temporarily_unavailable' });
 }
 
+// Genel amaçlı sellerId + amount alan bu endpoint varsayılan olarak kapalıdır.
+// Pazar alışverişlerinde fiyat ve satıcı daima sunucudaki listing kaydından okunur.
 escrowApiRouter.post('/escrow/hold', requireAuthenticated, requireEscrowApiReady, async (req, res) => {
+  if (!config.directEscrowEnabled) return res.status(503).json({ ok: false, error: 'direct_escrow_disabled' });
   const buyerId = userId(req.user || req.auth);
   const sellerId = req.body?.sellerId == null ? '' : String(req.body.sellerId);
   const idempotencyKey = String(req.get('x-idempotency-key') || req.body?.idempotencyKey || '').trim();
@@ -73,7 +77,8 @@ escrowApiRouter.post('/escrow/:orderId/release', requireAuthenticated, requireEs
     if (!order) return res.status(404).json({ ok: false, error: 'escrow_not_found' });
     if (!canReleaseEscrow(req.user || req.auth, order)) return res.status(403).json({ ok: false, error: 'forbidden' });
     const released = await releaseEscrow(order.id);
-    return res.json({ ok: true, order: released });
+    const listing = await syncListingForOrder(order.id).catch(() => null);
+    return res.json({ ok: true, order: released, listing });
   } catch (error) {
     return sendEscrowError(res, error);
   }
@@ -82,7 +87,8 @@ escrowApiRouter.post('/escrow/:orderId/release', requireAuthenticated, requireEs
 escrowApiRouter.post('/escrow/:orderId/refund', requireAuthenticated, requirePermission(PERMISSIONS.FINANCE), requireEscrowApiReady, async (req, res) => {
   try {
     const refunded = await refundEscrow(req.params.orderId);
-    return res.json({ ok: true, order: refunded });
+    const listing = await syncListingForOrder(req.params.orderId).catch(() => null);
+    return res.json({ ok: true, order: refunded, listing });
   } catch (error) {
     return sendEscrowError(res, error);
   }
