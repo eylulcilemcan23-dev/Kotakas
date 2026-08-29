@@ -1,0 +1,51 @@
+name: KOTAKAS CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kotakas_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kotakas_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/kotakas_test
+      JWT_SECRET: ci-only-jwt-secret-not-for-production-123456789
+      PASSWORD_RESET_SECRET: ci-only-reset-secret-not-for-production-123456789
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Syntax check
+        run: npm run check
+      - name: Role and integration tests
+        run: npm test
+      - name: Staging migration rehearsal
+        env:
+          KOTAKAS_STAGING_REHEARSAL: '1'
+        run: npm run staging:rehearsal
+      - name: Source smoke test
+        run: bash scripts/smoke.sh
+      - name: Release readiness safe-defaults
+        run: node scripts/release-readiness.js

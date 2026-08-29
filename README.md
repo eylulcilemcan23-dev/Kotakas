@@ -1,30 +1,59 @@
 # KOTAKAS
 
-KOTAKAS'in tek canli ortami **Railway / production**'dir.
+KOTAKAS, Knight Online item/GB pazarı için geliştirilen güvenli işlem ve pazar altyapısıdır.
 
-## Canli sistem
-- Domain: `https://kotakas-live-production.up.railway.app`
-- Railway proje: `KOTAKAS`
-- Servis: `kotakas-live`
-- Veritabani: `Postgres`
-- Healthcheck: `/api/health`
+## Kaynak mimarisi
 
-## Bilinen saglam surum
-- Son dogrulanmis SUCCESS deployment: `53727e2f-acd0-48ce-9f53-4a0152e27bf8`
-- Tarih: 2026-08-28 14:57 UTC
-- Bu surumde V18.40 Admin Yonetimi, V18.31 canli rol oturumu, V18.23 admin yap/kaldir ve sifre endpointleri calisiyordu.
+- Node.js 20+
+- Express 5
+- Socket.IO
+- PostgreSQL
+- JWT tabanlı oturum
+- Rol/yetki: `admin_owner`, `admin_full`, `admin_limited`, `trader`, `user`
 
-## Kural
-1. Vercel canli KOTAKAS'in parcasi degildir; sadece eski testler icin kullanildi.
-2. Yeni ozellikler once bu repoda kaynak kod olarak tutulacak.
-3. Railway environment icine yeni `V18xx` hot-patch zinciri eklenmeyecek.
-4. Her degisiklikten once mevcut canli surum korunacak ve healthcheck gecmeden trafik yeni deploy'a alinmayacak.
-5. Gizli bilgiler (DB URL, JWT secret, OAuth secret, admin sifresi) GitHub'a yazilmayacak; sadece Railway Variables kullanilacak.
+## Güvenli işlem
 
-## Siradaki isler
-- [ ] Mevcut Railway uygulamasini tek kaynak kod agacina tasima
-- [ ] Admin yetki seviyeleri: Ana Yonetici / Tam Yetkili / Sinirli Yetkili
-- [ ] Google ile Giris/Kayit (OAuth)
-- [ ] Footer: KVKK, Iletisim, Piyasa Referansi: Kopazar.com
-- [ ] KVKK ve Iletisim sayfalari
-- [ ] Eski hot-patch degiskenlerini yeni kaynak kod dogrulandiktan sonra arsivleme
+Alıcı bakiyesi doğrudan satıcıya gitmez. Satın alma sırasında tutar blokeye alınır; teslimat onayında komisyon ayrılır ve satıcının net bakiyesi aktarılır. İhtilaf açıldığında normal kullanıcı serbest bırakma yapamaz; finans yetkili admin iade veya aktarım kararı verebilir.
+
+## Pazar ve ürün detay
+
+- İlan oluşturma / listeleme / iptal
+- Sunucu tarafında fiyat ve satıcı doğrulaması
+- Aynı ilanın eşzamanlı iki alıcıya satılmasını engelleyen kilit
+- `/item.html?id=<listingId>` ürün detay ekranı
+- Item katalog metadata modeli
+- Gerçek fiyat geçmişi ve teklif istatistikleri için staging tabloları
+- Veri yokken sahte grafik üretilmez
+
+## Bildirimler
+
+- Kalıcı kullanıcı bildirim merkezi
+- Socket.IO ile anlık bildirimler
+- Okundu / tümünü okundu akışı
+- Kategori bazlı bildirim tercihleri: mesajlar, pazar/teklifler, ihtilaflar ve sistem
+- Para, iade ve güvenlik bildirimleri zorunludur ve kullanıcı tarafından kapatılamaz
+
+## Migration güvenliği
+
+`migrations/` altındaki yeni tablolar staging doğrulaması içindir. Production veritabanında otomatik migration çalıştırılmaz. Özellikle aşağıdaki migrationlar kaynak dalında STAGING ONLY kabul edilir:
+
+- `002_disputes_audit.sql`
+- `003_dispute_messages_admin_notifications.sql`
+- `004_user_notifications.sql`
+- `005_item_catalog_price_history_offers.sql`
+- `006_notification_preferences.sql`
+
+## Çalıştırma
+
+```bash
+npm install
+npm run check
+npm test
+npm start
+```
+
+Gerekli değişkenler için `.env.example` dosyasına bakın.
+
+## Durum
+
+Bu kaynak dalı canlı Railway servisini otomatik olarak değiştirmez. Canlıya geçişten önce staging PostgreSQL şema uyumluluğu, mobil/desktop smoke test ve kontrollü deployment tamamlanmalıdır.
