@@ -1,0 +1,15 @@
+/
+/market.html
+/buy.html
+/sell.html
+/deals.html
+/support.html
+/login.html
+/register.html
+/dashboard.html
+/trader.html
+/admin.html
+/profile.html
+/notifications.html
+/kvkk.html
+/contact.html
