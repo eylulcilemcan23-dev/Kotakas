@@ -49,7 +49,7 @@ public static class FavoriteEndpoints
                 .GroupBy(x => x.TraderUserId)
                 .Select(g => new { traderUserId = g.Key, rating = g.Average(x => x.Stars), reviews = g.Count() })
                 .ToListAsync();
-            var reviewMap = reviewStats.ToDictionary(x => x.traderUserId, x => new { x.rating, x.reviews });
+            var reviewMap = reviewStats.ToDictionary(x => x.traderUserId, x => (x.rating, x.reviews));
             var completedDeals = await db.Deals.AsNoTracking()
                 .Where(x => traderIdsForStats.Contains(x.TraderUserId) && x.Status == "completed")
                 .GroupBy(x => x.TraderUserId)
@@ -58,29 +58,35 @@ public static class FavoriteEndpoints
 
             var listingMap = listings.ToDictionary(x => x.Id);
             var traderMap = traders.ToDictionary(x => x.Id);
+            var listingRows = new List<FavoriteListingDto>();
+            var traderRows = new List<FavoriteTraderDto>();
 
-            var listingRows = favorites.Where(x => x.TargetType == "listing")
-                .Select(f =>
+            foreach (var f in favorites.Where(x => x.TargetType == "listing"))
+            {
+                if (!long.TryParse(f.TargetId, out var id) || !listingMap.TryGetValue(id, out var x))
                 {
-                    if (!long.TryParse(f.TargetId, out var id) || !listingMap.TryGetValue(id, out var x))
-                        return new { favoriteId = f.Id, id = 0L, missing = true, sellerUserId = "", sellerName = "", itemName = "İlan artık mevcut değil", serverCode = "", priceGb = 0m, stock = 0, status = "missing", createdAt = f.CreatedAt, rating = 0d, reviews = 0 };
-                    var stat = reviewMap.TryGetValue(x.SellerUserId, out var s) ? s : null;
-                    return new { favoriteId = f.Id, id = x.Id, missing = false, x.SellerUserId, x.SellerName, x.ItemName, x.ServerCode, x.PriceGb, x.Stock, x.Status, createdAt = f.CreatedAt, rating = stat?.rating ?? 0d, reviews = stat?.reviews ?? 0 };
-                }).ToList();
+                    listingRows.Add(new FavoriteListingDto(f.Id, 0, true, "", "", "İlan artık mevcut değil", "", 0, 0, "missing", f.CreatedAt, 0, 0));
+                    continue;
+                }
+                var stat = reviewMap.TryGetValue(x.SellerUserId, out var s) ? s : (0d, 0);
+                listingRows.Add(new FavoriteListingDto(f.Id, x.Id, false, x.SellerUserId, x.SellerName, x.ItemName, x.ServerCode, x.PriceGb, x.Stock, x.Status, f.CreatedAt, stat.Item1, stat.Item2));
+            }
 
-            var traderRows = favorites.Where(x => x.TargetType == "trader")
-                .Select(f =>
+            foreach (var f in favorites.Where(x => x.TargetType == "trader"))
+            {
+                if (!traderMap.TryGetValue(f.TargetId, out var x))
                 {
-                    if (!traderMap.TryGetValue(f.TargetId, out var x))
-                        return new { favoriteId = f.Id, id = "", missing = true, displayName = "Pazarcı artık mevcut değil", verifiedTrader = false, accountStatus = "missing", createdAt = f.CreatedAt, rating = 0d, reviews = 0, completedDeals = 0 };
-                    var stat = reviewMap.TryGetValue(x.Id, out var s) ? s : null;
-                    return new { favoriteId = f.Id, id = x.Id, missing = false, x.DisplayName, x.VerifiedTrader, x.AccountStatus, createdAt = f.CreatedAt, rating = stat?.rating ?? 0d, reviews = stat?.reviews ?? 0, completedDeals = completedDeals.TryGetValue(x.Id, out var count) ? count : 0 };
-                }).ToList();
+                    traderRows.Add(new FavoriteTraderDto(f.Id, "", true, "Pazarcı artık mevcut değil", false, "missing", f.CreatedAt, 0, 0, 0));
+                    continue;
+                }
+                var stat = reviewMap.TryGetValue(x.Id, out var s) ? s : (0d, 0);
+                traderRows.Add(new FavoriteTraderDto(f.Id, x.Id, false, x.DisplayName, x.VerifiedTrader, x.AccountStatus, f.CreatedAt, stat.Item1, stat.Item2, completedDeals.TryGetValue(x.Id, out var count) ? count : 0));
+            }
 
             return Results.Ok(new
             {
-                listingIds = listingRows.Where(x => !x.missing).Select(x => x.id).ToArray(),
-                traderIds = traderRows.Where(x => !x.missing).Select(x => x.id).ToArray(),
+                listingIds = listingRows.Where(x => !x.Missing).Select(x => x.Id).ToArray(),
+                traderIds = traderRows.Where(x => !x.Missing).Select(x => x.Id).ToArray(),
                 listings = listingRows,
                 traders = traderRows,
                 total = favorites.Count
@@ -141,3 +147,6 @@ public static class FavoriteEndpoints
         return app;
     }
 }
+
+public sealed record FavoriteListingDto(long FavoriteId, long Id, bool Missing, string SellerUserId, string SellerName, string ItemName, string ServerCode, decimal PriceGb, int Stock, string Status, DateTimeOffset CreatedAt, double Rating, int Reviews);
+public sealed record FavoriteTraderDto(long FavoriteId, string Id, bool Missing, string DisplayName, bool VerifiedTrader, string AccountStatus, DateTimeOffset CreatedAt, double Rating, int Reviews, int CompletedDeals);
