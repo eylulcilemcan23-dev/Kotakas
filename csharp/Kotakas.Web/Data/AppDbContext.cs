@@ -24,6 +24,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<SaleRequest>().Property(x => x.MinimumGb).HasPrecision(18, 4);
         b.Entity<Offer>().Property(x => x.PriceGb).HasPrecision(18, 4);
         b.Entity<Deal>().Property(x => x.PriceGb).HasPrecision(18, 4);
+        b.Entity<Deal>().Property(x => x.GbTryRate).HasPrecision(18, 4);
+        b.Entity<Deal>().Property(x => x.GrossTry).HasPrecision(18, 2);
+        b.Entity<Deal>().Property(x => x.EscrowTry).HasPrecision(18, 2);
+        b.Entity<Deal>().Property(x => x.CommissionPercent).HasPrecision(8, 4);
+        b.Entity<Deal>().Property(x => x.CommissionTry).HasPrecision(18, 2);
+        b.Entity<Deal>().Property(x => x.SellerNetTry).HasPrecision(18, 2);
         b.Entity<Wallet>().Property(x => x.BalanceTry).HasPrecision(18, 2);
         b.Entity<TraderListing>().Property(x => x.PriceGb).HasPrecision(18, 4);
         b.Entity<WalletLedger>().Property(x => x.AmountTry).HasPrecision(18, 2);

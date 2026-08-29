@@ -19,6 +19,7 @@ public static class StartupSeeder
         await SeedSetting(db, "normal_commission_percent", app.Configuration["Kotakas:NormalCommissionPercent"] ?? "4");
         await SeedSetting(db, "trader_commission_percent", app.Configuration["Kotakas:TraderCommissionPercent"] ?? "3");
         await SeedSetting(db, "paid_listing_try", "0");
+        await SeedSetting(db, "gb_try_rate", app.Configuration["Kotakas:GbTryRate"] ?? "0");
 
         var email = app.Configuration["KOTAKAS_ADMIN_EMAIL"];
         var password = app.Configuration["KOTAKAS_ADMIN_PASSWORD"];

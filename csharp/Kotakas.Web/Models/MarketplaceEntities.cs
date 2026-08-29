@@ -31,14 +31,22 @@ public sealed class Deal
 {
     public long Id { get; set; }
     public long SaleRequestId { get; set; }
+    // UserId = itemi satan normal kullanıcı; TraderUserId = itemi satın alan pazarcı.
     public string UserId { get; set; } = "";
     public string TraderUserId { get; set; } = "";
     public string TraderName { get; set; } = "";
     public string ItemName { get; set; } = "";
     public string ServerCode { get; set; } = "ZERO";
     public decimal PriceGb { get; set; }
-    public string Status { get; set; } = "pending_delivery";
+    public decimal GbTryRate { get; set; }
+    public decimal GrossTry { get; set; }
+    public decimal EscrowTry { get; set; }
+    public decimal CommissionPercent { get; set; }
+    public decimal CommissionTry { get; set; }
+    public decimal SellerNetTry { get; set; }
+    public string Status { get; set; } = "funded";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? CompletedAt { get; set; }
 }
 
 public sealed class AppNotification

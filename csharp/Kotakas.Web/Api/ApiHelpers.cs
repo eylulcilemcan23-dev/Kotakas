@@ -1,7 +1,10 @@
 using System.Security.Claims;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Kotakas.Web.Models;
+using Kotakas.Web.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Kotakas.Web.Api;
 
@@ -12,6 +15,20 @@ public static class ApiHelpers
     public static bool IsAnyAdmin(ClaimsPrincipal p) => IsFullAdmin(p) || p.IsInRole("admin_limited");
     public static bool DealAccess(Deal d, ClaimsPrincipal p) => d.UserId == UserId(p) || d.TraderUserId == UserId(p) || IsAnyAdmin(p);
     public static bool HasExternalContact(string text) => Regex.IsMatch(text ?? "", @"https?://|www\.|wa\.me|whatsapp|telegram|t\.me|discord|instagram|@[a-z0-9_.]{3,}|(?:\+?90\s*)?0?5\d{2}[\s.-]*\d{3}[\s.-]*\d{2}[\s.-]*\d{2}", RegexOptions.IgnoreCase);
+    public static async Task<decimal> SettingDecimal(AppDbContext db, string key, decimal fallback = 0m)
+    {
+        var row = await db.SiteSettings.FindAsync(key);
+        return decimal.TryParse(row?.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var value) ? value : fallback;
+    }
+
+    public static async Task<Wallet> WalletFor(AppDbContext db, string userId)
+    {
+        var wallet = await db.Wallets.FirstOrDefaultAsync(x => x.UserId == userId);
+        if (wallet is not null) return wallet;
+        wallet = new Wallet { UserId = userId };
+        db.Wallets.Add(wallet);
+        return wallet;
+    }
     public static async Task<object> UserDto(UserManager<ApplicationUser> users, ApplicationUser user)
     {
         var roles = await users.GetRolesAsync(user);
