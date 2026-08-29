@@ -14,6 +14,8 @@ import { createNotificationRepository } from './notifications/repository.js';
 import { createNotificationRouter } from './notifications/routes.js';
 import { createSellerRequestRepository } from './requests/repository.js';
 import { createSellerRequestRouter } from './requests/routes.js';
+import { createMarketRateRepository } from './market-rates/repository.js';
+import { createMarketRateRouter } from './market-rates/routes.js';
 
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
@@ -22,6 +24,7 @@ const finance = db ? createFinanceRepository(db) : null;
 const listings = db ? createListingRepository(db) : null;
 const notifications = db ? createNotificationRepository(db) : null;
 const sellerRequests = db ? createSellerRequestRepository(db) : null;
+const marketRates = db ? createMarketRateRepository(db) : null;
 const app = express();
 
 app.disable('x-powered-by');
@@ -82,6 +85,10 @@ if (sellerRequests && listings && notifications) {
     listings,
     notifications
   }));
+}
+
+if (marketRates) {
+  app.use('/api', createMarketRateRouter({ marketRates }));
 }
 
 app.get('/api/health', async (_req, res) => {
