@@ -1,0 +1,94 @@
+/* KOTAKAS reference-page unifier — applies the provided dark burgundy/navy storefront language to every main page */
+
+/* common page rhythm */
+body.k-ref-page .page{padding:28px 0 54px!important}
+body.k-ref-page .page>.container{max-width:1470px!important}
+body.k-ref-page .pagehead,body.k-ref-page .v5-head,body.k-ref-page .kp-page-hero{
+  min-height:94px!important;margin:0 0 16px!important;padding:18px 20px!important;border:1px solid #292d3e!important;border-radius:9px!important;
+  background:linear-gradient(115deg,rgba(79,18,41,.42),rgba(23,25,38,.96) 43%,rgba(19,35,53,.72))!important;
+  display:flex!important;align-items:center!important;gap:16px!important;box-shadow:0 12px 34px rgba(0,0,0,.18)!important
+}
+body.k-ref-page .pagehead h1,body.k-ref-page .v5-head h1,body.k-ref-page .kp-page-hero h1{font-size:28px!important;letter-spacing:-.5px!important;margin:3px 0 4px!important;color:#fff!important}
+body.k-ref-page .pagehead p,body.k-ref-page .v5-head p,body.k-ref-page .kp-page-hero p{font-size:11px!important;color:#a5a9b7!important;margin:0!important;line-height:1.5!important}
+body.k-ref-page .v5-kicker,body.k-ref-page .kp-eyebrow{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#ff6a8c!important;background:transparent!important;border:0!important;padding:0!important;font-size:9px!important;letter-spacing:.08em!important;font-weight:900!important}
+body.k-ref-page .head-actions{margin-left:auto!important;display:flex!important;gap:8px!important;flex-wrap:wrap!important}
+
+/* standard branded section bar */
+.k-ref-section-title{margin:0 0 12px;padding:10px 13px;border:1px solid #282b3b;border-radius:8px;background:#151722;display:flex;align-items:center;gap:8px;color:#fff;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.02em}
+.k-ref-section-title:before{content:"◉";color:#ff285a}.k-ref-section-title span{margin-left:auto;color:#858b9d;font-size:9px;font-weight:700;text-transform:none}
+
+/* common cards */
+body.k-ref-page .card,body.k-ref-page .v5-card,body.k-ref-page .sell-formcard,body.k-ref-page .sell-side-card,body.k-ref-page .trader-toolbar,body.k-ref-page .listitem,body.k-ref-page .stat,body.k-ref-page .v5-stat,body.k-ref-page .notice{
+  background:#171925!important;border:1px solid #292d3d!important;border-radius:9px!important;box-shadow:none!important
+}
+body.k-ref-page .card:hover,body.k-ref-page .v5-card:hover,body.k-ref-page .listitem:hover{border-color:#3e4358!important}
+body.k-ref-page .v5-card-head{padding-bottom:11px!important;margin-bottom:11px!important;border-bottom:1px solid #292c3b!important}
+body.k-ref-page .v5-card-head h3{font-size:13px!important;margin:0 0 3px!important;color:#fff!important}
+body.k-ref-page .v5-card-head p{font-size:9px!important;color:#898fa2!important;margin:0!important}
+
+/* BUY — storefront cards */
+body.k-page-buy .pagehead{margin-bottom:12px!important}
+body.k-page-buy #buyListings{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}
+body.k-page-buy #buyListings>.card,body.k-page-buy #buyListings>.listitem{position:relative!important;overflow:hidden!important;min-height:230px!important;padding:18px!important;background:linear-gradient(160deg,#1a1c2a,#151722)!important}
+body.k-page-buy #buyListings>.card:before,body.k-page-buy #buyListings>.listitem:before{content:"";position:absolute;inset:0 0 auto;height:82px;background:radial-gradient(180px 80px at 75% 0,rgba(255,40,90,.16),transparent 72%);pointer-events:none}
+body.k-page-buy #buyListings .itemtitle{position:relative!important;font-size:15px!important;margin-top:5px!important}
+body.k-page-buy #buyListings .price{color:#fff!important;font-size:20px!important}
+body.k-page-buy #buyListings .btn.teal{width:100%!important;margin-top:10px!important}
+.k-ref-buy-benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 14px}
+.k-ref-buy-benefit{padding:12px 14px;border:1px solid #292d3d;border-radius:8px;background:#171925;display:flex;align-items:center;gap:10px}.k-ref-buy-benefit i{width:32px;height:32px;border-radius:8px;background:#222536;display:grid;place-items:center;font-style:normal}.k-ref-buy-benefit strong{display:block;font-size:10px}.k-ref-buy-benefit span{display:block;color:#858b9d;font-size:8px;margin-top:2px}
+
+/* SELL / CHARACTER — two-column marketplace form */
+body.k-page-sell .sell-shell,body.k-page-character .sell-shell{max-width:none!important}
+body.k-page-sell .sell-progress,body.k-page-character .sell-progress{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:8px!important;margin:0 0 12px!important}
+body.k-page-sell .sell-step,body.k-page-character .sell-step{background:#151722!important;border:1px solid #292d3d!important;border-radius:8px!important;min-height:44px!important;color:#9298aa!important}
+body.k-page-sell .sell-step.active,body.k-page-character .sell-step.active{background:#211823!important;border-color:#71304b!important;color:#fff!important;box-shadow:inset 3px 0 #ff285a!important}
+body.k-page-sell .sell-step b,body.k-page-character .sell-step b{background:#242738!important;color:#fff!important}
+body.k-page-sell .sell-step.active b,body.k-page-character .sell-step.active b{background:#ff285a!important}
+body.k-page-sell .sell-grid,body.k-page-character .sell-grid{display:grid!important;grid-template-columns:minmax(0,1.65fr) minmax(300px,.72fr)!important;gap:14px!important;align-items:start!important}
+body.k-page-sell .sell-formcard,body.k-page-character .sell-formcard{padding:20px!important}
+body.k-page-sell .sell-side,body.k-page-character .sell-side{display:grid!important;gap:10px!important}
+body.k-page-sell .sell-preview,body.k-page-character .sell-preview{min-height:170px!important;background:radial-gradient(260px 150px at 90% 10%,rgba(255,40,90,.20),transparent 68%),linear-gradient(135deg,#201725,#171925)!important;border:1px solid #363047!important;border-radius:9px!important;box-shadow:none!important}
+body.k-page-sell .enhance,body.k-page-character .enhance,body.k-page-sell .quick-mins button,body.k-page-character .quick-mins button{background:#1d1f2c!important;border:1px solid #303446!important;color:#bbbfd0!important;border-radius:6px!important}
+body.k-page-sell .enhance.active,body.k-page-character .enhance.active,body.k-page-sell .quick-mins button:hover,body.k-page-character .quick-mins button:hover{background:#ff285a!important;border-color:#ff285a!important;color:#fff!important}
+body.k-page-sell .uploadbox,body.k-page-character .uploadbox{background:#12141e!important;border:1px dashed #3b4053!important;border-radius:8px!important;color:#aeb2bf!important}
+
+/* urgent sale */
+body.k-page-urgent .v5-head{border-color:#5b293d!important;background:linear-gradient(115deg,rgba(111,21,49,.52),#171925 58%,rgba(64,27,49,.38))!important}
+body.k-page-urgent .grid2{gap:14px!important}
+body.k-page-urgent #urgentSaleForm+.notice{background:#1d1924!important}
+body.k-page-urgent .v5-mini{background:#1b1d2a!important;border:1px solid #292d3d!important;border-radius:8px!important}
+body.k-page-urgent .v5-mini .micon{background:#ff285a!important;color:#fff!important}
+body.k-page-urgent #urgentMine .listitem{border-left:3px solid #ff285a!important}
+
+/* account/trader/admin panels */
+body.k-page-dashboard .v5-profilebar,body.k-page-trader .v5-profilebar{background:#151722!important;border:1px solid #292d3d!important;border-radius:9px!important;padding:13px 15px!important}
+body.k-page-dashboard .v5-status,body.k-page-trader .v5-status{background:#16291f!important;border:1px solid #2d5c48!important;color:#91e6bd!important}
+body.k-page-dashboard .v5-statgrid,body.k-page-trader .v5-statgrid,body.k-page-admin .v5-statgrid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:10px!important;margin:12px 0!important}
+body.k-page-dashboard .v5-stat,body.k-page-trader .v5-stat,body.k-page-admin .v5-stat{min-height:105px!important;padding:14px!important;background:#171925!important;position:relative!important;overflow:hidden!important}
+body.k-page-dashboard .v5-stat:after,body.k-page-trader .v5-stat:after,body.k-page-admin .v5-stat:after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,#ff285a,transparent);opacity:.8}
+body.k-page-dashboard .v5-stat strong,body.k-page-trader .v5-stat strong,body.k-page-admin .v5-stat strong{font-size:26px!important;color:#fff!important}
+body.k-page-dashboard .v5-stat .ico,body.k-page-trader .v5-stat .ico,body.k-page-admin .v5-stat .ico{background:#222536!important;border:1px solid #303448!important;color:#fff!important}
+body.k-page-dashboard .v5-layout,body.k-page-trader .v5-layout,body.k-page-admin .v5-layout{display:grid!important;grid-template-columns:minmax(0,1fr) 330px!important;gap:14px!important;align-items:start!important}
+body.k-page-admin .v5-layout{grid-template-columns:235px minmax(0,1fr)!important}
+body.k-page-dashboard .v5-tab,body.k-page-trader .v5-tab{background:#191b28!important;border:1px solid #2d3041!important;color:#9298aa!important;border-radius:6px!important}
+body.k-page-dashboard .v5-tab.active,body.k-page-trader .v5-tab.active{background:#ff285a!important;border-color:#ff285a!important;color:#fff!important}
+body.k-page-trader .trader-toolbar{padding:12px 14px!important}.toggle.on{background:#19c889!important}
+body.k-page-admin .sidebar{background:transparent!important;border:0!important;padding:0!important}.k-page-admin .sidebar a{border-radius:7px!important;color:#a4a9b8!important}.k-page-admin .sidebar a.active,.k-page-admin .sidebar a:hover{background:#232536!important;color:#fff!important;box-shadow:inset 3px 0 #ff285a!important}
+body.k-page-admin .adminPane{min-height:360px!important}
+
+/* tables / offers */
+body.k-ref-page .tablewrap{border:1px solid #292d3d!important;border-radius:8px!important;overflow:auto!important}
+body.k-ref-page .table{background:#151722!important}
+body.k-ref-page .table th{background:#12141e!important;color:#858b9d!important;font-size:9px!important}
+body.k-ref-page .table td{color:#d9dbe3!important}.offer{background:#1b1d2a!important;border:1px solid #2d3041!important;border-radius:8px!important}
+
+/* common footer: close to provided reference */
+body.k-ref-page footer{margin-top:30px!important;padding:34px 0 24px!important;background:#0e0f19!important;border-top:1px solid #252838!important}
+body.k-ref-page footer .footgrid{max-width:1470px!important;margin:auto!important;grid-template-columns:1.35fr repeat(3,1fr)!important;gap:34px!important}
+body.k-ref-page footer h4{color:#f4f4f8!important;font-size:10px!important;letter-spacing:.04em!important}
+body.k-ref-page footer a,body.k-ref-page footer p{color:#858b9b!important;font-size:9px!important}
+body.k-ref-page footer a:hover{color:#fff!important}.copyright{border-color:#242736!important;color:#666d80!important}
+
+@media(max-width:1100px){body.k-page-buy #buyListings{grid-template-columns:repeat(3,1fr)!important}body.k-page-dashboard .v5-layout,body.k-page-trader .v5-layout{grid-template-columns:minmax(0,1fr) 290px!important}.k-ref-buy-benefits{grid-template-columns:1fr 1fr}}
+@media(max-width:850px){body.k-ref-page .pagehead,body.k-ref-page .v5-head{align-items:flex-start!important;flex-wrap:wrap!important}.head-actions{margin-left:0!important;width:100%!important}body.k-page-buy #buyListings{grid-template-columns:repeat(2,1fr)!important}body.k-page-sell .sell-grid,body.k-page-character .sell-grid,body.k-page-dashboard .v5-layout,body.k-page-trader .v5-layout,body.k-page-admin .v5-layout{grid-template-columns:1fr!important}body.k-page-dashboard .v5-statgrid,body.k-page-trader .v5-statgrid,body.k-page-admin .v5-statgrid{grid-template-columns:1fr 1fr!important}}
+@media(max-width:560px){body.k-ref-page .page{padding-top:14px!important}body.k-page-buy #buyListings{grid-template-columns:1fr!important}.k-ref-buy-benefits{grid-template-columns:1fr}.k-ref-buy-benefit{padding:10px}body.k-page-sell .sell-progress,body.k-page-character .sell-progress{grid-template-columns:1fr!important}body.k-page-dashboard .v5-statgrid,body.k-page-trader .v5-statgrid,body.k-page-admin .v5-statgrid{grid-template-columns:1fr!important}body.k-ref-page footer .footgrid{grid-template-columns:1fr 1fr!important}}
