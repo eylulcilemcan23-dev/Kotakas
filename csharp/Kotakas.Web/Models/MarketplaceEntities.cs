@@ -96,6 +96,8 @@ public sealed class TraderListing
     public int Stock { get; set; } = 1;
     public string Status { get; set; } = "active";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public List<ListingPriceHistory> PriceHistory { get; set; } = [];
+    public List<ListingPriceOffer> PriceOffers { get; set; } = [];
 }
 
 public sealed class WalletLedger
