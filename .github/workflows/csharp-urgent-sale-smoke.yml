@@ -1,0 +1,28 @@
+name: KOTAKAS Urgent Item Sale Smoke
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-urgent-sale-smoke.yml'
+  pull_request:
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-urgent-sale-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  urgent-item-sale:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run urgent item sale smoke
+        shell: powershell
+        run: .\csharp\KOTAKAS_ACIL_ITEM_TEST_WINDOWS.ps1 -SkipUpdate
