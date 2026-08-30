@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads", "requests"));
+Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads", "avatars"));
 
 var databaseProvider = (builder.Configuration["Database:Provider"] ?? "sqlite").Trim().ToLowerInvariant();
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -121,6 +122,7 @@ app.UseMiddleware<TraderAvailabilityMiddleware>();
 app.MapHealthEndpoints();
 app.MapAuthEndpoints();
 app.MapAccountEndpoints();
+app.MapAvatarEndpoints();
 app.MapSessionEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapRequestManagementEndpoints();
