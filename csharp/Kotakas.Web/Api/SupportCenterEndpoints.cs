@@ -13,7 +13,7 @@ public static class SupportCenterEndpoints
         {
             var uid = ApiHelpers.UserId(principal);
             var tickets = await db.SupportTickets.AsNoTracking()
-                .Where(x => x.UserId == uid)
+                .Where(x => x.UserId == uid && !x.Subject.StartsWith("[ACIL ITEM]"))
                 .OrderByDescending(x => x.Id)
                 .Take(100)
                 .ToListAsync();
@@ -72,7 +72,9 @@ public static class SupportCenterEndpoints
 
         admin.MapGet("/tickets", async (string? q, string? status, string? priority, AppDbContext db) =>
         {
-            var query = db.SupportTickets.AsNoTracking().AsQueryable();
+            var query = db.SupportTickets.AsNoTracking()
+                .Where(x => !x.Subject.StartsWith("[ACIL ITEM]"))
+                .AsQueryable();
             if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
                 query = query.Where(x => x.Status == status);
             if (!string.IsNullOrWhiteSpace(priority) && !priority.Equals("all", StringComparison.OrdinalIgnoreCase))
