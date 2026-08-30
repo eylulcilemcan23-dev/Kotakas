@@ -41,24 +41,24 @@ jobs:
       - name: Build source package
         run: |
           mkdir -p out/package
-          zip -qr out/package/KOTAKAS_CSHARP_V12_SOURCE.zip csharp
+          zip -qr out/package/KOTAKAS_CSHARP_V13_SOURCE.zip csharp
       - name: Upload hosting publish
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V12_HOSTING
+          name: KOTAKAS_CSHARP_V13_HOSTING
           path: out/kotakas
           if-no-files-found: error
       - name: Upload PostgreSQL migrator
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V12_MIGRATOR
+          name: KOTAKAS_CSHARP_V13_MIGRATOR
           path: out/migrator
           if-no-files-found: error
       - name: Upload source package
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V12_SOURCE
-          path: out/package/KOTAKAS_CSHARP_V12_SOURCE.zip
+          name: KOTAKAS_CSHARP_V13_SOURCE
+          path: out/package/KOTAKAS_CSHARP_V13_SOURCE.zip
           if-no-files-found: error
 
   postgres-smoke:
@@ -84,11 +84,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 8.0.8
       - name: Restore and build
         run: |
           dotnet restore csharp/Kotakas.Migrator/Kotakas.Migrator.csproj
           dotnet build csharp/Kotakas.Migrator/Kotakas.Migrator.csproj -c Release --no-restore
-      - name: Create real SQLite user
+      - name: Create real SQLite V13 user
         run: |
           rm -f /tmp/kotakas-ci.db
           Database__Provider=sqlite \
@@ -96,39 +98,97 @@ jobs:
           ASPNETCORE_URLS=http://127.0.0.1:5091 \
           dotnet run --project csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build >/tmp/kotakas-sqlite.log 2>&1 &
           echo $! >/tmp/kotakas-sqlite.pid
-          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:5091/api/health && break || sleep 1; done
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:5091/api/health >/tmp/sqlite-health.json && break || sleep 1; done
+          cat /tmp/sqlite-health.json
+          grep -q 'KOTAKAS C# V13' /tmp/sqlite-health.json
+          grep -q '"schemaVersion":"13"' /tmp/sqlite-health.json
           curl -fsS -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
             -d '{"displayName":"CI Migration User","email":"migration-ci@kotakas.local","password":"Testpass123"}' \
             http://127.0.0.1:5091/api/register | tee /tmp/register.json
           grep -q 'migration-ci@kotakas.local' /tmp/register.json
           kill $(cat /tmp/kotakas-sqlite.pid)
           wait $(cat /tmp/kotakas-sqlite.pid) 2>/dev/null || true
-      - name: Migrate SQLite to PostgreSQL
+      - name: Migrate SQLite to fresh PostgreSQL with EF migrations
         run: |
           dotnet run --project csharp/Kotakas.Migrator/Kotakas.Migrator.csproj -c Release --no-build -- \
             --sqlite 'Data Source=/tmp/kotakas-ci.db' \
             --postgres 'Host=127.0.0.1;Port=5432;Database=kotakas_target;Username=postgres;Password=postgres' \
             --execute | tee /tmp/migration.log
           grep -q 'DB TAŞIMA BAŞARILI' /tmp/migration.log
-      - name: Boot PostgreSQL and verify same password
+          grep -q 'schema V13 migration geçmişi güncel' /tmp/migration.log
+      - name: Boot PostgreSQL V13 and verify same password
         run: |
           Database__Provider=postgres \
           ConnectionStrings__Postgres='Host=127.0.0.1;Port=5432;Database=kotakas_target;Username=postgres;Password=postgres' \
+          KOTAKAS_ADMIN_EMAIL='ci-admin@kotakas.local' \
+          KOTAKAS_ADMIN_PASSWORD='TestAdmin123' \
           ASPNETCORE_URLS=http://127.0.0.1:5092 \
           dotnet run --project csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build >/tmp/kotakas-postgres.log 2>&1 &
           echo $! >/tmp/kotakas-postgres.pid
-          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:5092/api/health >/tmp/health.json && break || sleep 1; done
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:5092/api/health >/tmp/health.json && break || sleep 1; done
           cat /tmp/health.json
+          grep -q 'KOTAKAS C# V13' /tmp/health.json
           grep -q 'PostgreSQL' /tmp/health.json
+          grep -q '"schemaVersion":"13"' /tmp/health.json
+          grep -q '"migrations":"current"' /tmp/health.json
+          grep -q '"pendingMigrations":0' /tmp/health.json
           curl -fsS -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
             -d '{"email":"migration-ci@kotakas.local","password":"Testpass123"}' \
             http://127.0.0.1:5092/api/login | tee /tmp/login.json
           grep -q 'migration-ci@kotakas.local' /tmp/login.json
+      - name: Verify admin risk center scanner
+        run: |
+          curl -fsS -c /tmp/admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+            -d '{"email":"ci-admin@kotakas.local","password":"TestAdmin123"}' \
+            http://127.0.0.1:5092/api/login | tee /tmp/admin-login.json
+          grep -q 'ci-admin@kotakas.local' /tmp/admin-login.json
+          curl -fsS -b /tmp/admin.cookies -H 'X-KOTAKAS-CSRF: 1' -X POST \
+            http://127.0.0.1:5092/api/admin/risk/scan | tee /tmp/risk-scan.json
+          grep -q '"completed":true' /tmp/risk-scan.json
+          curl -fsS -b /tmp/admin.cookies http://127.0.0.1:5092/api/admin/risk/summary | tee /tmp/risk-summary.json
+          grep -q 'PostgreSQL' /tmp/risk-summary.json
+      - name: Stop migrated PostgreSQL app
+        run: |
           kill $(cat /tmp/kotakas-postgres.pid)
           wait $(cat /tmp/kotakas-postgres.pid) 2>/dev/null || true
+      - name: Build a legacy V12 PostgreSQL schema without migration history
+        run: |
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE kotakas_legacy;'
+          KOTAKAS_EF_PROVIDER=postgres \
+          KOTAKAS_EF_CONNECTION='Host=127.0.0.1;Port=5432;Database=kotakas_legacy;Username=postgres;Password=postgres' \
+          dotnet ef database update 20260830001419_V12Baseline \
+            --context AppDbContext \
+            --project csharp/Kotakas.Web/Kotakas.Web.csproj \
+            --startup-project csharp/Kotakas.Web/Kotakas.Web.csproj \
+            --configuration Release --no-build
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -v ON_ERROR_STOP=1 \
+            -c "INSERT INTO \"SiteSettings\" (\"Key\",\"Value\",\"UpdatedAt\") VALUES ('legacy_sentinel','keep-me', NOW()); DROP TABLE \"__EFMigrationsHistory\";"
+      - name: Adopt legacy V12 baseline without data loss
+        run: |
+          Database__Provider=postgres \
+          ConnectionStrings__Postgres='Host=127.0.0.1;Port=5432;Database=kotakas_legacy;Username=postgres;Password=postgres' \
+          ASPNETCORE_URLS=http://127.0.0.1:5093 \
+          dotnet run --project csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build >/tmp/kotakas-legacy.log 2>&1 &
+          echo $! >/tmp/kotakas-legacy.pid
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:5093/api/health >/tmp/legacy-health.json && break || sleep 1; done
+          cat /tmp/legacy-health.json
+          grep -q 'KOTAKAS C# V13' /tmp/legacy-health.json
+          grep -q '"migrations":"current"' /tmp/legacy-health.json
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc "SELECT \"Value\" FROM \"SiteSettings\" WHERE \"Key\"='legacy_sentinel';" | grep -q 'keep-me'
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "__EFMigrationsHistory";' | grep -q '^2$'
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "RiskSignals";' | grep -q '^0$'
+          kill $(cat /tmp/kotakas-legacy.pid)
+          wait $(cat /tmp/kotakas-legacy.pid) 2>/dev/null || true
       - name: Dump logs on failure
         if: failure()
         run: |
           echo '--- SQLite log ---'; cat /tmp/kotakas-sqlite.log 2>/dev/null || true
           echo '--- Migration log ---'; cat /tmp/migration.log 2>/dev/null || true
           echo '--- PostgreSQL log ---'; cat /tmp/kotakas-postgres.log 2>/dev/null || true
+          echo '--- Risk scan ---'; cat /tmp/risk-scan.json 2>/dev/null || true
+          echo '--- Legacy adoption log ---'; cat /tmp/kotakas-legacy.log 2>/dev/null || true
