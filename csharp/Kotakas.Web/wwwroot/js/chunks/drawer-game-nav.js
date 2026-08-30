@@ -34,7 +34,7 @@
     const panel=typeof panelHref==='function'?panelHref():'/dashboard.html';
     const logged=typeof ME!=='undefined'&&!!ME;
     return `<div class="k-account-section k-account-quick" data-account-quick>
-      <div class="k-account-section-head"><strong>⚡ Hızlı Menü</strong><span>${safe(g.name)}</span></div>
+      <div class="k-account-section-head"><strong>⚡ Hızlı Menü</strong></div>
       <div class="k-account-quick-grid">
         <a href="${gameUrl('/market.html',g.code)}">📡 <b>Pazar</b></a>
         <a href="${gameUrl('/buy.html',g.code)}">🛒 <b>Satın Al</b></a>
@@ -42,7 +42,6 @@
         <a href="${gameUrl('/urgent-sell.html',g.code)}">⚡ <b>Hızlı Sat</b></a>
         ${logged?`<a href="${panel}">🏠 <b>Panelim</b></a><a href="/deals.html">🤝 <b>İşlemler</b></a>`:'<a href="/login.html">🔐 <b>Giriş</b></a><a href="/register.html">✨ <b>Kayıt Ol</b></a>'}
       </div>
-      <button type="button" class="btn ghost full k-account-games-btn" onclick="kCloseShell();setTimeout(()=>kToggleGameMenu?.(),80)">🎮 Oyun Değiştir</button>
     </div>`;
   }
 
@@ -95,7 +94,14 @@
   function wrapOpen(name,decorator){
     const original=window[name];
     if(typeof original!=='function'||original.__drawerPlus)return false;
-    const wrapped=function(...args){decorator();return original.apply(this,args)};
+    const wrapped=function(...args){
+      const result=original.apply(this,args);
+      if(result&&typeof result.then==='function'){
+        return Promise.resolve(result).then(value=>{decorator();return value});
+      }
+      decorator();
+      return result;
+    };
     wrapped.__drawerPlus=true;
     window[name]=wrapped;
     return true;
