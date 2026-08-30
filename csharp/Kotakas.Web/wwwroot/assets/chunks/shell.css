@@ -20,14 +20,6 @@
 .k-avatar{width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#18d9cc,#80fff7);display:grid;place-items:center;overflow:hidden;color:#04221f;font-size:12px;font-weight:950;flex:0 0 auto}
 .k-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .k-profile-name{font-size:12px;max-width:105px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.k-profile-drop{position:absolute;right:0;top:50px;width:290px;background:#0a1a22;border:1px solid #25404a;border-radius:18px;padding:10px;box-shadow:0 28px 70px rgba(0,0,0,.5);display:none;z-index:120}
-.k-profile-drop.open{display:block}
-.k-account-head{padding:10px;display:flex;gap:11px;align-items:center;border-bottom:1px solid #1c343e;margin-bottom:7px}
-.k-account-head .k-avatar{width:46px;height:46px;border-radius:14px;font-size:15px}
-.k-account-head strong,.k-account-head span{display:block}.k-account-head span{color:var(--muted);font-size:11px;margin-top:3px}
-.k-profile-drop a,.k-profile-drop button{width:100%;border:0;background:transparent;color:#c8d6dc;padding:10px 11px;border-radius:10px;text-align:left;cursor:pointer;font-weight:750;display:flex;align-items:center;gap:9px}
-.k-profile-drop a:hover,.k-profile-drop button:hover{background:#102832;color:#fff}
-.k-profile-drop .danger{color:#ff9ca5}
 .k-drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:109;opacity:0;pointer-events:none;transition:.2s}
 .k-drawer-backdrop.open{opacity:1;pointer-events:auto}
 .k-drawer{position:fixed;left:0;top:0;bottom:0;width:min(340px,88vw);background:#07171f;border-right:1px solid #24404a;z-index:110;transform:translateX(-102%);transition:.24s ease;box-shadow:28px 0 70px rgba(0,0,0,.45);padding:17px;overflow:auto}
@@ -37,6 +29,18 @@
 .k-drawer-group{margin:14px 0}.k-drawer-label{font-size:10px;text-transform:uppercase;letter-spacing:1.1px;color:#617985;padding:0 9px 6px;font-weight:900}.k-drawer a,.k-drawer button.k-drawer-link{width:100%;display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;color:#b9cbd2;background:transparent;border:0;text-align:left;cursor:pointer;font-weight:780}.k-drawer a:hover,.k-drawer button.k-drawer-link:hover{background:#0e2933;color:#fff}.k-drawer .badge-side{margin-left:auto;font-size:10px;background:#17323c;border:1px solid #294b57;padding:3px 7px;border-radius:999px;color:#9edbd7}
 .k-shell-guest{display:flex;gap:8px;align-items:center}.k-shell-guest a{min-height:40px;display:flex;align-items:center;padding:0 13px;border-radius:11px;font-weight:850}.k-shell-guest a:last-child{background:var(--teal);color:#03201e}
 #kAvatarInput{display:none}
+
+.k-account-drawer{position:fixed;right:0;top:0;bottom:0;width:min(410px,94vw);background:#07171f;border-left:1px solid #24404a;z-index:111;transform:translateX(102%);transition:.26s ease;box-shadow:-30px 0 78px rgba(0,0,0,.48);overflow:auto;padding:17px}
+.k-account-drawer.open{transform:translateX(0)}
+.k-account-top{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid #19333d;position:sticky;top:-17px;background:#07171f;padding-top:17px;z-index:2}
+.k-account-top .k-avatar{width:56px;height:56px;border-radius:17px;font-size:18px}.k-account-top strong{display:block;font-size:16px}.k-account-top span{display:block;font-size:11px;color:var(--muted);margin-top:3px}.k-account-close{margin-left:auto;width:40px;height:40px;border-radius:12px;border:1px solid #29444e;background:#10232c;color:#fff;cursor:pointer}
+.k-account-wallet{margin:15px 0;background:linear-gradient(145deg,rgba(0,214,201,.13),rgba(24,65,73,.2));border:1px solid rgba(0,214,201,.22);border-radius:17px;padding:15px}.k-account-wallet small{display:block;color:#82a7ad;font-weight:800}.k-account-wallet strong{display:block;font-size:25px;margin:4px 0 12px;color:#bafffa}.k-account-wallet .actions{margin:0}.k-account-wallet .btn{min-height:39px}
+.k-account-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:13px 0}.k-account-links a{border:1px solid #203b46;background:#0c2029;border-radius:13px;padding:12px;color:#c6d7dd;font-weight:800;font-size:12px}.k-account-links a:hover{border-color:#326473;background:#102a34;color:#fff}
+.k-account-section{border:1px solid #1f3944;background:#091b23;border-radius:16px;padding:14px;margin:11px 0}.k-account-section-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}.k-account-section-head strong{font-size:13px}.k-account-section p{font-size:11px;color:var(--muted);line-height:1.5;margin:4px 0 12px}.k-account-section .field{margin-bottom:9px}.k-account-section .field input{padding:10px 11px}.k-account-section .btn{min-height:39px}
+.k-avatar-actions{display:flex;gap:8px;flex-wrap:wrap}.k-avatar-actions button{min-height:37px}
+.k-account-logout{width:100%;min-height:43px;border:1px solid #682d39;background:#32171e;color:#ffc4ca;border-radius:13px;font-weight:900;cursor:pointer;margin:4px 0 18px}
+body.k-shell-lock{overflow:hidden}
+
 @media(max-width:1040px){.k-shell-center a span{display:none}.k-shell-center a{width:42px;padding:0;justify-content:center}.k-profile-name{display:none}.k-profile-btn{padding-right:4px}.k-shell-bar{grid-template-columns:auto auto 1fr auto}}
-@media(max-width:760px){.site-header.k-shell,.k-shell-bar{height:64px}.k-shell-bar{gap:8px}.k-shell-logo{font-size:21px}.k-shell-center{display:none}.k-wallet-pill{padding:0 9px;font-size:11px}.k-profile-drop{position:fixed;right:10px;left:10px;top:72px;width:auto}.k-icon-btn{width:39px;height:39px}.k-profile-btn{height:39px}.k-avatar{width:31px;height:31px}.k-shell-menu{width:39px;height:39px}}
-@media(max-width:480px){.k-wallet-pill{width:39px;padding:0;font-size:0}.k-wallet-pill:before{content:'💳';font-size:16px}.k-wallet-pill [data-header-wallet]{display:none}.k-shell-logo{font-size:19px}.k-shell-right{gap:5px}}
+@media(max-width:760px){.site-header.k-shell,.k-shell-bar{height:64px}.k-shell-bar{gap:8px}.k-shell-logo{font-size:21px}.k-shell-center{display:none}.k-wallet-pill{padding:0 9px;font-size:11px}.k-icon-btn{width:39px;height:39px}.k-profile-btn{height:39px}.k-avatar{width:31px;height:31px}.k-shell-menu{width:39px;height:39px}.k-account-drawer{width:min(390px,96vw)}}
+@media(max-width:480px){.k-wallet-pill{width:39px;padding:0;font-size:0}.k-wallet-pill:before{content:'💳';font-size:16px}.k-wallet-pill [data-header-wallet]{display:none}.k-shell-logo{font-size:19px}.k-shell-right{gap:5px}.k-account-links{grid-template-columns:1fr}.k-account-drawer{width:100vw}}
