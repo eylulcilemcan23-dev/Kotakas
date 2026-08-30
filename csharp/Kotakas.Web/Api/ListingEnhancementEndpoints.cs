@@ -15,13 +15,15 @@ public static class ListingEnhancementEndpoints
             var listing = await db.Listings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && x.Status != "cancelled");
             if (listing is null) return Results.NotFound();
 
-            var histories = await db.Set<ListingPriceHistory>().AsNoTracking()
+            var historyRows = await db.Set<ListingPriceHistory>().AsNoTracking()
                 .Where(x => x.ListingId == id)
-                .OrderByDescending(x => x.CreatedAt)
+                .OrderByDescending(x => x.Id)
                 .Take(30)
+                .ToListAsync();
+            var histories = historyRows
                 .OrderBy(x => x.CreatedAt)
                 .Select(x => new { x.PriceGb, x.Reason, x.CreatedAt })
-                .ToListAsync();
+                .ToList();
 
             var favoriteCount = await db.Favorites.AsNoTracking()
                 .CountAsync(x => x.TargetType == "listing" && x.TargetId == id.ToString());
@@ -279,9 +281,10 @@ public static class ListingEnhancementEndpoints
     private static async Task ExpireStaleOffers(AppDbContext db)
     {
         var now = DateTimeOffset.UtcNow;
-        var rows = await db.Set<ListingPriceOffer>()
-            .Where(x => (x.Status == "pending" || x.Status == "accepted") && x.ExpiresAt <= now)
+        var candidates = await db.Set<ListingPriceOffer>()
+            .Where(x => x.Status == "pending" || x.Status == "accepted")
             .ToListAsync();
+        var rows = candidates.Where(x => x.ExpiresAt <= now).ToList();
         if (rows.Count == 0) return;
         foreach (var row in rows) row.Status = "expired";
         await db.SaveChangesAsync();
