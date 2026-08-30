@@ -40,9 +40,10 @@
   function accountHtml(){
     if(!ME)return '';
     const admin=String(ME.role||'').startsWith('admin_');
+    const traderProfile=ME.role==='trader'?`<a href="/trader-profile.html?id=${encodeURIComponent(ME.id)}">🏪 Mağaza Profilim</a>`:'';
     return `<div class="k-account-top"><span class="k-avatar" data-k-avatar>${avatarHtml()}</span><div style="min-width:0"><strong>${esc(ME.displayName||'Kullanıcı')}</strong><span>${esc(ME.email||'')} • ${esc(roleLabel(ME.role))}</span></div><button class="k-account-close" onclick="kCloseShell()">✕</button></div>
       ${admin?'':`<div class="k-account-wallet"><small>KOTAKAS BAKİYEM</small><strong data-header-wallet>${money(walletBalance)}</strong><div class="actions"><button class="btn teal sm" onclick="kOpenWallet()">＋ Bakiye Ekle</button><a class="btn ghost sm" href="${panelUrl()}">Bakiye Hareketleri</a></div></div>`}
-      <div class="k-account-links"><a href="${panelUrl()}">🏠 Hesabım / Panel</a><a href="/deals.html">🤝 İşlemlerim</a><a href="/notifications.html">🔔 Bildirimler (${notificationCount})</a>${admin?'':'<a href="/favorites.html">❤ Favorilerim</a>'}<a href="/support.html">💬 Destek</a>${ME.role==='trader'?'<a href="/trader-profile.html">🏪 Mağaza Profilim</a>':''}</div>
+      <div class="k-account-links"><a href="${panelUrl()}">🏠 Hesabım / Panel</a><a href="/deals.html">🤝 İşlemlerim</a><a href="/notifications.html">🔔 Bildirimler (${notificationCount})</a>${admin?'':'<a href="/favorites.html">❤ Favorilerim</a>'}<a href="/support.html">💬 Destek</a>${traderProfile}</div>
       <div class="k-account-section"><div class="k-account-section-head"><strong>🖼️ Profil Resmi</strong></div><p>JPG, PNG veya WEBP yükleyebilirsin. En fazla 2 MB.</p><input id="kAvatarInput" type="file" accept="image/jpeg,image/png,image/webp" onchange="kUploadAvatar(event)"><div class="k-avatar-actions"><button class="btn ghost sm" onclick="kChooseAvatar()">📷 Fotoğraf Yükle</button>${avatarUrl?'<button class="btn red sm" onclick="kDeleteAvatar()">Resmi Kaldır</button>':''}</div></div>
       <div class="k-account-section"><div class="k-account-section-head"><strong>👤 Profil Bilgisi</strong></div><form onsubmit="kSaveProfile(event)"><div class="field"><label>Görünen ad</label><input id="kShellDisplayName" maxlength="40" value="${esc(ME.displayName||'')}" required></div><button class="btn teal full">Adı Güncelle</button></form></div>
       <div class="k-account-section"><div class="k-account-section-head"><strong>🔐 Şifre & Güvenlik</strong></div><p>Şifren değiştiğinde diğer cihazlardaki açık oturumlar güvenlik için kapatılır.</p><form id="kShellPasswordForm" onsubmit="kSavePassword(event)"><div class="field"><label>Mevcut şifre</label><input name="currentPassword" type="password" autocomplete="current-password" placeholder="Google hesabında boş olabilir"></div><div class="field"><label>Yeni şifre</label><input name="newPassword" type="password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="En az 10 karakter ve 1 rakam" required></div><button class="btn ghost full">Şifreyi Değiştir</button></form></div>
@@ -51,7 +52,7 @@
 
   function ensureSurfaces(){
     let back=$('#kShellBackdrop');
-    if(!back){back=document.createElement('div');back.id='kShellBackdrop';back.className='k-drawer-backdrop';back.onclick=()=>kCloseShell();document.body.append(back)}
+    if(!back){back=document.createElement('div');back.id='kShellBackdrop';back.className='k-drawer-backdrop';back.onclick=()=>window.kCloseShell();document.body.append(back)}
     let menu=$('#kShellDrawer');
     if(!menu){menu=document.createElement('aside');menu.id='kShellDrawer';menu.className='k-drawer';document.body.append(menu)}
     menu.innerHTML=menuHtml();
@@ -87,7 +88,7 @@
     ensureSurfaces();await refreshData();$('#kShellDrawer')?.classList.remove('open');$('#kAccountDrawer')?.classList.add('open');$('#kShellBackdrop')?.classList.add('open');document.body.classList.add('k-shell-lock');
   };
   window.kCloseShell=()=>{$('#kShellDrawer')?.classList.remove('open');$('#kAccountDrawer')?.classList.remove('open');$('#kShellBackdrop')?.classList.remove('open');document.body.classList.remove('k-shell-lock')};
-  window.kOpenWallet=()=>{kCloseShell();if(typeof openWalletTopup==='function')openWalletTopup();else toast('Bakiye ekranı hazırlanamadı.')};
+  window.kOpenWallet=()=>{window.kCloseShell();if(typeof openWalletTopup==='function')openWalletTopup();else toast('Bakiye ekranı hazırlanamadı.')};
   window.kChooseAvatar=()=>$('#kAvatarInput')?.click();
   window.kUploadAvatar=async e=>{
     const file=e.target.files?.[0];if(!file)return;
@@ -119,7 +120,7 @@
   async function boot(){
     try{if(!ME&&typeof loadMe==='function')await loadMe()}catch{}
     await refreshData().catch(()=>{});buildHeader();
-    document.addEventListener('keydown',e=>{if(e.key==='Escape')kCloseShell()});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')window.kCloseShell()});
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&ME)refreshData().catch(()=>{})});
   }
   setTimeout(boot,350);
