@@ -131,10 +131,12 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "listings" && parts[^1] == "buy")
             return $"kotakas:listing:{parts[2]}";
+        if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "listing-price-offers" && parts[^1] == "purchase")
+            return $"kotakas:listing-price-offer:{parts[2]}";
         if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "deals")
             return $"kotakas:deal:{parts[2]}";
         if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "offers" && parts[^1] == "accept")
-            return "kotakas:offer-accept"; // farklı teklifler aynı satış talebine ait olabilir; kabul işlemleri global sıraya alınır.
+            return "kotakas:offer-accept";
         if (path == "/api/sale-requests" || path == "/api/listings" || path.StartsWith("/api/payments/paid-listing"))
             return $"kotakas:{path}:{uid}";
         return $"kotakas:{path}";
@@ -149,6 +151,7 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
                path == "/api/payments/paid-listing/checkout" ||
                path == "/api/payments/paid-listing/create-request" ||
                path.Contains("/api/listings/") && path.EndsWith("/buy") ||
+               path.Contains("/api/listing-price-offers/") && path.EndsWith("/purchase") ||
                path.Contains("/api/offers/") && path.EndsWith("/accept") ||
                path.Contains("/api/deals/") && (path.EndsWith("/confirm") || path.EndsWith("/cancel") || path.EndsWith("/dispute") || path.EndsWith("/delivered")) ||
                path.Contains("/api/admin/wallet");
