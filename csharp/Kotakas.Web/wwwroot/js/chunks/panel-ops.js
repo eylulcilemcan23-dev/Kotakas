@@ -38,7 +38,9 @@
       const tr=rows[i];if(!tr)return;
       const cells=$$('td',tr);if(cells.length<5)return;
       const stock=Number(x.stock||0),status=String(x.status||'');
-      cells[2].innerHTML=`${stock}${status!=='cancelled'&&stock<=2?` <span class="pill ${stock<=1?'red':'gold'}">${stock<=0?'TÜKENDİ':stock===1?'KRİTİK':'AZ'}</span>`:''}`;
+      if(!cells[2].querySelector('.ops-stock-mark')){
+        cells[2].innerHTML=`<span class="ops-stock-mark">${stock}${status!=='cancelled'&&stock<=2?` <span class="pill ${stock<=1?'red':'gold'}">${stock<=0?'TÜKENDİ':stock===1?'KRİTİK':'AZ'}</span>`:''}</span>`;
+      }
       const actionCell=cells[4];
       if(status==='cancelled'||actionCell.querySelector('.ops-fast-stock'))return;
       const fast=document.createElement('div');fast.className='actions ops-fast-stock';fast.style.cssText='margin-bottom:7px;gap:5px;flex-wrap:wrap';
@@ -55,7 +57,8 @@
     const pending=offers.filter(x=>x.status==='pending'&&new Date(x.expiresAt).getTime()>Date.now());
     let badge=$('#opsOfferSummary',head);
     if(!badge){badge=document.createElement('span');badge.id='opsOfferSummary';badge.className='pill gold';head.append(badge)}
-    badge.textContent=`${pending.length} BEKLEYEN`;
+    const badgeText=`${pending.length} BEKLEYEN`;
+    if(badge.textContent!==badgeText)badge.textContent=badgeText;
     offers.forEach((o,i)=>{
       const card=cards[i];if(!card||card.querySelector('.ops-offer-timer'))return;
       const left=Math.max(0,(new Date(o.expiresAt).getTime()-Date.now())/60000);
@@ -94,20 +97,22 @@
     if(anchor?.parentNode)anchor.parentNode.insertBefore(node,anchor.nextSibling);
   }
 
-  function observeTrader(){
-    if(!path.endsWith('/trader.html'))return;
-    const observer=new MutationObserver(()=>{decorateTraderTable();decorateTraderOffers()});
-    observer.observe(document.body,{childList:true,subtree:true});
+  let traderRefreshRunning=false;
+  async function refreshTraderOps(){
+    if(traderRefreshRunning||!path.endsWith('/trader.html'))return;
+    traderRefreshRunning=true;
+    try{await decorateTraderTable();await decorateTraderOffers()}finally{traderRefreshRunning=false}
   }
 
   async function boot(){
     if(!ME)await loadMe();
     if(!ME)return;
-    if(path.endsWith('/trader.html')){await decorateTraderTable();await decorateTraderOffers();observeTrader()}
+    if(path.endsWith('/trader.html'))await refreshTraderOps();
     else if(path.endsWith('/dashboard.html'))await userReviewFollowups();
     else if(path.endsWith('/admin.html'))await adminResponseAging();
   }
 
   setTimeout(boot,2100);
-  setTimeout(()=>{if(path.endsWith('/dashboard.html'))userReviewFollowups();if(path.endsWith('/admin.html'))adminResponseAging();},3600);
+  setTimeout(()=>{if(path.endsWith('/trader.html'))refreshTraderOps();if(path.endsWith('/dashboard.html'))userReviewFollowups();if(path.endsWith('/admin.html'))adminResponseAging();},3600);
+  setTimeout(()=>{if(path.endsWith('/trader.html'))refreshTraderOps();},6200);
 })();
