@@ -41,26 +41,26 @@ try{
   for($i=0;$i-lt120;$i++){
     try{Invoke-RestMethod ($baseUrl+'/api/health') -TimeoutSec 2|Out-Null;$ready=$true;break}catch{Start-Sleep -Milliseconds 500}
   }
-  Assert $ready 'Sunucu açılmadı.'
+  Assert $ready 'Server did not start.'
 
   $admin=Login 'urgent-admin@kotakas.local' 'UrgentAdmin123'
-  $registered=Invoke-Kotakas '/api/register' 'POST' @{displayName='Acil Satıcı';email='urgent-user@kotakas.local';password='UrgentUser123'}
-  Assert (([string]$registered.user.id).Length -gt 5) 'Acil satış test kullanıcısı oluşmadı.'
+  $registered=Invoke-Kotakas '/api/register' 'POST' @{displayName='Acil Satici';email='urgent-user@kotakas.local';password='UrgentUser123'}
+  Assert (([string]$registered.user.id).Length -gt 5) 'Urgent test user was not created.'
   $user=Login 'urgent-user@kotakas.local' 'UrgentUser123'
 
-  $created=Invoke-Kotakas '/api/urgent-sales' 'POST' @{itemName='Iron Bow +8';serverCode='ZERO';quantity=1;askGb=7;note='Hızlı satış testi'} $user
+  $created=Invoke-Kotakas '/api/urgent-sales' 'POST' @{itemName='Iron Bow +8';serverCode='ZERO';quantity=1;askGb=7;note='Hizli satis testi'} $user
   $saleId=[long]$created.sale.id
-  Assert ($saleId-gt0) 'Acil satış talebi oluşmadı.'
+  Assert ($saleId-gt0) 'Urgent sale request was not created.'
 
   $queue=Invoke-Kotakas '/api/admin/urgent-sales/' 'GET' $null $admin
   $adminRow=$queue.sales|Where-Object {[long]$_.sale.id-eq$saleId}|Select-Object -First 1
-  Assert ($null-ne$adminRow) 'Acil satış admin kuyruğuna düşmedi.'
-  Assert ([decimal]$adminRow.sale.askGb-eq7) 'Kullanıcı beklenti GB değeri admin kuyruğunda yanlış.'
+  Assert ($null-ne$adminRow) 'Urgent sale did not reach admin queue.'
+  Assert ([decimal]$adminRow.sale.askGb-eq7) 'Requested GB is wrong in admin queue.'
 
   Invoke-Kotakas ('/api/admin/urgent-sales/'+$saleId+'/offer') 'POST' @{priceGb=6.5} $admin|Out-Null
   $mine=Invoke-Kotakas '/api/urgent-sales/mine' 'GET' $null $user
   $userRow=$mine.sales|Where-Object {[long]$_.id-eq$saleId}|Select-Object -First 1
-  Assert ([decimal]$userRow.latestOfferGb-eq6.5) 'Admin GB teklifi kullanıcıya ulaşmadı.'
+  Assert ([decimal]$userRow.latestOfferGb-eq6.5) 'Admin offer did not reach user.'
 
   Invoke-Kotakas ('/api/urgent-sales/'+$saleId+'/decision') 'POST' @{action='accept'} $user|Out-Null
   Invoke-Kotakas ('/api/urgent-sales/'+$saleId+'/message') 'POST' @{code='HAZIRIM'} $user|Out-Null
@@ -69,25 +69,25 @@ try{
   $afterMessages=Invoke-Kotakas '/api/admin/urgent-sales/' 'GET' $null $admin
   $messageRow=$afterMessages.sales|Where-Object {[long]$_.sale.id-eq$saleId}|Select-Object -First 1
   $texts=@($messageRow.sale.replies|ForEach-Object {$_.message}) -join ' | '
-  Assert ($texts -match '6.5 GB') 'Teklif mesajı işlem geçmişinde yok.'
-  Assert ($texts -match 'Hazırım') 'Kullanıcının hazır mesajı işlem geçmişinde yok.'
-  Assert ($texts -match 'ZERO 1\. sunucuya gel') 'Admin server hazır mesajı doğru üretilmedi.'
+  Assert ($texts -match '6.5 GB') 'Offer message missing from urgent history.'
+  Assert ($texts -match '\[HAZIR:HAZIRIM\]') 'User ready-message code missing from urgent history.'
+  Assert ($texts -match '\[HAZIR:SERVER1_GEL\].*ZERO 1') 'Admin server ready-message code/text is wrong.'
 
   Invoke-Kotakas ('/api/admin/urgent-sales/'+$saleId+'/complete') 'POST' $null $admin|Out-Null
   $final=Invoke-Kotakas '/api/urgent-sales/mine' 'GET' $null $user
   $finalRow=$final.sales|Where-Object {[long]$_.id-eq$saleId}|Select-Object -First 1
-  Assert ($finalRow.status-eq'closed') 'Acil item alımı tamamlanınca kapanmadı.'
+  Assert ($finalRow.status-eq'closed') 'Urgent sale did not close after admin completion.'
 
   $support=Invoke-Kotakas '/api/support/mine' 'GET' $null $user
-  Assert (@($support.tickets).Count-eq0) 'Acil satış kaydı normal destek kuyruğuna karıştı.'
+  Assert (@($support.tickets).Count-eq0) 'Urgent sale leaked into normal support queue.'
 
-  Write-Host '[OK] Kullanıcı acil item talebi oluşturuyor' -ForegroundColor Green
-  Write-Host '[OK] Talep yalnız admin acil alım kuyruğuna düşüyor' -ForegroundColor Green
-  Write-Host '[OK] Admin GB fiyatı veriyor, kullanıcı kabul ediyor' -ForegroundColor Green
-  Write-Host '[OK] Hazır mesajlar iki yönlü çalışıyor' -ForegroundColor Green
-  Write-Host '[OK] Admin işlemi tamamlayıp kaydı kapatıyor' -ForegroundColor Green
-  Write-Host '[OK] Acil kayıt normal destek kuyruğuna karışmıyor' -ForegroundColor Green
-  Write-Host 'TEST SONUCU: BASARILI' -ForegroundColor Green
+  Write-Host '[OK] User creates urgent sale request' -ForegroundColor Green
+  Write-Host '[OK] Request reaches only urgent admin queue' -ForegroundColor Green
+  Write-Host '[OK] Admin offers GB and user accepts' -ForegroundColor Green
+  Write-Host '[OK] Predefined messages work both ways' -ForegroundColor Green
+  Write-Host '[OK] Admin completes and closes request' -ForegroundColor Green
+  Write-Host '[OK] Urgent request stays out of normal support queue' -ForegroundColor Green
+  Write-Host 'TEST RESULT: SUCCESS' -ForegroundColor Green
 }
 finally{
   if($app -and -not$app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}
