@@ -30,6 +30,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         default:
             throw new InvalidOperationException($"Desteklenmeyen Database:Provider: {databaseProvider}");
     }
+    options.AddInterceptors(new ListingHistoryInterceptor());
 });
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(o =>
