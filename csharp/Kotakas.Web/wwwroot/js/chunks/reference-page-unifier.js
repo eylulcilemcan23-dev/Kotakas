@@ -4,7 +4,9 @@
     '/buy.html':'k-page-buy','/sell.html':'k-page-sell','/ring-sell.html':'k-page-character','/urgent-sell.html':'k-page-urgent',
     '/dashboard.html':'k-page-dashboard','/trader.html':'k-page-trader','/admin.html':'k-page-admin','/market.html':'k-page-market'
   };
-  const cls=Object.entries(pageMap).find(([p])=>path.endsWith(p))?.[1];
+  const genericPages=['/wallet.html','/deals.html','/notifications.html','/favorites.html','/support.html','/trader-apply.html','/listing.html','/trader-profile.html','/games.html','/contact.html','/rules.html','/privacy.html','/terms.html','/cookies.html','/reports.html','/verification.html','/login.html','/register.html'];
+  let cls=Object.entries(pageMap).find(([p])=>path.endsWith(p))?.[1];
+  if(!cls&&genericPages.some(p=>path.endsWith(p)))cls='k-page-generic';
   if(!cls)return;
   document.body.classList.add('k-ref-page',cls);
 
