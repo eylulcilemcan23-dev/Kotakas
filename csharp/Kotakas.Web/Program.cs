@@ -127,6 +127,7 @@ app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
 app.MapListingEnhancementEndpoints();
 app.MapListingQuickContactEndpoints();
+app.MapUrgentSaleEndpoints();
 app.MapUploadEndpoints();
 app.MapDealEndpoints();
 app.MapReviewEndpoints();
