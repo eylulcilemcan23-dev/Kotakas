@@ -28,7 +28,8 @@ try{
   Invoke-Kotakas ('/api/admin/users/'+$t.user.id+'/role') 'PATCH' @{role='trader'} $admin|Out-Null
   $user=Login 'wallet-user@kotakas.local' 'WalletUser123';$trader=Login 'wallet-trader@kotakas.local' 'WalletTrader123'
   Invoke-Kotakas '/api/admin/settings' 'PUT' @{normalCommissionPercent=4;traderCommissionPercent=3;paidListingTry=25;gbTryRate=100} $admin|Out-Null
-  Invoke-Kotakas ('/api/admin/wallets/'+$u.user.id+'/adjust') 'POST' @{amountTry=5000;reason='Bakiye testi'} $admin|Out-Null
+  $topup=Invoke-Kotakas '/api/account/test-wallet-topup' 'POST' @{amountTry=5000} $user
+  Assert ($topup.testMode-eq$true) 'Yerel sanal bakiye endpointi test modunda dönmedi.'
   $before=Invoke-Kotakas '/api/wallet' 'GET' $null $user;Assert ([decimal]$before.balanceTry-eq5000) 'Alıcı başlangıç bakiyesi 5000 değil.'
   $listing=Invoke-Kotakas '/api/listings' 'POST' @{itemName='Wallet Test Raptor +7';serverCode='ZERO';priceGb=10;stock=1} $trader
   $buy=Invoke-Kotakas ('/api/listings/'+$listing.listing.id+'/buy') 'POST' @{quantity=1} $user
@@ -38,6 +39,7 @@ try{
   Invoke-Kotakas ('/api/deals/'+$buy.deal.id+'/delivered') 'POST' $null $trader|Out-Null
   Invoke-Kotakas ('/api/deals/'+$buy.deal.id+'/confirm') 'POST' $null $user|Out-Null
   $traderAfter=Invoke-Kotakas '/api/wallet' 'GET' $null $trader;Assert ([decimal]$traderAfter.balanceTry-eq970) ('Pazarcı net 970 olmalı, mevcut: '+$traderAfter.balanceTry)
+  Write-Host '[OK] Bakiye Ekle yerel test modu çalışıyor' -ForegroundColor Green
   Write-Host '[OK] Direkt ilan satın alma çalışıyor' -ForegroundColor Green
   Write-Host '[OK] Kullanıcı 5000 -> 4000 TL' -ForegroundColor Green
   Write-Host '[OK] Emanet öncesi pazarcı: 0 TL' -ForegroundColor Green
