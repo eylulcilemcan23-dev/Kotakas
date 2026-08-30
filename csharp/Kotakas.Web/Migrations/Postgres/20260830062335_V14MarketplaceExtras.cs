@@ -81,6 +81,15 @@ namespace Kotakas.Web.Migrations.Postgres
                 name: "IX_ListingPriceOffer_ListingId_Status_ExpiresAt",
                 table: "ListingPriceOffer",
                 columns: new[] { "ListingId", "Status", "ExpiresAt" });
+
+            migrationBuilder.Sql("""
+                INSERT INTO "ListingPriceHistory" ("ListingId", "PriceGb", "Reason", "CreatedAt")
+                SELECT l."Id", l."PriceGb", 'initial', l."CreatedAt"
+                FROM "Listings" l
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM "ListingPriceHistory" h WHERE h."ListingId" = l."Id"
+                );
+                """);
         }
 
         /// <inheritdoc />
