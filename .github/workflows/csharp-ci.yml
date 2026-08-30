@@ -41,24 +41,24 @@ jobs:
       - name: Build source package
         run: |
           mkdir -p out/package
-          zip -qr out/package/KOTAKAS_CSHARP_V13_SOURCE.zip csharp
+          zip -qr out/package/KOTAKAS_CSHARP_V14_SOURCE.zip csharp
       - name: Upload hosting publish
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V13_HOSTING
+          name: KOTAKAS_CSHARP_V14_HOSTING
           path: out/kotakas
           if-no-files-found: error
       - name: Upload PostgreSQL migrator
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V13_MIGRATOR
+          name: KOTAKAS_CSHARP_V14_MIGRATOR
           path: out/migrator
           if-no-files-found: error
       - name: Upload source package
         uses: actions/upload-artifact@v4
         with:
-          name: KOTAKAS_CSHARP_V13_SOURCE
-          path: out/package/KOTAKAS_CSHARP_V13_SOURCE.zip
+          name: KOTAKAS_CSHARP_V14_SOURCE
+          path: out/package/KOTAKAS_CSHARP_V14_SOURCE.zip
           if-no-files-found: error
 
   postgres-smoke:
@@ -90,7 +90,7 @@ jobs:
         run: |
           dotnet restore csharp/Kotakas.Migrator/Kotakas.Migrator.csproj
           dotnet build csharp/Kotakas.Migrator/Kotakas.Migrator.csproj -c Release --no-restore
-      - name: Create real SQLite V13 user
+      - name: Create real SQLite V14 user
         run: |
           rm -f /tmp/kotakas-ci.db
           Database__Provider=sqlite \
@@ -100,8 +100,9 @@ jobs:
           echo $! >/tmp/kotakas-sqlite.pid
           for i in $(seq 1 45); do curl -fsS http://127.0.0.1:5091/api/health >/tmp/sqlite-health.json && break || sleep 1; done
           cat /tmp/sqlite-health.json
-          grep -q 'KOTAKAS C# V13' /tmp/sqlite-health.json
-          grep -q '"schemaVersion":"13"' /tmp/sqlite-health.json
+          grep -q 'KOTAKAS C# V14' /tmp/sqlite-health.json
+          grep -q '"schemaVersion":"14"' /tmp/sqlite-health.json
+          sqlite3 /tmp/kotakas-ci.db "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('ListingPriceHistory','ListingPriceOffer');" | grep -q '^2$'
           curl -fsS -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
             -d '{"displayName":"CI Migration User","email":"migration-ci@kotakas.local","password":"Testpass123"}' \
             http://127.0.0.1:5091/api/register | tee /tmp/register.json
@@ -115,8 +116,12 @@ jobs:
             --postgres 'Host=127.0.0.1;Port=5432;Database=kotakas_target;Username=postgres;Password=postgres' \
             --execute | tee /tmp/migration.log
           grep -q 'DB TAŞIMA BAŞARILI' /tmp/migration.log
-          grep -q 'schema V13 migration geçmişi güncel' /tmp/migration.log
-      - name: Boot PostgreSQL V13 and verify same password
+          grep -q 'schema V14 migration geçmişi güncel' /tmp/migration.log
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_target -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('ListingPriceHistory','ListingPriceOffer');" | grep -q '^2$'
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_target -tAc 'SELECT COUNT(*) FROM "__EFMigrationsHistory";' | grep -q '^3$'
+      - name: Boot PostgreSQL V14 and verify same password
         run: |
           Database__Provider=postgres \
           ConnectionStrings__Postgres='Host=127.0.0.1;Port=5432;Database=kotakas_target;Username=postgres;Password=postgres' \
@@ -127,21 +132,46 @@ jobs:
           echo $! >/tmp/kotakas-postgres.pid
           for i in $(seq 1 45); do curl -fsS http://127.0.0.1:5092/api/health >/tmp/health.json && break || sleep 1; done
           cat /tmp/health.json
-          grep -q 'KOTAKAS C# V13' /tmp/health.json
+          grep -q 'KOTAKAS C# V14' /tmp/health.json
           grep -q 'PostgreSQL' /tmp/health.json
-          grep -q '"schemaVersion":"13"' /tmp/health.json
+          grep -q '"schemaVersion":"14"' /tmp/health.json
           grep -q '"migrations":"current"' /tmp/health.json
           grep -q '"pendingMigrations":0' /tmp/health.json
-          curl -fsS -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+          curl -fsS -c /tmp/buyer.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
             -d '{"email":"migration-ci@kotakas.local","password":"Testpass123"}' \
             http://127.0.0.1:5092/api/login | tee /tmp/login.json
           grep -q 'migration-ci@kotakas.local' /tmp/login.json
-      - name: Verify admin risk center scanner
+      - name: Verify V14 listing details price history and offer flow
         run: |
           curl -fsS -c /tmp/admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
             -d '{"email":"ci-admin@kotakas.local","password":"TestAdmin123"}' \
             http://127.0.0.1:5092/api/login | tee /tmp/admin-login.json
           grep -q 'ci-admin@kotakas.local' /tmp/admin-login.json
+          curl -fsS -b /tmp/admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Idempotency-Key: ci-v14-listing-create-0001' -H 'Content-Type: application/json' \
+            -d '{"itemName":"CI Iron Bow +8","serverCode":"ZERO","priceGb":25,"stock":2}' \
+            http://127.0.0.1:5092/api/listings | tee /tmp/v14-listing.json
+          python3 -c 'import json; print(json.load(open("/tmp/v14-listing.json"))["listing"]["id"])' >/tmp/listing-id
+          LISTING_ID=$(cat /tmp/listing-id)
+          curl -fsS http://127.0.0.1:5092/api/listings/$LISTING_ID/details | tee /tmp/v14-details-initial.json
+          grep -q '"reason":"initial"' /tmp/v14-details-initial.json
+          curl -fsS -b /tmp/admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' -X PATCH \
+            -d '{"priceGb":22,"stock":2,"status":"active"}' \
+            http://127.0.0.1:5092/api/listings/$LISTING_ID | tee /tmp/v14-listing-update.json
+          curl -fsS http://127.0.0.1:5092/api/listings/$LISTING_ID/details | tee /tmp/v14-details-drop.json
+          grep -q '"reason":"price_drop"' /tmp/v14-details-drop.json
+          curl -fsS -b /tmp/buyer.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+            -d '{"offerGbPerUnit":20,"quantity":1}' \
+            http://127.0.0.1:5092/api/listings/$LISTING_ID/price-offers | tee /tmp/v14-offer.json
+          python3 -c 'import json; print(json.load(open("/tmp/v14-offer.json"))["offer"]["id"])' >/tmp/offer-id
+          OFFER_ID=$(cat /tmp/offer-id)
+          curl -fsS -b /tmp/admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+            -d '{"action":"accept"}' \
+            http://127.0.0.1:5092/api/listing-price-offers/$OFFER_ID/decision | tee /tmp/v14-decision.json
+          grep -q '"status":"accepted"' /tmp/v14-decision.json
+          curl -fsS -b /tmp/buyer.cookies http://127.0.0.1:5092/api/listing-price-offers/mine | tee /tmp/v14-buyer-offers.json
+          grep -q '"status":"accepted"' /tmp/v14-buyer-offers.json
+      - name: Verify admin risk center scanner
+        run: |
           curl -fsS -b /tmp/admin.cookies -H 'X-KOTAKAS-CSRF: 1' -X POST \
             http://127.0.0.1:5092/api/admin/risk/scan | tee /tmp/risk-scan.json
           grep -q '"completed":true' /tmp/risk-scan.json
@@ -164,8 +194,8 @@ jobs:
             --configuration Release --no-build
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
             psql -h 127.0.0.1 -U postgres -d kotakas_legacy -v ON_ERROR_STOP=1 \
-            -c "INSERT INTO \"SiteSettings\" (\"Key\",\"Value\",\"UpdatedAt\") VALUES ('legacy_sentinel','keep-me', NOW()); DROP TABLE \"__EFMigrationsHistory\";"
-      - name: Adopt legacy V12 baseline without data loss
+            -c "INSERT INTO \"SiteSettings\" (\"Key\",\"Value\",\"UpdatedAt\") VALUES ('legacy_sentinel','keep-me', NOW()); INSERT INTO \"Listings\" (\"SellerUserId\",\"SellerName\",\"ItemName\",\"ServerCode\",\"PriceGb\",\"Stock\",\"Status\",\"CreatedAt\") VALUES ('legacy-trader','Legacy Trader','Legacy Iron Bow +8','ZERO',31,1,'active',NOW()); DROP TABLE \"__EFMigrationsHistory\";"
+      - name: Adopt legacy V12 through V14 without data loss
         run: |
           Database__Provider=postgres \
           ConnectionStrings__Postgres='Host=127.0.0.1;Port=5432;Database=kotakas_legacy;Username=postgres;Password=postgres' \
@@ -174,14 +204,19 @@ jobs:
           echo $! >/tmp/kotakas-legacy.pid
           for i in $(seq 1 45); do curl -fsS http://127.0.0.1:5093/api/health >/tmp/legacy-health.json && break || sleep 1; done
           cat /tmp/legacy-health.json
-          grep -q 'KOTAKAS C# V13' /tmp/legacy-health.json
+          grep -q 'KOTAKAS C# V14' /tmp/legacy-health.json
+          grep -q '"schemaVersion":"14"' /tmp/legacy-health.json
           grep -q '"migrations":"current"' /tmp/legacy-health.json
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
             psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc "SELECT \"Value\" FROM \"SiteSettings\" WHERE \"Key\"='legacy_sentinel';" | grep -q 'keep-me'
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
-            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "__EFMigrationsHistory";' | grep -q '^2$'
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "__EFMigrationsHistory";' | grep -q '^3$'
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
             psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "RiskSignals";' | grep -q '^0$'
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "ListingPriceHistory" WHERE "Reason"=''initial'';' | grep -q '^1$'
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='ListingPriceOffer';" | grep -q '^1$'
           kill $(cat /tmp/kotakas-legacy.pid)
           wait $(cat /tmp/kotakas-legacy.pid) 2>/dev/null || true
       - name: Dump logs on failure
@@ -190,5 +225,8 @@ jobs:
           echo '--- SQLite log ---'; cat /tmp/kotakas-sqlite.log 2>/dev/null || true
           echo '--- Migration log ---'; cat /tmp/migration.log 2>/dev/null || true
           echo '--- PostgreSQL log ---'; cat /tmp/kotakas-postgres.log 2>/dev/null || true
+          echo '--- V14 listing ---'; cat /tmp/v14-listing.json 2>/dev/null || true
+          echo '--- V14 offer ---'; cat /tmp/v14-offer.json 2>/dev/null || true
+          echo '--- V14 decision ---'; cat /tmp/v14-decision.json 2>/dev/null || true
           echo '--- Risk scan ---'; cat /tmp/risk-scan.json 2>/dev/null || true
           echo '--- Legacy adoption log ---'; cat /tmp/kotakas-legacy.log 2>/dev/null || true
