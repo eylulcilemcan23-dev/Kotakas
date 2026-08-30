@@ -31,6 +31,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
     public DbSet<AdminAuditEvent> AdminAuditEvents => Set<AdminAuditEvent>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<RiskSignal> RiskSignals => Set<RiskSignal>();
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -150,23 +151,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<WalletLedger>().Property(x => x.AfterTry).HasPrecision(18, 2);
         b.Entity<PaymentIntent>().Property(x => x.AmountTry).HasPrecision(18, 2);
         b.Entity<ItemWatch>().Property(x => x.MaxPriceGb).HasPrecision(18, 4);
+        b.Entity<RiskSignal>().Property(x => x.AmountTry).HasPrecision(18, 2);
         b.Entity<SiteSetting>().HasKey(x => x.Key);
         b.Entity<NotificationPreference>().HasKey(x => x.UserId);
         b.Entity<SaleRequest>().HasMany(x => x.Offers).WithOne(x => x.SaleRequest).HasForeignKey(x => x.SaleRequestId).OnDelete(DeleteBehavior.Cascade);
+
         b.Entity<SaleRequest>().HasIndex(x => new { x.Status, x.ServerCode, x.CreatedAt });
+        b.Entity<SaleRequest>().HasIndex(x => new { x.UserId, x.Status, x.CreatedAt });
         b.Entity<Offer>().HasIndex(x => new { x.SaleRequestId, x.TraderUserId });
         b.Entity<Deal>().HasIndex(x => new { x.Flow, x.Status, x.CreatedAt });
+        b.Entity<Deal>().HasIndex(x => new { x.Status, x.CreatedAt });
+        b.Entity<Deal>().HasIndex(x => new { x.UserId, x.Status, x.CreatedAt });
+        b.Entity<Deal>().HasIndex(x => new { x.TraderUserId, x.Status, x.CreatedAt });
         b.Entity<Deal>().HasIndex(x => x.TraderListingId);
         b.Entity<AppNotification>().HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAt });
         b.Entity<TraderApplication>().HasIndex(x => new { x.UserId, x.Status });
         b.Entity<Wallet>().HasIndex(x => x.UserId).IsUnique();
         b.Entity<TraderListing>().HasIndex(x => new { x.Status, x.ServerCode, x.CreatedAt });
+        b.Entity<TraderListing>().HasIndex(x => new { x.SellerUserId, x.Status, x.CreatedAt });
         b.Entity<WalletLedger>().HasIndex(x => new { x.UserId, x.CreatedAt });
+        b.Entity<WalletLedger>().HasIndex(x => new { x.Type, x.CreatedAt });
+        b.Entity<WalletLedger>().HasIndex(x => new { x.AdminUserId, x.CreatedAt });
         b.Entity<SupportTicket>().HasIndex(x => new { x.Status, x.Priority, x.CreatedAt });
         b.Entity<SupportReply>().HasIndex(x => new { x.TicketId, x.CreatedAt });
         b.Entity<DealMessage>().HasIndex(x => new { x.DealId, x.CreatedAt });
         b.Entity<PaymentIntent>().HasIndex(x => x.ConversationId).IsUnique();
         b.Entity<PaymentIntent>().HasIndex(x => new { x.UserId, x.Purpose, x.Status, x.CreatedAt });
+        b.Entity<PaymentIntent>().HasIndex(x => new { x.Status, x.CreatedAt });
         b.Entity<PaymentIntent>().HasIndex(x => x.ProviderToken);
         b.Entity<TraderReview>().HasIndex(x => x.DealId).IsUnique();
         b.Entity<TraderReview>().HasIndex(x => new { x.TraderUserId, x.CreatedAt });
@@ -184,5 +195,9 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : Ident
         b.Entity<IdempotencyRecord>().HasIndex(x => x.CreatedAt);
         b.Entity<UserSession>().HasIndex(x => new { x.UserId, x.DeviceId }).IsUnique();
         b.Entity<UserSession>().HasIndex(x => new { x.UserId, x.LastSeenAt });
+        b.Entity<RiskSignal>().HasIndex(x => x.Fingerprint).IsUnique();
+        b.Entity<RiskSignal>().HasIndex(x => new { x.Status, x.Severity, x.LastDetectedAt });
+        b.Entity<RiskSignal>().HasIndex(x => new { x.SubjectUserId, x.LastDetectedAt });
+        b.Entity<RiskSignal>().HasIndex(x => new { x.Code, x.Status, x.LastDetectedAt });
     }
 }
