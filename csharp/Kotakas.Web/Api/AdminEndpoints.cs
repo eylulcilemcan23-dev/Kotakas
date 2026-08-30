@@ -12,7 +12,13 @@ public static class AdminEndpoints
     {
         var admin = app.MapGroup("/api/admin").RequireAuthorization(p => p.RequireRole("admin_owner", "admin_full", "admin_limited"));
         admin.MapGet("/overview", async (AppDbContext db) => Results.Ok(new { overview = new { users = await db.Users.CountAsync(), traders = await db.Users.CountAsync(x => x.VerifiedTrader), requests = await db.SaleRequests.CountAsync(), pendingApplications = await db.TraderApplications.CountAsync(x => x.Status == "pending"), deals = await db.Deals.CountAsync() } }));
-        admin.MapGet("/users", async (UserManager<ApplicationUser> users, AppDbContext db) => { var rows = await db.Users.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(500).ToListAsync(); var result = new List<object>(); foreach (var u in rows) result.Add(await ApiHelpers.UserDto(users, u)); return Results.Ok(new { users = result }); });
+        admin.MapGet("/users", async (UserManager<ApplicationUser> users, AppDbContext db) =>
+        {
+            var rows = (await db.Users.AsNoTracking().ToListAsync()).OrderByDescending(x => x.CreatedAt).Take(500).ToList();
+            var result = new List<object>();
+            foreach (var u in rows) result.Add(await ApiHelpers.UserDto(users, u));
+            return Results.Ok(new { users = result });
+        });
         admin.MapGet("/trader-applications", async (AppDbContext db) => Results.Ok(new { applications = await db.TraderApplications.AsNoTracking().OrderByDescending(x => x.Id).Take(200).ToListAsync() }));
         admin.MapPatch("/users/{id}/active", async (string id, ActiveInput input, ClaimsPrincipal p, UserManager<ApplicationUser> users) =>
         {
