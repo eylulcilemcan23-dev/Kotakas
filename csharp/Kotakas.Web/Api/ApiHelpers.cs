@@ -49,9 +49,14 @@ public static class ApiHelpers
     public static object RequestDto(SaleRequest x) => new
     {
         x.Id,
+        x.GameCode,
+        x.ProductType,
+        x.CurrencyCode,
+        currencyLabel = GameMarketCatalog.CurrencyLabel(x.CurrencyCode),
         x.ItemName,
         x.ServerCode,
         quantity = x.Quantity,
+        minimumAmount = x.MinimumGb,
         minimumGb = x.MinimumGb,
         x.Note,
         x.Status,
@@ -61,9 +66,12 @@ public static class ApiHelpers
             o.Id,
             traderUserId = o.TraderUserId,
             o.TraderName,
+            priceAmount = o.PriceGb,
             o.PriceGb,
             o.ExpiryMinutes,
-            o.Status
+            o.Status,
+            o.CreatedAt,
+            expiresAt = o.CreatedAt.AddMinutes(Math.Clamp(o.ExpiryMinutes, 5, 1440))
         })
     };
 }
