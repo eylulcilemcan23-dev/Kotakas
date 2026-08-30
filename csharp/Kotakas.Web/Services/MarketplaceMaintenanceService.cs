@@ -35,12 +35,29 @@ public sealed class MarketplaceMaintenanceService(IServiceScopeFactory scopes, I
                     });
                 }
 
+                var listingPriceOffers = await db.Set<ListingPriceOffer>().Include(x => x.Listing)
+                    .Where(x => (x.Status == "pending" || x.Status == "accepted") && x.ExpiresAt <= now)
+                    .ToListAsync(stoppingToken);
+                foreach (var offer in listingPriceOffers)
+                {
+                    var wasAccepted = offer.Status == "accepted";
+                    offer.Status = "expired";
+                    db.Notifications.Add(new AppNotification
+                    {
+                        UserId = offer.BuyerUserId,
+                        Title = wasAccepted ? "Kabul edilen fiyat teklifinin süresi doldu" : "Fiyat teklifinin süresi doldu",
+                        Body = offer.Listing is null
+                            ? "SELL ilanına verdiğin fiyat teklifinin süresi doldu."
+                            : $"{offer.Listing.ItemName} için {offer.OfferGbPerUnit:0.##} GB/adet teklifin artık geçerli değil."
+                    });
+                }
+
                 var soldOutListings = await db.Listings
                     .Where(x => x.Status == "active" && x.Stock <= 0)
                     .ToListAsync(stoppingToken);
                 foreach (var listing in soldOutListings) listing.Status = "sold_out";
 
-                if (expired.Count > 0 || soldOutListings.Count > 0)
+                if (expired.Count > 0 || listingPriceOffers.Count > 0 || soldOutListings.Count > 0)
                     await db.SaveChangesAsync(stoppingToken);
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
