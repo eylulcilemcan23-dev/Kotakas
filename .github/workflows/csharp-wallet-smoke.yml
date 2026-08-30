@@ -1,0 +1,28 @@
+name: KOTAKAS Wallet Direct Buy Smoke
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-wallet-smoke.yml'
+  pull_request:
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-wallet-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  wallet-direct-buy:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run wallet direct buy smoke
+        shell: powershell
+        run: .\csharp\KOTAKAS_BAKIYE_TEST_WINDOWS.ps1 -SkipUpdate
