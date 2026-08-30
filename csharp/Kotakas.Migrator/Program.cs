@@ -10,7 +10,7 @@ var execute = options.ContainsKey("execute");
 var uploadsSource = Value("uploads-source", "KOTAKAS_MIGRATOR_UPLOADS_SOURCE", required: false);
 var uploadsTarget = Value("uploads-target", "KOTAKAS_MIGRATOR_UPLOADS_TARGET", required: false);
 
-Console.WriteLine("KOTAKAS SQLite → PostgreSQL Migrator V12");
+Console.WriteLine("KOTAKAS SQLite → PostgreSQL Migrator V13");
 Console.WriteLine(execute ? "MOD: GERÇEK TAŞIMA" : "MOD: DRY-RUN (veri yazılmaz)");
 
 var sourceOptions = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(sqlite).Options;
@@ -33,9 +33,15 @@ if (!execute)
     return;
 }
 
-await target.Database.EnsureCreatedAsync();
+// Hedef DB yalnız yeni/boş PostgreSQL olmalıdır. V13'te şema EnsureCreated ile değil,
+// versioned EF migrations ile hazırlanır ve __EFMigrationsHistory de doğru şekilde oluşur.
 if (await HasBusinessData(target))
     Fail("Hedef PostgreSQL boş değil. Güvenlik nedeniyle taşıma durduruldu. Yeni/boş bir KOTAKAS veritabanı kullan.");
+await target.Database.MigrateAsync();
+var pending = (await target.Database.GetPendingMigrationsAsync()).ToList();
+if (pending.Count != 0) Fail("Hedef PostgreSQL migration tamamlanamadı: " + string.Join(", ", pending));
+if (await HasBusinessData(target))
+    Fail("Migration sonrasında hedefte beklenmeyen iş verisi bulundu; taşıma durduruldu.");
 
 await using var tx = await target.Database.BeginTransactionAsync();
 try
@@ -69,8 +75,24 @@ try
     await Copy(source.VerificationRequests, target.VerificationRequests, target, "Doğrulama talepleri");
     await Copy(source.AdminAuditEvents, target.AdminAuditEvents, target, "Admin audit kayıtları");
 
+    if (await SqliteTableExists(source, "RiskSignals"))
+        await Copy(source.RiskSignals, target.RiskSignals, target, "Risk sinyalleri");
+    else
+        Console.WriteLine("  Risk sinyalleri: 0 (V12 kaynakta tablo yok)");
+
     // Idempotency kayıtları ve aktif cihaz oturumları bilerek taşınmaz.
     // Canlı geçiş sonrası herkesin yeni sunucuda temiz oturum açması daha güvenlidir.
+
+    var schemaVersion = await target.SiteSettings.FirstOrDefaultAsync(x => x.Key == "schema_version");
+    if (schemaVersion is null)
+        target.SiteSettings.Add(new SiteSetting { Key = "schema_version", Value = "13", UpdatedAt = DateTimeOffset.UtcNow });
+    else
+    {
+        schemaVersion.Value = "13";
+        schemaVersion.UpdatedAt = DateTimeOffset.UtcNow;
+    }
+    await target.SaveChangesAsync();
+    target.ChangeTracker.Clear();
 
     await ResetPostgresSequences(target);
     var targetSummary = await Summary(target);
@@ -78,7 +100,7 @@ try
     Validate(sourceSummary, targetSummary);
 
     await tx.CommitAsync();
-    Console.WriteLine("\nDB TAŞIMA BAŞARILI. Finans toplamları ve temel kayıt adetleri eşleşti.");
+    Console.WriteLine("\nDB TAŞIMA BAŞARILI. Finans toplamları ve temel kayıt adetleri eşleşti. PostgreSQL schema V13 migration geçmişi güncel.");
 }
 catch
 {
@@ -179,6 +201,20 @@ static void Validate(DbSummary a, DbSummary b)
 static async Task<bool> HasBusinessData(AppDbContext db) =>
     await db.Users.AnyAsync() || await db.Deals.AnyAsync() || await db.WalletLedgers.AnyAsync() || await db.SaleRequests.AnyAsync();
 
+static async Task<bool> SqliteTableExists(AppDbContext db, string tableName)
+{
+    var connection = db.Database.GetDbConnection();
+    if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync();
+    await using var command = connection.CreateCommand();
+    command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=$name;";
+    var parameter = command.CreateParameter();
+    parameter.ParameterName = "$name";
+    parameter.Value = tableName;
+    command.Parameters.Add(parameter);
+    var value = await command.ExecuteScalarAsync();
+    return Convert.ToInt64(value ?? 0) > 0;
+}
+
 static async Task ResetPostgresSequences(AppDbContext db)
 {
     var tables = new[]
@@ -186,7 +222,7 @@ static async Task ResetPostgresSequences(AppDbContext db)
         "AspNetRoleClaims", "AspNetUserClaims", "SaleRequests", "Offers", "Deals", "Notifications",
         "TraderApplications", "Wallets", "Listings", "WalletLedgers", "SupportTickets", "SupportReplies",
         "DealMessages", "PaymentIntents", "TraderReviews", "Favorites", "ItemWatches", "UserReports",
-        "VerificationRequests", "AdminAuditEvents"
+        "VerificationRequests", "AdminAuditEvents", "RiskSignals"
     };
     foreach (var table in tables)
     {
