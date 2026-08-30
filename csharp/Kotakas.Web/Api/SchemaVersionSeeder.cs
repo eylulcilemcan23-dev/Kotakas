@@ -6,7 +6,7 @@ namespace Kotakas.Web.Api;
 
 public static class SchemaVersionSeeder
 {
-    public const string Current = "13";
+    public const string Current = "14";
 
     public static async Task InitializeAsync(WebApplication app)
     {
