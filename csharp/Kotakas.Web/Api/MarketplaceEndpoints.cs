@@ -26,11 +26,11 @@ public static class MarketplaceEndpoints
 
         app.MapGet("/api/traders", async (AppDbContext db) =>
         {
-            var traders = await db.Users.AsNoTracking()
+            var traders = (await db.Users.AsNoTracking()
                 .Where(x => x.AccountStatus == "active" && x.VerifiedTrader)
-                .OrderByDescending(x => x.CreatedAt).Take(12)
                 .Select(x => new { id = x.Id, x.DisplayName, x.CreatedAt })
-                .ToListAsync();
+                .ToListAsync())
+                .OrderByDescending(x => x.CreatedAt).Take(12).ToList();
             var ids = traders.Select(x => x.id).ToList();
             var dealCounts = await db.Deals.AsNoTracking()
                 .Where(x => ids.Contains(x.TraderUserId) && x.Status == "completed")
@@ -64,7 +64,11 @@ public static class MarketplaceEndpoints
                 return Results.BadRequest(new { error = "invalid_or_external_contact" });
 
             var start = new DateTimeOffset(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
-            var used = await db.SaleRequests.CountAsync(x => x.UserId == uid && x.CreatedAt >= start);
+            var requestDates = await db.SaleRequests.AsNoTracking()
+                .Where(x => x.UserId == uid)
+                .Select(x => x.CreatedAt)
+                .ToListAsync();
+            var used = requestDates.Count(x => x >= start);
             var isNormalUser = !p.IsInRole("trader") && !ApiHelpers.IsFullAdmin(p);
             var feeTry = 0m;
 
@@ -285,7 +289,11 @@ public static class MarketplaceEndpoints
             var uid = ApiHelpers.UserId(p);
             var wallet = await db.Wallets.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == uid);
             var start = new DateTimeOffset(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero);
-            var used = await db.SaleRequests.CountAsync(x => x.UserId == uid && x.CreatedAt >= start);
+            var requestDates = await db.SaleRequests.AsNoTracking()
+                .Where(x => x.UserId == uid)
+                .Select(x => x.CreatedAt)
+                .ToListAsync();
+            var used = requestDates.Count(x => x >= start);
             var paidListingTry = await ApiHelpers.SettingDecimal(db, "paid_listing_try", 0m);
             var isNormalUser = !p.IsInRole("trader") && !ApiHelpers.IsFullAdmin(p);
             var nextRequestFeeTry = isNormalUser && used >= 1 ? paidListingTry : 0m;
