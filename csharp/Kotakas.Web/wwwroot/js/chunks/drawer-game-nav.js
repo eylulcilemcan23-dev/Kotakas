@@ -6,23 +6,26 @@
   };
   const currentGame=()=>window.KOTAKAS_GAME||window.KOTAKAS_GAMES?.[0]||{code:'knight-online',mark:'KO',name:'Knight Online',currency:'GB'};
 
+  function gameRows(query=''){
+    const games=window.KOTAKAS_GAMES||[];
+    const current=currentGame();
+    const q=String(query||'').trim().toLowerCase();
+    const rows=games.filter(g=>!q||`${g.name} ${g.currency} ${(g.types||[]).join(' ')}`.toLowerCase().includes(q));
+    return rows.map(g=>`<button type="button" class="k-drawer-game-row ${g.code===current.code?'active':''}" data-drawer-game="${safe(g.code)}">
+      <span class="k-drawer-game-logo">${safe(g.mark)}</span>
+      <span class="k-drawer-game-info"><strong>${safe(g.name)}</strong><small><b>${safe(g.currency)}</b> • ${safe((g.types||[]).join(' • '))}</small></span>
+      ${g.code===current.code?'<i>✓</i>':''}
+    </button>`).join('')||'<div class="k-drawer-game-empty">Oyun bulunamadı.</div>';
+  }
+
   function gameSection(){
     const games=window.KOTAKAS_GAMES||[];
     if(!games.length)return '';
-    const current=currentGame();
-    const preferred=['knight-online','rise-online','pubg-mobile','metin2','silkroad-online','valorant'];
-    const featured=preferred.map(code=>games.find(g=>g.code===code)).filter(Boolean);
     return `<div class="k-drawer-group k-drawer-games" data-drawer-games>
-      <div class="k-drawer-label">🎮 Oyunlar</div>
-      <a class="k-drawer-current-game" href="${gameUrl('/market.html',current.code)}">
-        <span class="k-drawer-game-logo">${safe(current.mark||'🎮')}</span>
-        <span><strong>${safe(current.name)}</strong><small>${safe(current.currency||'')}</small></span>
-        <b>Seçili</b>
-      </a>
-      <div class="k-drawer-game-grid">
-        ${featured.map(g=>`<button type="button" class="k-drawer-game-chip ${g.code===current.code?'active':''}" data-drawer-game="${safe(g.code)}"><span>${safe(g.mark)}</span><b>${safe(g.name.replace(' Online World','').replace(' Online',''))}</b></button>`).join('')}
-      </div>
-      <a class="k-drawer-all-games" href="/games.html">＋ Tüm Oyunları Gör</a>
+      <div class="k-drawer-label">🎮 Oyunlar & Oyun Paraları</div>
+      <label class="k-drawer-game-search">⌕ <input id="kDrawerGameSearch" autocomplete="off" placeholder="Oyun veya para ara..."></label>
+      <div class="k-drawer-game-list" data-drawer-game-list>${gameRows()}</div>
+      <a class="k-drawer-all-games" href="/games.html">＋ Tüm Oyunlar Sayfası</a>
     </div>`;
   }
 
@@ -31,7 +34,7 @@
     const panel=typeof panelHref==='function'?panelHref():'/dashboard.html';
     const logged=typeof ME!=='undefined'&&!!ME;
     return `<div class="k-account-section k-account-quick" data-account-quick>
-      <div class="k-account-section-head"><strong>⚡ Hızlı Menü</strong><span>${safe(g.mark||'🎮')} ${safe(g.name)}</span></div>
+      <div class="k-account-section-head"><strong>⚡ Hızlı Menü</strong><span>${safe(g.name)}</span></div>
       <div class="k-account-quick-grid">
         <a href="${gameUrl('/market.html',g.code)}">📡 <b>Pazar</b></a>
         <a href="${gameUrl('/buy.html',g.code)}">🛒 <b>Satın Al</b></a>
@@ -39,7 +42,7 @@
         <a href="${gameUrl('/urgent-sell.html',g.code)}">⚡ <b>Hızlı Sat</b></a>
         ${logged?`<a href="${panel}">🏠 <b>Panelim</b></a><a href="/deals.html">🤝 <b>İşlemler</b></a>`:'<a href="/login.html">🔐 <b>Giriş</b></a><a href="/register.html">✨ <b>Kayıt Ol</b></a>'}
       </div>
-      <button type="button" class="btn ghost full k-account-games-btn" onclick="kCloseShell();setTimeout(()=>kToggleGameMenu?.(),60)">🎮 Oyun Değiştir</button>
+      <button type="button" class="btn ghost full k-account-games-btn" onclick="kCloseShell();setTimeout(()=>kToggleGameMenu?.(),80)">🎮 Oyun Değiştir</button>
     </div>`;
   }
 
@@ -53,6 +56,16 @@
     });
   }
 
+  function bindSearch(root){
+    const input=root?.querySelector('#kDrawerGameSearch');
+    const list=root?.querySelector('[data-drawer-game-list]');
+    if(!input||!list)return;
+    input.addEventListener('input',()=>{
+      list.innerHTML=gameRows(input.value);
+      bindGameButtons(list);
+    });
+  }
+
   function decorateMenu(){
     const drawer=document.getElementById('kShellDrawer');
     if(!drawer)return;
@@ -63,6 +76,7 @@
     else if(groups[0])groups[0].insertAdjacentHTML('beforebegin',gameSection());
     else drawer.insertAdjacentHTML('beforeend',gameSection());
     bindGameButtons(drawer);
+    bindSearch(drawer);
   }
 
   function decorateAccount(){
