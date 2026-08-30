@@ -15,7 +15,9 @@ public static class ItemWatchEndpoints
         group.MapGet("/", async (ClaimsPrincipal principal, AppDbContext db) =>
         {
             var uid = ApiHelpers.UserId(principal);
-            var watches = await db.ItemWatches.AsNoTracking().Where(x => x.UserId == uid).OrderByDescending(x => x.CreatedAt).ToListAsync();
+            var watches = (await db.ItemWatches.AsNoTracking().Where(x => x.UserId == uid).ToListAsync())
+                .OrderByDescending(x => x.CreatedAt)
+                .ToList();
             var activeListings = await db.Listings.AsNoTracking()
                 .Where(x => x.Status == "active" && x.Stock > 0)
                 .Select(x => new { x.Id, x.ItemName, x.ServerCode, x.PriceGb, x.Stock, x.SellerName })
