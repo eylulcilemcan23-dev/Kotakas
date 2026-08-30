@@ -1,0 +1,30 @@
+name: KOTAKAS Full Critical Flow
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-full-flow.yml'
+  pull_request:
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-full-flow.yml'
+  workflow_dispatch:
+
+jobs:
+  windows-full-flow:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Run KOTAKAS full critical flow
+        shell: powershell
+        run: .\csharp\KOTAKAS_TAM_TEST_WINDOWS.ps1 -SkipUpdate
