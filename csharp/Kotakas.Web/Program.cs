@@ -81,6 +81,8 @@ builder.Services.AddSingleton<DatabaseBackupService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<DatabaseBackupService>());
 builder.Services.AddHostedService<MarketRateSyncService>();
 builder.Services.AddHostedService<MarketplaceMaintenanceService>();
+builder.Services.AddSingleton<RiskDetectionService>();
+builder.Services.AddHostedService<RiskDetectionWorker>();
 
 var app = builder.Build();
 if (databaseProvider is "postgres" or "postgresql")
@@ -134,6 +136,7 @@ app.MapAdminEndpoints();
 app.MapAdminModerationEndpoints();
 app.MapAdminSearchEndpoints();
 app.MapAdminAuditEndpoints();
+app.MapAdminRiskEndpoints();
 app.MapBackupEndpoints();
 app.MapFinanceReportingEndpoints();
 app.MapIntegrationEndpoints();
