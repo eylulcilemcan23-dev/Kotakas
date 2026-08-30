@@ -25,6 +25,15 @@ jobs:
         run: |
           dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
           dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
+      - name: Verify Pro panel bundle wiring
+        run: |
+          grep -q "'/js/chunks/panel-pro.js'" csharp/Kotakas.Web/wwwroot/js/app.js
+          grep -q 'userProCenter' csharp/Kotakas.Web/wwwroot/js/chunks/panel-pro.js
+          grep -q 'traderProCenter' csharp/Kotakas.Web/wwwroot/js/chunks/panel-pro.js
+          grep -q 'adminProCenter' csharp/Kotakas.Web/wwwroot/js/chunks/panel-pro.js
+          grep -q 'exportUserDealsCsv' csharp/Kotakas.Web/wwwroot/js/chunks/panel-pro.js
+          grep -q 'exportTraderSalesCsv' csharp/Kotakas.Web/wwwroot/js/chunks/panel-pro.js
+          grep -q 'exportAdminPerformanceCsv' csharp/Kotakas.Web/wwwroot/js/chunks/panel-pro.js
       - name: Boot SQLite app
         run: |
           rm -f /tmp/kotakas-panel.db
@@ -57,6 +66,10 @@ jobs:
           grep -q '"last30"' /tmp/trader-insights.json
           curl -fsS -b /tmp/panel-admin.cookies http://127.0.0.1:5097/api/admin/performance | tee /tmp/admin-performance.json
           grep -q '"last30"' /tmp/admin-performance.json
+          curl -fsS -b /tmp/panel-admin.cookies http://127.0.0.1:5097/api/admin/overview | tee /tmp/admin-overview.json
+          grep -q '"users"' /tmp/admin-overview.json
+          grep -q '"traders"' /tmp/admin-overview.json
+          grep -q '"pendingApplications"' /tmp/admin-overview.json
       - name: Enable announcement and maintenance mode
         run: |
           curl -fsS -b /tmp/panel-admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' -X PUT \
