@@ -91,7 +91,8 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
         {
             if (db.Database.IsNpgsql())
             {
-                pgLease = await PostgresAdvisoryLease.AcquireAsync(db, DistributedScope(context.Request, uid), context.RequestAborted);
+                var distributedScope = await DistributedScopeAsync(context.Request, uid, db, context.RequestAborted);
+                pgLease = await PostgresAdvisoryLease.AcquireAsync(db, distributedScope, context.RequestAborted);
             }
             else
             {
@@ -125,14 +126,20 @@ public sealed class CriticalRequestGuardMiddleware(RequestDelegate next)
         }
     }
 
-    private static string DistributedScope(HttpRequest request, string uid)
+    private static async Task<string> DistributedScopeAsync(HttpRequest request, string uid, AppDbContext db, CancellationToken cancellationToken)
     {
         var path = request.Path.Value?.ToLowerInvariant() ?? "";
         var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "listings" && parts[^1] == "buy")
             return $"kotakas:listing:{parts[2]}";
-        if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "listing-price-offers" && parts[^1] == "purchase")
-            return $"kotakas:listing-price-offer:{parts[2]}";
+        if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "listing-price-offers" && parts[^1] == "purchase" && long.TryParse(parts[2], out var offerId))
+        {
+            var listingId = await db.Set<Models.ListingPriceOffer>().AsNoTracking()
+                .Where(x => x.Id == offerId)
+                .Select(x => (long?)x.ListingId)
+                .FirstOrDefaultAsync(cancellationToken);
+            return listingId.HasValue ? $"kotakas:listing:{listingId.Value}" : $"kotakas:listing-price-offer:{offerId}";
+        }
         if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "deals")
             return $"kotakas:deal:{parts[2]}";
         if (parts.Length >= 4 && parts[0] == "api" && parts[1] == "offers" && parts[^1] == "accept")
