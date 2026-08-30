@@ -214,7 +214,7 @@ jobs:
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
             psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "RiskSignals";' | grep -q '^0$'
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
-            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc 'SELECT COUNT(*) FROM "ListingPriceHistory" WHERE "Reason"=''initial'';' | grep -q '^1$'
+            psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc "SELECT COUNT(*) FROM \"ListingPriceHistory\" WHERE \"Reason\"='initial';" | grep -q '^1$'
           docker run --rm --network host -e PGPASSWORD=postgres postgres:16-alpine \
             psql -h 127.0.0.1 -U postgres -d kotakas_legacy -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='ListingPriceOffer';" | grep -q '^1$'
           kill $(cat /tmp/kotakas-legacy.pid)
