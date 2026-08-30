@@ -1,6 +1,6 @@
 (()=>{
   const money=n=>Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₺';
-  const typeLabel=t=>({admin_adjustment:'Admin bakiye işlemi',paid_sale_request:'Ücretli ilan',escrow_fund:'Emanet fonu',listing_escrow_fund:'İlan emanet fonu',escrow_refund:'Emanet iadesi',listing_refund:'İlan iadesi',settlement_release:'Satış ödemesi',listing_settlement_release:'İlan satış ödemesi',dispute_refund:'Anlaşmazlık iadesi',dispute_release:'Anlaşmazlık ödemesi'}[t]||t||'Bakiye hareketi');
+  const typeLabel=t=>({admin_adjustment:'Admin bakiye işlemi',local_test_topup:'Sanal bakiye yükleme',local_test_withdrawal:'Sanal bakiye çekim',paid_sale_request:'Ücretli ilan',escrow_fund:'Emanet fonu',listing_escrow_fund:'İlan emanet fonu',escrow_refund:'Emanet iadesi',listing_refund:'İlan iadesi',escrow_release:'Satış ödemesi',settlement_release:'Satış ödemesi',listing_settlement_release:'İlan satış ödemesi',dispute_refund:'Anlaşmazlık iadesi',dispute_release:'Anlaşmazlık ödemesi'}[t]||t||'Bakiye hareketi');
 
   function ledgerHtml(entries,empty='Henüz bakiye hareketi yok.'){
     if(!entries?.length)return `<div class="empty">${empty}</div>`;
@@ -13,11 +13,11 @@
       const h=await api('/api/wallet/history?take=30');
       if(location.pathname.toLowerCase().endsWith('/dashboard.html')){
         let card=$('#walletHistoryCard');if(!card){card=document.createElement('div');card.id='walletHistoryCard';card.className='v5-card';card.style.marginTop='14px';const layout=$('.v5-layout');layout?.parentNode?.insertBefore(card,layout.nextSibling)}
-        if(card)card.innerHTML=`<div class="v5-card-head"><div><h3>Bakiye hareketlerim</h3><p>Her para girişi/çıkışı kayıt altında tutulur.</p></div></div>${ledgerHtml(h.entries)}`;
+        if(card)card.innerHTML=`<div class="v5-card-head"><div><h3>Bakiye hareketlerim</h3><p>Her para girişi/çıkışı kayıt altında tutulur.</p></div><a class="btn ghost sm" href="/wallet.html">Cüzdan Merkezi</a></div>${ledgerHtml(h.entries)}`;
       }
       if(location.pathname.toLowerCase().endsWith('/trader.html')){
         const w=await api('/api/wallet');let card=$('#traderWalletHistoryCard');if(!card){card=document.createElement('div');card.id='traderWalletHistoryCard';card.className='v5-card';card.style.marginTop='14px';const offer=$('#myOffers')?.closest('.v5-card');offer?.parentNode?.insertBefore(card,offer)}
-        if(card)card.innerHTML=`<div class="v5-card-head"><div><h3>Pazarcı bakiyesi</h3><p>Satış, emanet ve admin bakiye hareketlerin.</p></div><div class="spacer"></div><strong style="font-size:24px;color:var(--teal)">${money(w.balanceTry)}</strong></div>${ledgerHtml((h.entries||[]).slice(0,15))}`;
+        if(card)card.innerHTML=`<div class="v5-card-head"><div><h3>Pazarcı bakiyesi</h3><p>Satış, emanet ve admin bakiye hareketlerin.</p></div><div class="spacer"></div><strong style="font-size:24px;color:var(--teal)">${money(w.balanceTry)}</strong><a class="btn ghost sm" href="/wallet.html">Cüzdan</a></div>${ledgerHtml((h.entries||[]).slice(0,15))}`;
       }
     }catch{}
   }
