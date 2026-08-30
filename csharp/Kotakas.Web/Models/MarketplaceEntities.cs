@@ -6,9 +6,13 @@ public sealed class SaleRequest
 {
     public long Id { get; set; }
     public string UserId { get; set; } = "";
+    public string GameCode { get; set; } = "knight-online";
+    public string ProductType { get; set; } = "item";
+    public string CurrencyCode { get; set; } = "GB";
     public string ItemName { get; set; } = "";
     public string ServerCode { get; set; } = "ZERO";
     public int Quantity { get; set; } = 1;
+    // Legacy column name; value is the selected game's market-currency amount.
     public decimal MinimumGb { get; set; }
     public string Note { get; set; } = "";
     public string Status { get; set; } = "open";
@@ -22,6 +26,7 @@ public sealed class Offer
     public long SaleRequestId { get; set; }
     public string TraderUserId { get; set; } = "";
     public string TraderName { get; set; } = "";
+    // Legacy column name; value is the request currency amount.
     public decimal PriceGb { get; set; }
     public int ExpiryMinutes { get; set; } = 10;
     public string Status { get; set; } = "active";
@@ -41,9 +46,13 @@ public sealed class Deal
     public string UserId { get; set; } = "";
     public string TraderUserId { get; set; } = "";
     public string TraderName { get; set; } = "";
+    public string GameCode { get; set; } = "knight-online";
+    public string ProductType { get; set; } = "item";
+    public string CurrencyCode { get; set; } = "GB";
     public string ItemName { get; set; } = "";
     public string ServerCode { get; set; } = "ZERO";
     public int Quantity { get; set; } = 1;
+    // Legacy names retained for backwards compatibility; values are market-currency amounts/rate.
     public decimal UnitPriceGb { get; set; }
     public decimal PriceGb { get; set; }
     public decimal GbTryRate { get; set; }
@@ -93,8 +102,12 @@ public sealed class TraderListing
     public long Id { get; set; }
     public string SellerUserId { get; set; } = "";
     public string SellerName { get; set; } = "";
+    public string GameCode { get; set; } = "knight-online";
+    public string ProductType { get; set; } = "item";
+    public string CurrencyCode { get; set; } = "GB";
     public string ItemName { get; set; } = "";
     public string ServerCode { get; set; } = "ZERO";
+    // Legacy column name; value is the selected game's per-unit market-currency amount.
     public decimal PriceGb { get; set; }
     public int Stock { get; set; } = 1;
     public string Status { get; set; } = "active";
