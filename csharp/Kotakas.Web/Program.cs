@@ -84,6 +84,7 @@ builder.Services.AddHostedService<MarketRateSyncService>();
 builder.Services.AddHostedService<MarketplaceMaintenanceService>();
 builder.Services.AddSingleton<RiskDetectionService>();
 builder.Services.AddHostedService<RiskDetectionWorker>();
+builder.Services.AddSingleton<SiteRuntimeState>();
 
 var app = builder.Build();
 if (databaseProvider is "postgres" or "postgresql")
@@ -97,6 +98,7 @@ else
     await ListingEnhancementSqliteSeeder.InitializeAsync(app);
 }
 await SchemaVersionSeeder.InitializeAsync(app);
+await SiteRuntimeState.InitializeAsync(app);
 
 if (app.Environment.IsProduction())
 {
@@ -110,6 +112,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.UseMiddleware<SessionSecurityMiddleware>();
+app.UseMiddleware<MaintenanceModeMiddleware>();
 app.UseMiddleware<CsrfProtectionMiddleware>();
 app.UseMiddleware<CriticalRequestGuardMiddleware>();
 app.UseMiddleware<AdminAuditMiddleware>();
@@ -142,6 +145,8 @@ app.MapAdminAuditEndpoints();
 app.MapAdminRiskEndpoints();
 app.MapBackupEndpoints();
 app.MapFinanceReportingEndpoints();
+app.MapPanelInsightsEndpoints();
+app.MapSiteControlEndpoints();
 app.MapIntegrationEndpoints();
 app.MapPaymentEndpoints();
 app.MapFallbackToFile("index.html");
