@@ -39,10 +39,20 @@ try{
   Invoke-Kotakas ('/api/deals/'+$buy.deal.id+'/delivered') 'POST' $null $trader|Out-Null
   Invoke-Kotakas ('/api/deals/'+$buy.deal.id+'/confirm') 'POST' $null $user|Out-Null
   $traderAfter=Invoke-Kotakas '/api/wallet' 'GET' $null $trader;Assert ([decimal]$traderAfter.balanceTry-eq970) ('Pazarcı net 970 olmalı, mevcut: '+$traderAfter.balanceTry)
+
+  $withdraw=Invoke-Kotakas '/api/account/test-wallet-withdraw' 'POST' @{amountTry=500} $user
+  Assert ($withdraw.testMode-eq$true) 'Yerel sanal çekim endpointi test modunda dönmedi.'
+  Assert ([decimal]$withdraw.balanceTry-eq3500) ('Sanal çekim sonrası alıcı bakiye 3500 olmalı, mevcut: '+$withdraw.balanceTry)
+  $history=Invoke-Kotakas '/api/wallet/history?take=20' 'GET' $null $user
+  $withdrawEntry=@($history.entries|Where-Object{$_.type-eq'local_test_withdrawal'})|Select-Object -First 1
+  Assert ($null-ne$withdrawEntry) 'Sanal çekim ledger kaydı bulunamadı.'
+  Assert ([decimal]$withdrawEntry.amountTry-eq-500) 'Sanal çekim ledger tutarı -500 değil.'
+
   Write-Host '[OK] Bakiye Ekle yerel test modu çalışıyor' -ForegroundColor Green
   Write-Host '[OK] Direkt ilan satın alma çalışıyor' -ForegroundColor Green
   Write-Host '[OK] Kullanıcı 5000 -> 4000 TL' -ForegroundColor Green
   Write-Host '[OK] Emanet öncesi pazarcı: 0 TL' -ForegroundColor Green
   Write-Host '[OK] Teslim+onay sonrası pazarcı: 970 TL (%3 komisyon)' -ForegroundColor Green
+  Write-Host '[OK] Sanal bakiye çekim 4000 -> 3500 TL ve ledger kaydı oluştu' -ForegroundColor Green
   Write-Host 'TEST SONUCU: BASARILI' -ForegroundColor Green
 }finally{if($app -and -not$app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}
