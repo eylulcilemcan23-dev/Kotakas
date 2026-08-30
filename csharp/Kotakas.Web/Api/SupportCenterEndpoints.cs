@@ -14,8 +14,7 @@ public static class SupportCenterEndpoints
             var uid = ApiHelpers.UserId(principal);
             var tickets = await db.SupportTickets.AsNoTracking()
                 .Where(x => x.UserId == uid)
-                .OrderByDescending(x => x.UpdatedAt)
-                .ThenByDescending(x => x.Id)
+                .OrderByDescending(x => x.Id)
                 .Take(100)
                 .ToListAsync();
             var ids = tickets.Select(x => x.Id).ToList();
@@ -34,6 +33,8 @@ public static class SupportCenterEndpoints
             var uid = ApiHelpers.UserId(principal);
             var ticket = await db.SupportTickets.FirstOrDefaultAsync(x => x.Id == id && x.UserId == uid);
             if (ticket is null) return Results.NotFound();
+            if (ticket.Subject.StartsWith("[ACIL ITEM]", StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new { error = "urgent_sale_ready_message_only" });
             var message = (input.Message ?? "").Trim();
             if (message.Length < 2 || message.Length > 1000) return Results.BadRequest(new { error = "invalid_support_reply" });
 
@@ -81,7 +82,7 @@ public static class SupportCenterEndpoints
                 var term = q.Trim();
                 query = query.Where(x => x.Subject.Contains(term) || x.Message.Contains(term) || x.Id.ToString().Contains(term));
             }
-            var tickets = await query.OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.Id).Take(300).ToListAsync();
+            var tickets = await query.OrderByDescending(x => x.Id).Take(300).ToListAsync();
             var userIds = tickets.Select(x => x.UserId).Distinct().ToList();
             var users = await db.Users.AsNoTracking().Where(x => userIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => new { x.DisplayName, x.Email });
             var ticketIds = tickets.Select(x => x.Id).ToList();
@@ -138,6 +139,8 @@ public static class SupportCenterEndpoints
         {
             var ticket = await db.SupportTickets.FirstOrDefaultAsync(x => x.Id == id);
             if (ticket is null) return Results.NotFound();
+            if (ticket.Subject.StartsWith("[ACIL ITEM]", StringComparison.OrdinalIgnoreCase))
+                return Results.BadRequest(new { error = "urgent_sale_ready_message_only" });
             var message = (input.Message ?? "").Trim();
             if (message.Length < 2 || message.Length > 1000) return Results.BadRequest(new { error = "invalid_support_reply" });
 
