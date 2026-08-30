@@ -57,6 +57,36 @@
     }catch{box.innerHTML='<div class="empty">Acil satışların yüklenemedi.</div>'}
   }
 
+  function urgentNotificationId(card){
+    const title=card.querySelector('.itemtitle')?.textContent||'';
+    if(!/KOTAKAS acil alım teklifi verdi/i.test(title))return 0;
+    const body=[...card.querySelectorAll('.meta')].map(x=>x.textContent||'').join(' ');
+    const m=body.match(/Talep\s*#(\d+)/i);
+    return m?Number(m[1]):0;
+  }
+
+  window.urgentNotificationDecision=async(id,action)=>{
+    if(action==='accept'&&!confirm('KOTAKAS acil alım teklifini kabul etmek istiyor musun?'))return;
+    try{
+      await api(`/api/urgent-sales/${id}/decision`,{method:'POST',body:{action}});
+      toast(action==='accept'?'Teklif kabul edildi. İşlem mesajları açıldı.':'Teklif reddedildi.');
+      setTimeout(()=>location.href=action==='accept'?'/urgent-sell.html':'/notifications.html',450);
+    }catch(err){toast(err.data?.error||'İşlem yapılamadı.')}
+  };
+
+  function enhanceUrgentNotifications(){
+    if(!path.endsWith('/notifications.html'))return;
+    $$('#notificationsList .listitem').forEach(card=>{
+      if(card.querySelector('.urgent-notif-actions'))return;
+      const id=urgentNotificationId(card);if(!id)return;
+      const actions=document.createElement('div');
+      actions.className='actions urgent-notif-actions';
+      actions.style.marginTop='10px';
+      actions.innerHTML=`<button class="btn sm green" type="button" onclick="urgentNotificationDecision(${id},'accept')">✓ Kabul Et</button><button class="btn sm red" type="button" onclick="urgentNotificationDecision(${id},'reject')">Reddet</button><a class="btn sm ghost" href="/urgent-sell.html">Detayı Aç</a>`;
+      card.append(actions);
+    });
+  }
+
   function ensureAdminPane(){
     if(!path.endsWith('/admin.html')||!ME||!String(ME.role||'').startsWith('admin_'))return;
     const side=$('.sidebar'),host=$('#pane-users')?.parentElement;if(!side||!host)return;
@@ -96,6 +126,10 @@
       if(!ME){location.href='/login.html?returnUrl='+encodeURIComponent('/urgent-sell.html');return}
       $('#urgentSaleForm')?.addEventListener('submit',createUrgentSale);await renderUrgentMine();
       setInterval(()=>{if(document.visibilityState==='visible')renderUrgentMine()},12000);
+    }
+    if(path.endsWith('/notifications.html')){
+      setTimeout(enhanceUrgentNotifications,250);setTimeout(enhanceUrgentNotifications,900);
+      const box=$('#notificationsList');if(box)new MutationObserver(enhanceUrgentNotifications).observe(box,{childList:true,subtree:true});
     }
     if(path.endsWith('/admin.html')){
       ensureAdminPane();setTimeout(ensureAdminPane,700);setTimeout(()=>{if($('#pane-urgent-sales')?.style.display!=='none')renderUrgentAdmin()},1200);
