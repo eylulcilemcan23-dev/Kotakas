@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Kotakas.Web.Data;
 using Kotakas.Web.Models;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +35,8 @@ public sealed class MarketRateSyncService(
         if (string.IsNullOrWhiteSpace(url)) return;
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (compatible; KOTAKAS-MarketRate/1.0)");
+        request.Headers.TryAddWithoutValidation("Accept-Language", "tr-TR,tr;q=0.9,en;q=0.7");
         var header = configuration["MarketRateFeed:ApiKeyHeader"]?.Trim();
         var apiKey = configuration["MarketRateFeed:ApiKey"]?.Trim();
         if (!string.IsNullOrWhiteSpace(header) && !string.IsNullOrWhiteSpace(apiKey))
@@ -43,20 +47,79 @@ public sealed class MarketRateSyncService(
         using var response = await client.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        var propertyPath = configuration["MarketRateFeed:JsonProperty"]?.Trim();
-        if (string.IsNullOrWhiteSpace(propertyPath)) propertyPath = "tryPerGb";
-        if (!TryReadDecimal(json.RootElement, propertyPath!, out var rate) || rate <= 0 || rate > 10_000_000m)
+        var feedMode = (configuration["MarketRateFeed:Mode"] ?? "json").Trim().ToLowerInvariant();
+        decimal rate;
+        decimal? sourceBuyTryPerGb = null;
+        decimal? sourceSellTryPerGb = null;
+        var sourceName = configuration["MarketRateFeed:SourceName"]?.Trim();
+        if (string.IsNullOrWhiteSpace(sourceName)) sourceName = feedMode.Contains("kopazar") ? "Kopazar ZERO" : "Harici kur kaynağı";
+
+        if (feedMode is "kopazar_html" or "html")
+        {
+            var html = await response.Content.ReadAsStringAsync(cancellationToken);
+            var text = NormalizeHtmlText(html);
+            var buyUnit = TryReadKopazarPrice(text, "Satın Al", out var buyPrice) ? buyPrice : (decimal?)null;
+            var sellUnit = TryReadKopazarPrice(text, "Bize Sat", out var sellPrice) ? sellPrice : (decimal?)null;
+            var unitMillions = configuration.GetValue<decimal?>("MarketRateFeed:HtmlUnitMillions") ?? 10m;
+            if (unitMillions <= 0 || unitMillions > 100m) throw new InvalidOperationException("MarketRateFeed HtmlUnitMillions is invalid.");
+            var multiplier = 100m / unitMillions;
+            if (buyUnit is not null) sourceBuyTryPerGb = Math.Round(buyUnit.Value * multiplier, 2, MidpointRounding.AwayFromZero);
+            if (sellUnit is not null) sourceSellTryPerGb = Math.Round(sellUnit.Value * multiplier, 2, MidpointRounding.AwayFromZero);
+
+            var side = (configuration["MarketRateFeed:HtmlPriceSide"] ?? "buy").Trim().ToLowerInvariant();
+            rate = side == "sell"
+                ? sourceSellTryPerGb ?? throw new InvalidOperationException("Kopazar 'Bize Sat' GB price could not be parsed.")
+                : sourceBuyTryPerGb ?? throw new InvalidOperationException("Kopazar 'Satın Al' GB price could not be parsed.");
+        }
+        else
+        {
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var json = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            var propertyPath = configuration["MarketRateFeed:JsonProperty"]?.Trim();
+            if (string.IsNullOrWhiteSpace(propertyPath)) propertyPath = "tryPerGb";
+            if (!TryReadDecimal(json.RootElement, propertyPath!, out rate))
+                throw new InvalidOperationException("MarketRateFeed JSON rate could not be parsed.");
+        }
+
+        if (rate <= 0 || rate > 10_000_000m)
             throw new InvalidOperationException("MarketRateFeed returned an invalid GB/TRY rate.");
 
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await Upsert(db, "gb_try_rate", rate.ToString(CultureInfo.InvariantCulture));
+        var modeSetting = await db.SiteSettings.AsNoTracking().FirstOrDefaultAsync(x => x.Key == "gb_try_rate_mode", cancellationToken);
+        var effectiveMode = string.Equals(modeSetting?.Value, "manual", StringComparison.OrdinalIgnoreCase) ? "manual" : "auto";
+
+        await Upsert(db, "gb_try_rate_feed", rate.ToString(CultureInfo.InvariantCulture));
+        if (sourceBuyTryPerGb is not null) await Upsert(db, "gb_try_rate_source_buy", sourceBuyTryPerGb.Value.ToString(CultureInfo.InvariantCulture));
+        if (sourceSellTryPerGb is not null) await Upsert(db, "gb_try_rate_source_sell", sourceSellTryPerGb.Value.ToString(CultureInfo.InvariantCulture));
         await Upsert(db, "gb_try_rate_source", url);
+        await Upsert(db, "gb_try_rate_source_name", sourceName!);
         await Upsert(db, "gb_try_rate_updated_at", DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        await Upsert(db, "gb_try_rate_sync_status", "ok");
+        if (effectiveMode == "auto")
+            await Upsert(db, "gb_try_rate", rate.ToString(CultureInfo.InvariantCulture));
         await db.SaveChangesAsync(cancellationToken);
-        logger.LogInformation("KOTAKAS GB/TRY rate synchronized: {Rate}", rate);
+
+        logger.LogInformation("KOTAKAS GB/TRY synchronized from {Source}: {Rate} (mode: {Mode})", sourceName, rate, effectiveMode);
+    }
+
+    private static string NormalizeHtmlText(string html)
+    {
+        var withoutScripts = Regex.Replace(html, @"<(script|style)[^>]*>.*?</\1>", " ", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var withoutTags = Regex.Replace(withoutScripts, @"<[^>]+>", " ");
+        var decoded = WebUtility.HtmlDecode(withoutTags);
+        return Regex.Replace(decoded, @"\s+", " ").Trim();
+    }
+
+    private static bool TryReadKopazarPrice(string text, string label, out decimal value)
+    {
+        value = 0m;
+        var pattern = $@"(?<price>\d{{1,3}}(?:\.\d{{3}})*(?:,\d{{1,2}})?|\d+(?:[.,]\d{{1,2}})?)\s*TL\s*{Regex.Escape(label)}";
+        var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!match.Success) return false;
+        var raw = match.Groups["price"].Value;
+        return decimal.TryParse(raw, NumberStyles.Number, new CultureInfo("tr-TR"), out value)
+            || decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out value);
     }
 
     private static async Task Upsert(AppDbContext db, string key, string value)
