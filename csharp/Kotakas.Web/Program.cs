@@ -98,6 +98,7 @@ else
     await StartupFeatureSeeder.InitializeAsync(app);
     await ListingEnhancementSqliteSeeder.InitializeAsync(app);
 }
+await MultiGameSchemaSeeder.InitializeAsync(app);
 await SchemaVersionSeeder.InitializeAsync(app);
 await SiteRuntimeState.InitializeAsync(app);
 
