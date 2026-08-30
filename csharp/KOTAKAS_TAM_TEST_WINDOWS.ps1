@@ -47,7 +47,12 @@ function Invoke-Kotakas {
         TimeoutSec = 20
     }
     if ($null -ne $Session) { $args.WebSession = $Session }
-    if ($Method -ne 'GET') { $args.Headers = @{ 'X-KOTAKAS-CSRF' = '1' } }
+    if ($Method -ne 'GET') {
+        $args.Headers = @{
+            'X-KOTAKAS-CSRF' = '1'
+            'Idempotency-Key' = [guid]::NewGuid().ToString('N')
+        }
+    }
     if ($null -ne $Body) {
         $args.ContentType = 'application/json; charset=utf-8'
         $args.Body = ($Body | ConvertTo-Json -Depth 10 -Compress)
