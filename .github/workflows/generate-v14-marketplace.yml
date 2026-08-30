@@ -1,0 +1,48 @@
+name: Generate KOTAKAS V14 Marketplace Migration
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - '.github/workflows/generate-v14-marketplace.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 8.0.8
+      - name: Restore and build
+        run: |
+          dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
+          dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
+      - name: Generate PostgreSQL V14 delta
+        env:
+          KOTAKAS_EF_PROVIDER: postgres
+          KOTAKAS_EF_CONNECTION: Host=127.0.0.1;Port=5432;Database=kotakas_design;Username=postgres;Password=postgres
+        run: |
+          test -f csharp/Kotakas.Web/Migrations/Postgres/AppDbContextModelSnapshot.cs
+          dotnet ef migrations add V14MarketplaceExtras \
+            --context AppDbContext \
+            --project csharp/Kotakas.Web/Kotakas.Web.csproj \
+            --startup-project csharp/Kotakas.Web/Kotakas.Web.csproj \
+            --output-dir Migrations/Postgres \
+            --configuration Release \
+            --no-build
+          find csharp/Kotakas.Web/Migrations/Postgres -maxdepth 1 -type f -print
+      - name: Commit generated V14 migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add csharp/Kotakas.Web/Migrations/Postgres
+          git commit -m "feat(csharp-db): add V14 marketplace extras migration"
+          git push origin HEAD:csharp-rebuild
