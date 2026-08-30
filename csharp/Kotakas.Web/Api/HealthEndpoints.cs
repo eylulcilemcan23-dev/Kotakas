@@ -20,7 +20,7 @@ public static class HealthEndpoints
             return Results.Json(new
             {
                 ok,
-                app = "KOTAKAS C# V13",
+                app = "KOTAKAS C# V14",
                 runtime = ".NET 8",
                 database = provider,
                 schemaVersion = schemaVersion ?? "legacy",
