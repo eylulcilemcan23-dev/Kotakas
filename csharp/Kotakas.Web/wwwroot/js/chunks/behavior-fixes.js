@@ -19,8 +19,6 @@
         const nextLabel=enabled?(btn.dataset.realOfferLabel||'Teklif Ver'):'Teklifler Kapalı';
         const nextDisabled=!enabled;
         if(btn.disabled!==nextDisabled)btn.disabled=nextDisabled;
-        // Aynı textContent'u tekrar yazmak childList mutation üretip observer'ı
-        // sonsuz geri-besleme döngüsüne sokuyordu. Yalnız gerçekten değiştiğinde yaz.
         if(btn.textContent!==nextLabel)btn.textContent=nextLabel;
       });
     };
@@ -29,9 +27,10 @@
       restoreQueued=true;
       requestAnimationFrame(restore);
     };
-    const box=$('#incomingRequests');
-    if(box)new MutationObserver(queueRestore).observe(box,{childList:true,subtree:true});
-    setInterval(()=>{if(document.visibilityState==='visible')queueRestore()},3000);
+    // Sürekli MutationObserver / 3 sn interval kaldırıldı. Trader canlı yenilemesi
+    // zaten durumu düzenli olarak tekrar uygular; burada yalnız ilk yüklemeyi dengeliyoruz.
     queueRestore();
+    setTimeout(queueRestore,700);
+    setTimeout(queueRestore,1800);
   }
 })();
