@@ -93,12 +93,47 @@ public static class StartupFeatureSeeder
         await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_UserSessions_User_Device ON UserSessions (UserId, DeviceId);");
         await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_UserSessions_User_LastSeenAt ON UserSessions (UserId, LastSeenAt);");
 
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS RiskSignals (
+                Id INTEGER NOT NULL CONSTRAINT PK_RiskSignals PRIMARY KEY AUTOINCREMENT,
+                Fingerprint TEXT NOT NULL,
+                Code TEXT NOT NULL,
+                Severity TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                SubjectUserId TEXT NULL,
+                DealId INTEGER NULL,
+                WalletLedgerId INTEGER NULL,
+                AmountTry TEXT NULL,
+                Title TEXT NOT NULL,
+                Details TEXT NOT NULL,
+                FirstDetectedAt TEXT NOT NULL,
+                LastDetectedAt TEXT NOT NULL,
+                ReviewedAt TEXT NULL,
+                ReviewedByUserId TEXT NULL,
+                ResolutionNote TEXT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync("CREATE UNIQUE INDEX IF NOT EXISTS IX_RiskSignals_Fingerprint ON RiskSignals (Fingerprint);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_RiskSignals_Status_Severity_LastDetectedAt ON RiskSignals (Status, Severity, LastDetectedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_RiskSignals_SubjectUserId_LastDetectedAt ON RiskSignals (SubjectUserId, LastDetectedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_RiskSignals_Code_Status_LastDetectedAt ON RiskSignals (Code, Status, LastDetectedAt);");
+
         // Additive upgrades for existing SQLite databases. No existing data is removed.
         await EnsureColumn(db, "AspNetUsers", "UserVerified", "INTEGER NOT NULL DEFAULT 0");
         await EnsureColumn(db, "AspNetUsers", "UserVerifiedAt", "TEXT NULL");
         await EnsureColumn(db, "AspNetUsers", "UserVerifiedByUserId", "TEXT NULL");
         await EnsureColumn(db, "AspNetUsers", "LastSeenAt", "TEXT NULL");
         await EnsureColumn(db, "AspNetUsers", "TraderAcceptingOffers", "INTEGER NOT NULL DEFAULT 1");
+
+        // V13 read-path indexes for admin, finance and risk scans.
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_SaleRequests_UserId_Status_CreatedAt ON SaleRequests (UserId, Status, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_Deals_Status_CreatedAt ON Deals (Status, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_Deals_UserId_Status_CreatedAt ON Deals (UserId, Status, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_Deals_TraderUserId_Status_CreatedAt ON Deals (TraderUserId, Status, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_Listings_SellerUserId_Status_CreatedAt ON Listings (SellerUserId, Status, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_WalletLedgers_Type_CreatedAt ON WalletLedgers (Type, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_WalletLedgers_AdminUserId_CreatedAt ON WalletLedgers (AdminUserId, CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync("CREATE INDEX IF NOT EXISTS IX_PaymentIntents_Status_CreatedAt ON PaymentIntents (Status, CreatedAt);");
 
         // New sale-request alerts are suppressed when a trader explicitly turns offer intake off.
         await db.Database.ExecuteSqlRawAsync("DROP TRIGGER IF EXISTS TR_Notifications_TraderAvailability;");
