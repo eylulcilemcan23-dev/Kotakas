@@ -14,10 +14,11 @@ public static class FavoriteEndpoints
         group.MapGet("/", async (ClaimsPrincipal principal, AppDbContext db) =>
         {
             var uid = ApiHelpers.UserId(principal);
-            var favorites = await db.Favorites.AsNoTracking()
+            var favorites = (await db.Favorites.AsNoTracking()
                 .Where(x => x.UserId == uid)
+                .ToListAsync())
                 .OrderByDescending(x => x.CreatedAt)
-                .ToListAsync();
+                .ToList();
 
             var listingFavoriteIds = favorites
                 .Where(x => x.TargetType == "listing")
