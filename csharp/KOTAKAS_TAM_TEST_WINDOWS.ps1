@@ -57,7 +57,20 @@ function Invoke-Kotakas {
         $args.ContentType = 'application/json; charset=utf-8'
         $args.Body = ($Body | ConvertTo-Json -Depth 10 -Compress)
     }
-    Invoke-RestMethod @args
+    try {
+        Invoke-RestMethod @args
+    }
+    catch {
+        $status = ''
+        $responseBody = ''
+        try { $status = [int]$_.Exception.Response.StatusCode } catch {}
+        try {
+            $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+            $responseBody = $reader.ReadToEnd()
+            $reader.Dispose()
+        } catch {}
+        throw ("$Method $Path -> HTTP $status $responseBody")
+    }
 }
 
 function Login([string]$email, [string]$password) {
@@ -259,6 +272,11 @@ try {
 catch {
     Write-Host ''
     Write-Host ('[HATA] ' + $_.Exception.Message) -ForegroundColor Red
+    if (Test-Path $logPath) {
+        Write-Host ''
+        Write-Host 'Sunucu logunun son satırları:' -ForegroundColor Yellow
+        Get-Content $logPath -Tail 45 -ErrorAction SilentlyContinue | Out-Host
+    }
     if (Test-Path $errPath) {
         Write-Host ''
         Write-Host 'Sunucu hata logunun son satırları:' -ForegroundColor Yellow
