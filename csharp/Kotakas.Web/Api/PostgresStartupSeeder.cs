@@ -72,7 +72,7 @@ public static class PostgresStartupSeeder
 
     private static async Task AdoptLegacyV12BaselineIfNeeded(AppDbContext db)
     {
-        var migrations = (await db.Database.GetMigrationsAsync()).ToList();
+        var migrations = db.Database.GetMigrations().ToList();
         var baselineId = migrations.SingleOrDefault(x => x.EndsWith("_V12Baseline", StringComparison.Ordinal));
         if (baselineId is null)
             throw new InvalidOperationException("V12Baseline EF migration bulunamadı; güvenli PostgreSQL açılışı durduruldu.");
