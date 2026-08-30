@@ -45,7 +45,7 @@ try{
 
   $admin=Login 'urgent-admin@kotakas.local' 'UrgentAdmin123'
   $registered=Invoke-Kotakas '/api/register' 'POST' @{displayName='Acil Satıcı';email='urgent-user@kotakas.local';password='UrgentUser123'}
-  Assert ([string]$registered.user.id).Length -gt 5 'Acil satış test kullanıcısı oluşmadı.'
+  Assert (([string]$registered.user.id).Length -gt 5) 'Acil satış test kullanıcısı oluşmadı.'
   $user=Login 'urgent-user@kotakas.local' 'UrgentUser123'
 
   $created=Invoke-Kotakas '/api/urgent-sales' 'POST' @{itemName='Iron Bow +8';serverCode='ZERO';quantity=1;askGb=7;note='Hızlı satış testi'} $user
