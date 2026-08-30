@@ -164,9 +164,13 @@ public sealed class RiskDetectionService(IServiceScopeFactory scopeFactory, ILog
                 }
             }
 
-            var failedPayments = await db.PaymentIntents.AsNoTracking()
-                .Where(x => x.CreatedAt >= now.AddHours(-1) && x.Status == "failed")
-                .OrderByDescending(x => x.Id).Take(5000).ToListAsync(cancellationToken);
+            // SQLite, DateTimeOffset karşılaştırmasını bu sorguda SQL'e çeviremiyor.
+            // Durum/ID filtresini veritabanında, saat eşiğini ise bellekte uyguluyoruz.
+            var failedPayments = (await db.PaymentIntents.AsNoTracking()
+                .Where(x => x.Status == "failed")
+                .OrderByDescending(x => x.Id).Take(5000).ToListAsync(cancellationToken))
+                .Where(x => x.CreatedAt >= oneHour)
+                .ToList();
             foreach (var group in failedPayments.GroupBy(x => x.UserId, StringComparer.Ordinal).Where(x => x.Count() >= 5))
             {
                 Add(findings, new RiskFinding(
