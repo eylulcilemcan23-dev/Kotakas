@@ -52,3 +52,5 @@ jobs:
           name: KOTAKAS_V13_EF_MIGRATIONS
           path: csharp/Kotakas.Web/Migrations/Postgres
           if-no-files-found: error
+
+# retry 2: compile namespace fix included
