@@ -12,8 +12,15 @@
   function applyOfferAvailability(){
     if(!path.endsWith('/trader.html')||!myPresence)return;
     const enabled=!!myPresence.traderAcceptingOffers,toggle=$('#onlineToggle'),text=$('#onlineText'),sub=$('.trader-toolbar div:nth-child(2) span');
-    if(toggle)toggle.classList.toggle('on',enabled);if(text)text.textContent=enabled?'Teklif almaya açıksın':'Teklif almaya kapalısın';if(sub)sub.textContent=enabled?'Yeni satış talepleri geldiğinde bildirim alırsın.':'Yeni satış talebi bildirimi almazsın ve teklif endpointi kilitlidir.';
-    $$('#incomingRequests button').forEach(btn=>{if(!btn.dataset.realOfferLabel)btn.dataset.realOfferLabel=btn.textContent||'Teklif Ver';btn.disabled=!enabled;btn.textContent=enabled?btn.dataset.realOfferLabel:'Teklifler Kapalı'});
+    if(toggle)toggle.classList.toggle('on',enabled);
+    const title=enabled?'Teklif almaya açıksın':'Teklif almaya kapalısın';if(text&&text.textContent!==title)text.textContent=title;
+    const subText=enabled?'Yeni satış talepleri geldiğinde bildirim alırsın.':'Yeni satış talebi bildirimi almazsın ve teklif endpointi kilitlidir.';if(sub&&sub.textContent!==subText)sub.textContent=subText;
+    $$('#incomingRequests button').forEach(btn=>{
+      if(!btn.dataset.realOfferLabel&&btn.textContent!=='Teklifler Kapalı')btn.dataset.realOfferLabel=btn.textContent||'Teklif Ver';
+      const nextDisabled=!enabled,nextLabel=enabled?(btn.dataset.realOfferLabel||'Teklif Ver'):'Teklifler Kapalı';
+      if(btn.disabled!==nextDisabled)btn.disabled=nextDisabled;
+      if(btn.textContent!==nextLabel)btn.textContent=nextLabel;
+    });
   }
 
   window.toggleTraderOnline=async()=>{if(!ME)return;const next=!(myPresence?.traderAcceptingOffers??true);try{myPresence=await api('/api/trader/presence',{method:'PUT',body:{acceptingOffers:next}});applyOfferAvailability();toast(next?'Teklif almaya açıldın.':'Teklif alımı kapatıldı. Yeni talep bildirimi gelmeyecek.')}catch{toast('Pazarcı durumu güncellenemedi.')}};
@@ -27,7 +34,6 @@
       const status=$('.v5-profilebar .v5-status');if(status){status.textContent=t.online?'● ONLINE':'○ OFFLINE';status.classList.toggle('online',!!t.online)}
       $$('.v5-mini').forEach(card=>{const label=card.querySelector('span')?.textContent||'',strong=card.querySelector('strong');if(!strong)return;if(label.includes('Pazarcı puanı'))strong.textContent=Number(t.rating||0)>0?`${Number(t.rating).toFixed(1)} / 5.0`:'Henüz puan yok';if(label.includes('Ortalama cevap')||label.includes('Cevap süresi')){strong.textContent=fmtResponse(t.averageResponseMinutes);card.querySelector('span').textContent=`${Number(t.responseSamples||0)} gerçek ilk teklif örneği`;}if(label.includes('Başarılı işlem oranı')||label.includes('Tamamlanan gerçek işlem')){strong.textContent=t.successRate==null?'—':`%${Number(t.successRate).toFixed(1)}`;card.querySelector('span').textContent=`${Number(t.completedDeals||0)} tamamlanan işlem`;}});
       const perf=$$('.v5-card').find(x=>x.querySelector('h3')?.textContent?.includes('Performans'));if(perf&&!perf.querySelector('.real-score-row')){const list=perf.querySelector('.v5-mini-list');if(list){const row=document.createElement('div');row.className='v5-mini real-score-row';row.innerHTML=`<div class="micon">🏆</div><div><strong>${Number(t.kotakasScore||0).toFixed(1)} / 100</strong><span>KOTAKAS güven skoru</span></div>`;list.prepend(row)}}
-      const incoming=$('#incomingRequests');if(incoming&&!incoming.dataset.availabilityObserved){incoming.dataset.availabilityObserved='1';new MutationObserver(applyOfferAvailability).observe(incoming,{childList:true,subtree:true})}
     }catch{}
   }
 
