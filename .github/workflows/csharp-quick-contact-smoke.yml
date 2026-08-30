@@ -1,0 +1,99 @@
+name: KOTAKAS Quick Contact Smoke
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-quick-contact-smoke.yml'
+  pull_request:
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-quick-contact-smoke.yml'
+  workflow_dispatch:
+
+jobs:
+  quick-contact-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: csharp/Kotakas.Web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build
+        run: dotnet build Kotakas.Web.csproj -c Release --nologo
+
+      - name: Boot SQLite app
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://127.0.0.1:5099
+          Database__Provider: sqlite
+          ConnectionStrings__Default: Data Source=App_Data/quick-contact-smoke.db
+          KOTAKAS_ADMIN_EMAIL: quick-admin@kotakas.local
+          KOTAKAS_ADMIN_PASSWORD: QuickAdmin123
+        run: |
+          rm -f App_Data/quick-contact-smoke.db*
+          dotnet run --project Kotakas.Web.csproj --no-launch-profile > /tmp/kotakas-quick.log 2>&1 &
+          echo $! > /tmp/kotakas-quick.pid
+          for i in {1..90}; do
+            if curl -fsS http://127.0.0.1:5099/api/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/kotakas-quick.log
+          exit 1
+
+      - name: Verify buyer to trader quick replies
+        run: |
+          set -euo pipefail
+          BASE=http://127.0.0.1:5099
+          csrf=(-H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json')
+
+          curl -fsS "${csrf[@]}" -H 'Idempotency-Key: reg-buyer' -d '{"displayName":"Quick Buyer","email":"quick-buyer@kotakas.local","password":"QuickBuyer123"}' "$BASE/api/register" > /tmp/buyer.json
+          curl -fsS "${csrf[@]}" -H 'Idempotency-Key: reg-trader' -d '{"displayName":"Quick Trader","email":"quick-trader@kotakas.local","password":"QuickTrader123"}' "$BASE/api/register" > /tmp/trader.json
+          BUYER_ID=$(jq -r '.user.id' /tmp/buyer.json)
+          TRADER_ID=$(jq -r '.user.id' /tmp/trader.json)
+          test -n "$BUYER_ID" && test "$BUYER_ID" != null
+          test -n "$TRADER_ID" && test "$TRADER_ID" != null
+
+          curl -fsS -c /tmp/admin.cookie "${csrf[@]}" -H 'Idempotency-Key: login-admin' -d '{"email":"quick-admin@kotakas.local","password":"QuickAdmin123"}' "$BASE/api/login" >/dev/null
+          curl -fsS -b /tmp/admin.cookie "${csrf[@]}" -H 'Idempotency-Key: role-trader' -X PATCH -d '{"role":"trader"}' "$BASE/api/admin/users/$TRADER_ID/role" >/dev/null
+
+          curl -fsS -c /tmp/trader.cookie "${csrf[@]}" -H 'Idempotency-Key: login-trader' -d '{"email":"quick-trader@kotakas.local","password":"QuickTrader123"}' "$BASE/api/login" >/dev/null
+          curl -fsS -c /tmp/buyer.cookie "${csrf[@]}" -H 'Idempotency-Key: login-buyer' -d '{"email":"quick-buyer@kotakas.local","password":"QuickBuyer123"}' "$BASE/api/login" >/dev/null
+
+          curl -fsS -b /tmp/trader.cookie "${csrf[@]}" -H 'Idempotency-Key: listing-create' -d '{"itemName":"Quick Raptor +8","serverCode":"ZERO","priceGb":12,"stock":2}' "$BASE/api/listings" > /tmp/listing.json
+          LISTING_ID=$(jq -r '.listing.id' /tmp/listing.json)
+          test "$LISTING_ID" -gt 0
+
+          curl -fsS -b /tmp/buyer.cookie "${csrf[@]}" -H 'Idempotency-Key: quick-question' -d '{"code":"ITEM_HAZIR_MI"}' "$BASE/api/listings/$LISTING_ID/quick-contact" > /tmp/question.json
+          jq -e '.ok == true and .message.senderRole == "buyer" and .message.messageCode == "ITEM_HAZIR_MI"' /tmp/question.json >/dev/null
+
+          curl -fsS -b /tmp/trader.cookie "$BASE/api/listing-quick-contact/mine" > /tmp/trader-mine.json
+          jq -e --arg id "$BUYER_ID" --argjson listing "$LISTING_ID" '.messages | any(.buyerUserId == $id and .listingId == $listing and .messageText == "Item şu an hazır mı?")' /tmp/trader-mine.json >/dev/null
+
+          curl -fsS -b /tmp/trader.cookie "${csrf[@]}" -H 'Idempotency-Key: quick-answer' -d "{\"code\":\"EVET_HAZIR\",\"buyerUserId\":\"$BUYER_ID\"}" "$BASE/api/listings/$LISTING_ID/quick-contact" > /tmp/answer.json
+          jq -e '.ok == true and .message.senderRole == "seller" and .message.messageCode == "EVET_HAZIR"' /tmp/answer.json >/dev/null
+
+          curl -fsS -b /tmp/buyer.cookie "$BASE/api/listings/$LISTING_ID/quick-contact" > /tmp/thread.json
+          jq -e '.messages | length == 2' /tmp/thread.json >/dev/null
+          jq -e '.messages[-1].messageText == "Evet, item hazır." and .messages[-1].senderRole == "seller"' /tmp/thread.json >/dev/null
+
+          STATUS=$(curl -sS -o /tmp/invalid.json -w '%{http_code}' -b /tmp/buyer.cookie "${csrf[@]}" -H 'Idempotency-Key: invalid-free-text' -d '{"code":"WHATSAPP_YAZ"}' "$BASE/api/listings/$LISTING_ID/quick-contact")
+          test "$STATUS" = 400
+          jq -e '.error == "quick_question_only"' /tmp/invalid.json >/dev/null
+
+          curl -fsS "$BASE/listing.html?id=$LISTING_ID" | grep -q 'listingQuickContact'
+
+      - name: Stop app
+        if: always()
+        run: |
+          if [ -f /tmp/kotakas-quick.pid ]; then kill $(cat /tmp/kotakas-quick.pid) 2>/dev/null || true; fi
+          if [ -f /tmp/kotakas-quick.log ]; then tail -n 120 /tmp/kotakas-quick.log; fi
