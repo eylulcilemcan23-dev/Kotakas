@@ -11,11 +11,11 @@ public static class ReviewEndpoints
     {
         app.MapGet("/api/trust/traders", async (AppDbContext db) =>
         {
-            var traders = await db.Users.AsNoTracking()
+            var traderRows = await db.Users.AsNoTracking()
                 .Where(x => x.AccountStatus == "active" && x.VerifiedTrader)
-                .OrderByDescending(x => x.CreatedAt)
-                .Select(x => new { x.Id, x.DisplayName })
+                .Select(x => new { x.Id, x.DisplayName, x.CreatedAt })
                 .ToListAsync();
+            var traders = traderRows.OrderByDescending(x => x.CreatedAt).Select(x => new { x.Id, x.DisplayName }).ToList();
             var ids = traders.Select(x => x.Id).ToList();
             var reviews = await db.TraderReviews.AsNoTracking().Where(x => ids.Contains(x.TraderUserId)).ToListAsync();
             var deals = await db.Deals.AsNoTracking().Where(x => ids.Contains(x.TraderUserId) && x.Status == "completed").ToListAsync();
