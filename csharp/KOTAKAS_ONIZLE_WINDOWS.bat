@@ -40,6 +40,7 @@ set "Database__Provider=sqlite"
 set "ConnectionStrings__Default=Data Source=App_Data/kotakas-preview.db"
 set "KOTAKAS_ADMIN_EMAIL=admin@kotakas.local"
 set "KOTAKAS_ADMIN_PASSWORD=Kotakas12345"
+set "MarketRateFeed__Enabled=true"
 
 pushd "csharp\Kotakas.Web"
 
@@ -48,6 +49,7 @@ echo.
 echo Adres: http://127.0.0.1:5097
 echo Admin: admin@kotakas.local
 echo Sifre: Kotakas12345
+echo Canli GB kuru: Kopazar ZERO (5 dakikada bir)
 echo.
 echo ONEMLI: Bu siyah pencere acik kaldigi surece site calisir.
 echo Kapatirsan yerel KOTAKAS da kapanir.
