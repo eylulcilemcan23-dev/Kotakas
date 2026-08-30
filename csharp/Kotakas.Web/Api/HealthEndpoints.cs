@@ -14,14 +14,19 @@ public static class HealthEndpoints
             var schemaVersion = ok
                 ? await db.SiteSettings.AsNoTracking().Where(x => x.Key == "schema_version").Select(x => x.Value).FirstOrDefaultAsync()
                 : null;
+            var pendingMigrations = ok && db.Database.IsNpgsql()
+                ? (await db.Database.GetPendingMigrationsAsync()).Count()
+                : 0;
             return Results.Json(new
             {
                 ok,
-                app = "KOTAKAS C# V12",
+                app = "KOTAKAS C# V13",
                 runtime = ".NET 8",
                 database = provider,
-                schemaVersion = schemaVersion ?? "legacy"
-            }, statusCode: ok ? 200 : 503);
+                schemaVersion = schemaVersion ?? "legacy",
+                migrations = db.Database.IsNpgsql() ? (pendingMigrations == 0 ? "current" : "pending") : "sqlite-compat",
+                pendingMigrations
+            }, statusCode: ok && pendingMigrations == 0 ? 200 : 503);
         });
         return app;
     }
