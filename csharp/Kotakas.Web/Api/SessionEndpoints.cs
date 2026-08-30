@@ -15,8 +15,12 @@ public static class SessionEndpoints
         {
             var uid = ApiHelpers.UserId(p);
             var current = http.Items["KOTAKAS_DEVICE_ID"]?.ToString() ?? http.Request.Cookies[SessionSecurityMiddleware.DeviceCookie] ?? "";
-            var rows = await db.UserSessions.AsNoTracking()
+
+            // SQLite DateTimeOffset sıralamasını SQL'e çeviremiyor. Aktif oturumları
+            // veritabanından alıp LastSeenAt sıralamasını bellekte yapıyoruz.
+            var rows = (await db.UserSessions.AsNoTracking()
                 .Where(x => x.UserId == uid && x.RevokedAt == null)
+                .ToListAsync())
                 .OrderByDescending(x => x.LastSeenAt)
                 .Take(50)
                 .Select(x => new
@@ -28,7 +32,7 @@ public static class SessionEndpoints
                     x.LastSeenAt,
                     current = x.DeviceId == current
                 })
-                .ToListAsync();
+                .ToList();
             return Results.Ok(new { sessions = rows });
         }).RequireAuthorization();
 
