@@ -124,6 +124,7 @@ app.MapAuthEndpoints();
 app.MapAccountEndpoints();
 app.MapAvatarEndpoints();
 app.MapSessionEndpoints();
+app.MapItemCatalogEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
