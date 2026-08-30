@@ -8,6 +8,7 @@
     const p=String(path).toLowerCase();
     return p==='/api/sale-requests'||p==='/api/listings'||p==='/api/payments/paid-listing/checkout'||p==='/api/payments/paid-listing/create-request'||
       (p.includes('/api/listings/')&&p.endsWith('/buy'))||
+      (p.includes('/api/listing-price-offers/')&&p.endsWith('/purchase'))||
       (p.includes('/api/offers/')&&p.endsWith('/accept'))||
       (p.includes('/api/deals/')&&(p.endsWith('/confirm')||p.endsWith('/cancel')||p.endsWith('/dispute')||p.endsWith('/delivered')))||
       p.includes('/api/admin/wallet');
