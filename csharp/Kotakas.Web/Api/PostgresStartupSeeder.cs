@@ -41,7 +41,7 @@ public static class PostgresStartupSeeder
         await SeedSetting(db, "trader_commission_percent", app.Configuration["Kotakas:TraderCommissionPercent"] ?? "3");
         await SeedSetting(db, "paid_listing_try", "0");
         await SeedSetting(db, "gb_try_rate", app.Configuration["Kotakas:GbTryRate"] ?? "0");
-        await SeedSetting(db, "schema_version", "13");
+        await SeedSetting(db, "schema_version", "14");
 
         var email = app.Configuration["KOTAKAS_ADMIN_EMAIL"];
         var password = app.Configuration["KOTAKAS_ADMIN_PASSWORD"];
@@ -91,7 +91,7 @@ public static class PostgresStartupSeeder
             tableStates[table] = await TableExists(db, table);
 
         var existingCount = tableStates.Count(x => x.Value);
-        if (existingCount == 0) return; // Fresh PostgreSQL database; MigrateAsync creates everything.
+        if (existingCount == 0) return;
 
         if (existingCount != LegacyV12RequiredTables.Length)
         {
@@ -100,7 +100,7 @@ public static class PostgresStartupSeeder
         }
 
         // Existing V12 databases were created before EF migrations. Only mark the exact V12 model as applied;
-        // do not recreate or modify its existing tables. The next MigrateAsync call applies only V13+ deltas.
+        // do not recreate or modify its existing tables. MigrateAsync applies only V13+ deltas.
         var history = db.GetService<IHistoryRepository>();
         await db.Database.ExecuteSqlRawAsync(history.GetCreateIfNotExistsScript());
         await db.Database.ExecuteSqlRawAsync(history.GetInsertScript(new HistoryRow(baselineId, EfProductVersion)));
