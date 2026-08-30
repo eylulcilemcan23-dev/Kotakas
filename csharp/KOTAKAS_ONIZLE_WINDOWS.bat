@@ -17,8 +17,8 @@ if errorlevel 1 goto :nogit
 where dotnet >nul 2>nul
 if errorlevel 1 goto :nodotnet
 
-rem Masaustunde kolay acma kisayolu yoksa olustur.
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$desktop=[Environment]::GetFolderPath('Desktop'); $link=Join-Path $desktop 'KOTAKAS Onizleme.lnk'; if(-not (Test-Path $link)){ $ws=New-Object -ComObject WScript.Shell; $s=$ws.CreateShortcut($link); $s.TargetPath='%~f0'; $s.WorkingDirectory='%~dp0..'; $s.Description='KOTAKAS csharp-rebuild yerel onizleme'; $s.Save() }" >nul 2>nul
+rem Masaustunde onizleme ve tam test kisayollarini olustur.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$desktop=[Environment]::GetFolderPath('Desktop'); $ws=New-Object -ComObject WScript.Shell; $preview=Join-Path $desktop 'KOTAKAS Onizleme.lnk'; if(-not (Test-Path $preview)){ $s=$ws.CreateShortcut($preview); $s.TargetPath='%~f0'; $s.WorkingDirectory='%~dp0..'; $s.Description='KOTAKAS csharp-rebuild yerel onizleme'; $s.Save() }; $test=Join-Path $desktop 'KOTAKAS Tam Test.lnk'; if(-not (Test-Path $test)){ $t=$ws.CreateShortcut($test); $t.TargetPath='%~dp0KOTAKAS_TAM_TEST_WINDOWS.bat'; $t.WorkingDirectory='%~dp0..'; $t.Description='KOTAKAS kritik akislari tek tik test et'; $t.Save() }" >nul 2>nul
 
 echo [1/3] csharp-rebuild guncelleniyor...
 git fetch origin csharp-rebuild
