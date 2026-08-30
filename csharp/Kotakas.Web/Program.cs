@@ -141,6 +141,7 @@ app.MapReportEndpoints();
 app.MapSupportEndpoints();
 app.MapSupportCenterEndpoints();
 app.MapAdminEndpoints();
+app.MapMarketRateAdminEndpoints();
 app.MapAdminModerationEndpoints();
 app.MapAdminSearchEndpoints();
 app.MapAdminAuditEndpoints();
