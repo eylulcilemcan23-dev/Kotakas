@@ -93,6 +93,7 @@ else
 {
     await StartupSeeder.InitializeAsync(app);
     await StartupFeatureSeeder.InitializeAsync(app);
+    await ListingEnhancementSqliteSeeder.InitializeAsync(app);
 }
 await SchemaVersionSeeder.InitializeAsync(app);
 
