@@ -10,7 +10,7 @@ var execute = options.ContainsKey("execute");
 var uploadsSource = Value("uploads-source", "KOTAKAS_MIGRATOR_UPLOADS_SOURCE", required: false);
 var uploadsTarget = Value("uploads-target", "KOTAKAS_MIGRATOR_UPLOADS_TARGET", required: false);
 
-Console.WriteLine("KOTAKAS SQLite → PostgreSQL Migrator V13");
+Console.WriteLine("KOTAKAS SQLite → PostgreSQL Migrator V14");
 Console.WriteLine(execute ? "MOD: GERÇEK TAŞIMA" : "MOD: DRY-RUN (veri yazılmaz)");
 
 var sourceOptions = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(sqlite).Options;
@@ -33,8 +33,7 @@ if (!execute)
     return;
 }
 
-// Hedef DB yalnız yeni/boş PostgreSQL olmalıdır. V13'te şema EnsureCreated ile değil,
-// versioned EF migrations ile hazırlanır ve __EFMigrationsHistory de doğru şekilde oluşur.
+// Hedef DB yalnız yeni/boş PostgreSQL olmalıdır. Şema versioned EF migrations ile hazırlanır.
 if (await HasBusinessData(target))
     Fail("Hedef PostgreSQL boş değil. Güvenlik nedeniyle taşıma durduruldu. Yeni/boş bir KOTAKAS veritabanı kullan.");
 await target.Database.MigrateAsync();
@@ -60,6 +59,34 @@ try
     await Copy(source.TraderApplications, target.TraderApplications, target, "Pazarcı başvuruları");
     await Copy(source.Wallets, target.Wallets, target, "Cüzdanlar");
     await Copy(source.Listings, target.Listings, target, "SELL ilanları");
+
+    if (await SqliteTableExists(source, "ListingPriceHistory"))
+    {
+        await Copy(source.Set<ListingPriceHistory>(), target.Set<ListingPriceHistory>(), target, "İlan fiyat geçmişi");
+    }
+    else
+    {
+        var listings = await target.Listings.AsNoTracking().ToListAsync();
+        if (listings.Count > 0)
+        {
+            target.Set<ListingPriceHistory>().AddRange(listings.Select(x => new ListingPriceHistory
+            {
+                ListingId = x.Id,
+                PriceGb = x.PriceGb,
+                Reason = "initial",
+                CreatedAt = x.CreatedAt
+            }));
+            await target.SaveChangesAsync();
+            target.ChangeTracker.Clear();
+        }
+        Console.WriteLine($"  İlan fiyat geçmişi: {listings.Count} (V13 kaynak için mevcut fiyatlardan başlangıç kaydı üretildi)");
+    }
+
+    if (await SqliteTableExists(source, "ListingPriceOffer"))
+        await Copy(source.Set<ListingPriceOffer>(), target.Set<ListingPriceOffer>(), target, "SELL fiyat teklifleri");
+    else
+        Console.WriteLine("  SELL fiyat teklifleri: 0 (V13 kaynakta tablo yok)");
+
     await Copy(source.Deals, target.Deals, target, "Anlaşmalar");
     await Copy(source.Notifications, target.Notifications, target, "Bildirimler");
     await Copy(source.WalletLedgers, target.WalletLedgers, target, "Bakiye hareketleri");
@@ -85,10 +112,10 @@ try
 
     var schemaVersion = await target.SiteSettings.FirstOrDefaultAsync(x => x.Key == "schema_version");
     if (schemaVersion is null)
-        target.SiteSettings.Add(new SiteSetting { Key = "schema_version", Value = "13", UpdatedAt = DateTimeOffset.UtcNow });
+        target.SiteSettings.Add(new SiteSetting { Key = "schema_version", Value = "14", UpdatedAt = DateTimeOffset.UtcNow });
     else
     {
-        schemaVersion.Value = "13";
+        schemaVersion.Value = "14";
         schemaVersion.UpdatedAt = DateTimeOffset.UtcNow;
     }
     await target.SaveChangesAsync();
@@ -100,7 +127,7 @@ try
     Validate(sourceSummary, targetSummary);
 
     await tx.CommitAsync();
-    Console.WriteLine("\nDB TAŞIMA BAŞARILI. Finans toplamları ve temel kayıt adetleri eşleşti. PostgreSQL schema V13 migration geçmişi güncel.");
+    Console.WriteLine("\nDB TAŞIMA BAŞARILI. Finans toplamları ve temel kayıt adetleri eşleşti. PostgreSQL schema V14 migration geçmişi güncel.");
 }
 catch
 {
@@ -239,9 +266,9 @@ static async Task ResetPostgresSequences(AppDbContext db)
     var tables = new[]
     {
         "AspNetRoleClaims", "AspNetUserClaims", "SaleRequests", "Offers", "Deals", "Notifications",
-        "TraderApplications", "Wallets", "Listings", "WalletLedgers", "SupportTickets", "SupportReplies",
-        "DealMessages", "PaymentIntents", "TraderReviews", "Favorites", "ItemWatches", "UserReports",
-        "VerificationRequests", "AdminAuditEvents", "RiskSignals"
+        "TraderApplications", "Wallets", "Listings", "ListingPriceHistory", "ListingPriceOffer", "WalletLedgers",
+        "SupportTickets", "SupportReplies", "DealMessages", "PaymentIntents", "TraderReviews", "Favorites",
+        "ItemWatches", "UserReports", "VerificationRequests", "AdminAuditEvents", "RiskSignals"
     };
     foreach (var table in tables)
     {
