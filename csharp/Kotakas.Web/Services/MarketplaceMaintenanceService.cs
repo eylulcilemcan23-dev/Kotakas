@@ -35,9 +35,13 @@ public sealed class MarketplaceMaintenanceService(IServiceScopeFactory scopes, I
                     });
                 }
 
-                var listingPriceOffers = await db.Set<ListingPriceOffer>().Include(x => x.Listing)
-                    .Where(x => (x.Status == "pending" || x.Status == "accepted") && x.ExpiresAt <= now)
+                // SQLite does not translate DateTimeOffset comparison for this entity reliably.
+                // Filter by status in SQL, then apply the expiry cutoff in memory. PostgreSQL uses
+                // the same path so maintenance behavior stays provider-neutral.
+                var priceOfferCandidates = await db.Set<ListingPriceOffer>().Include(x => x.Listing)
+                    .Where(x => x.Status == "pending" || x.Status == "accepted")
                     .ToListAsync(stoppingToken);
+                var listingPriceOffers = priceOfferCandidates.Where(x => x.ExpiresAt <= now).ToList();
                 foreach (var offer in listingPriceOffers)
                 {
                     var wasAccepted = offer.Status == "accepted";
