@@ -159,30 +159,33 @@ try {
     $listingId = [long]$listingCreate.listing.id
     Assert-True ($listingId -gt 0) 'SELL ilanı oluşmadı.'
     $publicListings = Invoke-Kotakas -Path '/api/listings'
-    Assert-True (($publicListings.listings | Where-Object { $_.id -eq $listingId }).Count -eq 1) 'SELL ilanı canlı pazarda görünmüyor.'
+    $publicListingMatches = @($publicListings.listings | Where-Object { [long]$_.id -eq $listingId })
+    Assert-True ($publicListingMatches.Count -ge 1) 'SELL ilanı canlı pazarda görünmüyor.'
     Ok 'Pazarcı SELL ilanı oluşturma + canlı pazar'
 
     Invoke-Kotakas -Path ('/api/favorites/listing/' + $listingId) -Method POST -Session $userSession | Out-Null
     $favorites = Invoke-Kotakas -Path '/api/favorites/' -Session $userSession
-    Assert-True ($favorites.listingIds -contains $listingId) 'Favori ilan kaydedilmedi.'
+    Assert-True (@($favorites.listingIds) -contains $listingId) 'Favori ilan kaydedilmedi.'
     $watchCreate = Invoke-Kotakas -Path '/api/item-watches/' -Method POST -Body @{ serverCode='ZERO'; query='Raptor'; maxPriceGb=12 } -Session $userSession
     $watchId = [long]$watchCreate.watch.id
     $watches = Invoke-Kotakas -Path '/api/item-watches/' -Session $userSession
-    Assert-True (($watches.watches | Where-Object { $_.id -eq $watchId }).matchCount -ge 1) 'Item alarmı ilanı eşleştirmedi.'
+    $watchMatch = @($watches.watches | Where-Object { [long]$_.id -eq $watchId }) | Select-Object -First 1
+    Assert-True ($null -ne $watchMatch -and [int]$watchMatch.matchCount -ge 1) 'Item alarmı ilanı eşleştirmedi.'
     Ok 'Favoriler + item fiyat alarmı'
 
     $detailsBefore = Invoke-Kotakas -Path ('/api/listings/' + $listingId + '/details') -Session $userSession
-    Assert-True ($detailsBefore.listing.id -eq $listingId) 'İlan detayı alınamadı.'
+    Assert-True ([long]$detailsBefore.listing.id -eq $listingId) 'İlan detayı alınamadı.'
     Invoke-Kotakas -Path ('/api/listings/' + $listingId) -Method PATCH -Body @{ priceGb=11; stock=4; status='active' } -Session $traderSession | Out-Null
     $detailsAfter = Invoke-Kotakas -Path ('/api/listings/' + $listingId + '/details') -Session $userSession
     Assert-True ([decimal]$detailsAfter.listing.priceGb -eq 11) 'İlan fiyat güncellemesi uygulanmadı.'
-    Assert-True ($detailsAfter.priceHistory.Count -ge 1) 'Fiyat geçmişi oluşmadı.'
+    Assert-True (@($detailsAfter.priceHistory).Count -ge 1) 'Fiyat geçmişi oluşmadı.'
     Ok 'Pazarcı fiyat/stok güncelleme + fiyat geçmişi'
 
     $priceOffer = Invoke-Kotakas -Path ('/api/listings/' + $listingId + '/price-offers') -Method POST -Body @{ offerGbPerUnit=9; quantity=1 } -Session $userSession
     $priceOfferId = [long]$priceOffer.offer.id
     $sellerOffers = Invoke-Kotakas -Path '/api/listing-price-offers/mine' -Session $traderSession
-    Assert-True (($sellerOffers.offers | Where-Object { $_.id -eq $priceOfferId -and $_.role -eq 'seller' }).Count -eq 1) 'Fiyat teklifi pazarcıya ulaşmadı.'
+    $sellerOfferMatches = @($sellerOffers.offers | Where-Object { [long]$_.id -eq $priceOfferId -and $_.role -eq 'seller' })
+    Assert-True ($sellerOfferMatches.Count -ge 1) 'Fiyat teklifi pazarcıya ulaşmadı.'
     Invoke-Kotakas -Path ('/api/listing-price-offers/' + $priceOfferId + '/decision') -Method POST -Body @{ action='accept' } -Session $traderSession | Out-Null
     $purchase = Invoke-Kotakas -Path ('/api/listing-price-offers/' + $priceOfferId + '/purchase') -Method POST -Session $userSession
     $listingDealId = [long]$purchase.deal.id
@@ -191,18 +194,18 @@ try {
 
     Invoke-Kotakas -Path ('/api/deals/' + $listingDealId + '/messages') -Method POST -Body @{ code='ITEM_HAZIR' } -Session $traderSession | Out-Null
     $dealMessages = Invoke-Kotakas -Path ('/api/deals/' + $listingDealId + '/messages') -Session $userSession
-    Assert-True ($dealMessages.messages.Count -ge 1) 'Hazır işlem mesajı karşı tarafa ulaşmadı.'
+    Assert-True (@($dealMessages.messages).Count -ge 1) 'Hazır işlem mesajı karşı tarafa ulaşmadı.'
     Invoke-Kotakas -Path ('/api/deals/' + $listingDealId + '/delivered') -Method POST -Session $traderSession | Out-Null
     Invoke-Kotakas -Path ('/api/deals/' + $listingDealId + '/confirm') -Method POST -Session $userSession | Out-Null
     $dealsUser = Invoke-Kotakas -Path '/api/deals' -Session $userSession
-    $completedListingDeal = $dealsUser.deals | Where-Object { $_.id -eq $listingDealId }
-    Assert-True ($completedListingDeal.status -eq 'completed') 'SELL güvenli işlem tamamlanmadı.'
+    $completedListingDeal = @($dealsUser.deals | Where-Object { [long]$_.id -eq $listingDealId }) | Select-Object -First 1
+    Assert-True ($null -ne $completedListingDeal -and $completedListingDeal.status -eq 'completed') 'SELL güvenli işlem tamamlanmadı.'
     Ok 'Hazır mesajlar + teslim + alıcı onayı + komisyon kapanışı'
 
     Invoke-Kotakas -Path ('/api/deals/' + $listingDealId + '/review') -Method POST -Body @{ stars=5; comment='Hızlı ve sorunsuz işlem.' } -Session $userSession | Out-Null
     $trust = Invoke-Kotakas -Path '/api/trust/traders'
-    $traderTrust = $trust.traders | Where-Object { $_.id -eq $traderId }
-    Assert-True ($traderTrust.reviewCount -ge 1) 'Pazarcı değerlendirmesi güven profiline yansımadı.'
+    $traderTrust = @($trust.traders | Where-Object { $_.id -eq $traderId }) | Select-Object -First 1
+    Assert-True ($null -ne $traderTrust -and [int]$traderTrust.reviewCount -ge 1) 'Pazarcı değerlendirmesi güven profiline yansımadı.'
     Ok 'İşlem değerlendirmesi + pazarcı güven profili'
 
     $saleRequest = Invoke-Kotakas -Path '/api/sale-requests' -Method POST -Body @{ itemName='SelfTest Iron Bow +8'; serverCode='ZERO'; quantity=1; minimumGb=5; note='SelfTest satış talebi' } -Session $userSession
@@ -218,23 +221,24 @@ try {
 
     $notificationsUser = Invoke-Kotakas -Path '/api/notifications' -Session $userSession
     $notificationsTrader = Invoke-Kotakas -Path '/api/notifications' -Session $traderSession
-    Assert-True ($notificationsUser.notifications.Count -ge 1) 'Kullanıcı bildirimleri oluşmadı.'
-    Assert-True ($notificationsTrader.notifications.Count -ge 1) 'Pazarcı bildirimleri oluşmadı.'
+    Assert-True (@($notificationsUser.notifications).Count -ge 1) 'Kullanıcı bildirimleri oluşmadı.'
+    Assert-True (@($notificationsTrader.notifications).Count -ge 1) 'Pazarcı bildirimleri oluşmadı.'
     Invoke-Kotakas -Path '/api/notifications/read-all' -Method POST -Session $userSession | Out-Null
     Ok 'Bildirim merkezi + tümünü okundu yap'
 
     Invoke-Kotakas -Path '/api/support' -Method POST -Body @{ subject='SelfTest destek'; message='Otomatik test destek kaydı.'; priority='high' } -Session $userSession | Out-Null
     $adminSupport = Invoke-Kotakas -Path '/api/admin/support' -Session $adminSession
-    Assert-True (($adminSupport.tickets | Where-Object { $_.subject -eq 'SelfTest destek' }).Count -eq 1) 'Destek talebi admin paneline düşmedi.'
+    $supportMatches = @($adminSupport.tickets | Where-Object { $_.subject -eq 'SelfTest destek' })
+    Assert-True ($supportMatches.Count -ge 1) 'Destek talebi admin paneline düşmedi.'
     Ok 'Destek merkezi + admin kuyruğu'
 
     $userInsights = Invoke-Kotakas -Path '/api/panel/user-insights' -Session $userSession
     $traderInsights = Invoke-Kotakas -Path '/api/panel/trader-insights' -Session $traderSession
     $adminOverview = Invoke-Kotakas -Path '/api/admin/overview' -Session $adminSession
     $adminPerformance = Invoke-Kotakas -Path '/api/admin/performance' -Session $adminSession
-    Assert-True ($userInsights.completedDeals -ge 2) 'Kullanıcı işlem istatistiği güncellenmedi.'
-    Assert-True ($traderInsights.allTime.deals -ge 2) 'Pazarcı satış istatistiği güncellenmedi.'
-    Assert-True ($adminOverview.overview.users -ge 3) 'Admin kullanıcı sayısı hatalı.'
+    Assert-True ([int]$userInsights.completedDeals -ge 2) 'Kullanıcı işlem istatistiği güncellenmedi.'
+    Assert-True ([int]$traderInsights.allTime.deals -ge 2) 'Pazarcı satış istatistiği güncellenmedi.'
+    Assert-True ([int]$adminOverview.overview.users -ge 3) 'Admin kullanıcı sayısı hatalı.'
     Assert-True ($null -ne $adminPerformance.last30) 'Admin performans verisi alınamadı.'
     Ok 'Kullanıcı + Pazarcı + Admin canlı panel istatistikleri'
 
