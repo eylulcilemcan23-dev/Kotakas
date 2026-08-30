@@ -1,0 +1,84 @@
+name: KOTAKAS Panel & Site Control Smoke
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-panel-smoke.yml'
+  pull_request:
+    paths:
+      - 'csharp/**'
+      - '.github/workflows/csharp-panel-smoke.yml'
+
+jobs:
+  panel-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore and build
+        run: |
+          dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
+          dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
+      - name: Boot SQLite app
+        run: |
+          rm -f /tmp/kotakas-panel.db
+          Database__Provider=sqlite \
+          ConnectionStrings__Default='Data Source=/tmp/kotakas-panel.db' \
+          KOTAKAS_ADMIN_EMAIL='panel-admin@kotakas.local' \
+          KOTAKAS_ADMIN_PASSWORD='PanelAdmin123' \
+          ASPNETCORE_URLS=http://127.0.0.1:5097 \
+          dotnet run --project csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-build >/tmp/panel-app.log 2>&1 &
+          echo $! >/tmp/panel-app.pid
+          for i in $(seq 1 45); do curl -fsS http://127.0.0.1:5097/api/health >/tmp/panel-health.json && break || sleep 1; done
+          cat /tmp/panel-health.json
+      - name: Register and login normal user
+        run: |
+          curl -fsS -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+            -d '{"displayName":"Panel User","email":"panel-user@kotakas.local","password":"PanelUser123"}' \
+            http://127.0.0.1:5097/api/register >/tmp/panel-register.json
+          curl -fsS -c /tmp/panel-user.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+            -d '{"email":"panel-user@kotakas.local","password":"PanelUser123"}' \
+            http://127.0.0.1:5097/api/login >/tmp/panel-user-login.json
+      - name: Verify user and trader panel insights
+        run: |
+          curl -fsS -b /tmp/panel-user.cookies http://127.0.0.1:5097/api/panel/user-insights | tee /tmp/user-insights.json
+          grep -q '"level"' /tmp/user-insights.json
+          grep -q '"badges"' /tmp/user-insights.json
+          curl -fsS -c /tmp/panel-admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+            -d '{"email":"panel-admin@kotakas.local","password":"PanelAdmin123"}' \
+            http://127.0.0.1:5097/api/login >/tmp/panel-admin-login.json
+          curl -fsS -b /tmp/panel-admin.cookies http://127.0.0.1:5097/api/panel/trader-insights | tee /tmp/trader-insights.json
+          grep -q '"last30"' /tmp/trader-insights.json
+          curl -fsS -b /tmp/panel-admin.cookies http://127.0.0.1:5097/api/admin/performance | tee /tmp/admin-performance.json
+          grep -q '"last30"' /tmp/admin-performance.json
+      - name: Enable announcement and maintenance mode
+        run: |
+          curl -fsS -b /tmp/panel-admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' -X PUT \
+            -d '{"announcementEnabled":true,"announcementText":"CI duyurusu","announcementTone":"info","maintenanceEnabled":true,"maintenanceMessage":"CI bakım testi"}' \
+            http://127.0.0.1:5097/api/admin/site-state/ | tee /tmp/site-state-admin.json
+          grep -q '"maintenanceEnabled":true' /tmp/site-state-admin.json
+          curl -fsS http://127.0.0.1:5097/api/site-state | tee /tmp/site-state-public.json
+          grep -q 'CI duyurusu' /tmp/site-state-public.json
+      - name: Verify maintenance blocks user writes but not admin
+        run: |
+          code=$(curl -sS -o /tmp/blocked.json -w '%{http_code}' -b /tmp/panel-user.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' \
+            -d '{"itemName":"CI Iron Bow +8","serverCode":"ZERO","quantity":1,"minimumGb":10,"note":""}' \
+            http://127.0.0.1:5097/api/sale-requests)
+          test "$code" = "503"
+          grep -q 'maintenance_mode' /tmp/blocked.json
+          curl -fsS -b /tmp/panel-admin.cookies -H 'X-KOTAKAS-CSRF: 1' -H 'Content-Type: application/json' -X PUT \
+            -d '{"announcementEnabled":false,"announcementText":"","announcementTone":"info","maintenanceEnabled":false,"maintenanceMessage":"Bakım tamamlandı"}' \
+            http://127.0.0.1:5097/api/admin/site-state/ >/tmp/site-state-off.json
+          grep -q '"maintenanceEnabled":false' /tmp/site-state-off.json
+      - name: Stop app
+        if: always()
+        run: |
+          kill $(cat /tmp/panel-app.pid) 2>/dev/null || true
+          wait $(cat /tmp/panel-app.pid) 2>/dev/null || true
+          cat /tmp/panel-app.log 2>/dev/null || true
