@@ -61,9 +61,51 @@ public static class AccountEndpoints
             return Results.Ok(new { ok = true, otherSessionsRevoked = otherSessions.Count });
         });
 
+        account.MapPost("/test-wallet-topup", async (
+            ClaimsPrincipal principal,
+            TestWalletTopupInput input,
+            HttpContext http,
+            IWebHostEnvironment environment,
+            AppDbContext db) =>
+        {
+            var host = http.Request.Host.Host.Trim().ToLowerInvariant();
+            var localHost = host is "127.0.0.1" or "localhost" or "::1";
+            if (!environment.IsDevelopment() || !localHost)
+                return Results.NotFound(new { error = "local_preview_only" });
+
+            var amount = Math.Round(input.AmountTry, 2, MidpointRounding.AwayFromZero);
+            if (amount < 10m || amount > 5000m)
+                return Results.BadRequest(new { error = "invalid_test_topup_amount", minTry = 10m, maxTry = 5000m });
+
+            var uid = ApiHelpers.UserId(principal);
+            var wallet = await ApiHelpers.WalletFor(db, uid);
+            var before = wallet.BalanceTry;
+            wallet.BalanceTry += amount;
+            wallet.UpdatedAt = DateTimeOffset.UtcNow;
+            db.WalletLedgers.Add(new WalletLedger
+            {
+                UserId = uid,
+                AmountTry = amount,
+                BeforeTry = before,
+                AfterTry = wallet.BalanceTry,
+                Type = "local_test_topup",
+                Reason = "Yerel önizleme sanal bakiye yüklemesi"
+            });
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new
+            {
+                ok = true,
+                testMode = true,
+                addedTry = amount,
+                balanceTry = wallet.BalanceTry
+            });
+        });
+
         return app;
     }
 }
 
 public record ProfileUpdateInput(string? DisplayName);
 public record PasswordChangeInput(string? CurrentPassword, string? NewPassword);
+public record TestWalletTopupInput(decimal AmountTry);
