@@ -1,20 +1,115 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#00d6c9"><title>Ana Sayfa • KOTAKAS</title><link rel="stylesheet" href="/assets/styles.css"><link rel="stylesheet" href="/assets/chunks/home-slider.css"></head><body><header class="site-header"><div class="container nav"><a class="logo" href="index.html"><span class="ko">KO</span><span class="tak">TAKAS</span><small>OYUNCU • PAZARCI • TEKLİF</small></a><div class="spacer"></div><nav class="navlinks"><a href="market.html">Canlı Pazar</a><a href="buy.html">Item Al</a><a href="sell.html">Item Sat</a><a href="urgent-sell.html">⚡ Acil Sat</a><span data-guest><a href="login.html">Giriş</a><a class="btn teal" href="register.html">Kayıt Ol</a></span><span data-auth style="display:none"><a href="notifications.html">🔔<span class="notif-badge" data-notif-count></span></a><a href="dashboard.html" data-user-name>Panel</a><button onclick="logout()">Çıkış</button></span></nav><button class="hamb" onclick="toggleMobile()">☰</button></div><div id="mobileNav" class="mobile-nav"><a href="market.html">Canlı Pazar</a><a href="buy.html">Pazarcılardan Item Al</a><a href="sell.html">Item Satış Talebi</a><a href="urgent-sell.html">⚡ Acil Item Sat</a><a href="trader-apply.html">Pazarcı Ol</a><a href="support.html">Canlı Destek</a><a href="dashboard.html">Hesabım</a></div></header>
-<main>
-  <section class="k-hero-slider" data-k-slider><div class="container"><div class="k-slider-shell">
-    <div class="k-slider-track">
-      <article class="k-slide" data-tone="teal" aria-hidden="false"><div class="k-slide-copy"><div class="k-slide-kicker"><span class="online"></span> GÜVENLİ KOTAKAS İŞLEMİ</div><h1>Item alıp satmanın <em>daha güvenli yolu.</em></h1><p>Doğrulanmış pazarcılar, canlı teklifler ve emanet bakiye sistemi tek yerde. Fiyatı karşılaştır, işlemi başlat ve teslim tamamlanana kadar paran KOTAKAS emanetinde kalsın.</p><div class="k-slide-actions"><a class="btn teal" href="sell.html">💰 Itemimi Sat</a><a class="btn ghost" href="buy.html">🛒 Item Satın Al</a><a class="btn ghost" href="market.html">Teklif Pazarını Gör</a></div></div><div class="k-slide-visual"><div class="k-market-visual"><div class="k-market-top"><span class="k-live-dot"></span><strong>CANLI PAZAR</strong><span>GÜNCEL</span></div><div class="k-market-item"><div class="k-item-icon">🏹</div><div><strong>Iron Bow +8</strong><small>ZERO • Pazarcı ilanı</small></div><div class="k-item-price">12,40 GB<small>SELL</small></div></div><div class="k-market-item"><div class="k-item-icon">🗡️</div><div><strong>Shard +8</strong><small>ZERO • En iyi teklif</small></div><div class="k-item-price">9,75 GB<small>BUY</small></div></div><div class="k-visual-flow"><div class="k-flow-box"><b>💳 Bakiye</b><span>Alıcıdan ayrılır</span></div><div class="k-flow-arrow">→</div><div class="k-flow-box"><b>🔐 Emanet</b><span>Teslime kadar korunur</span></div></div></div></div></article>
-      <article class="k-slide" data-tone="gold" aria-hidden="true"><div class="k-slide-copy"><div class="k-slide-kicker">⚡ ACİL ITEM SAT</div><h1>Sıkıştın mı? Itemini <em>hızlıca nakde çevir.</em></h1><p>İlan beklemek istemiyorsan itemini doğrudan KOTAKAS alım masasına gönder. Admin fiyatını versin; kabul edersen güvenli hazır mesajlarla server buluşması ve teslim süreci başlasın.</p><div class="k-slide-actions"><a class="btn gold" href="urgent-sell.html">⚡ Hemen Fiyat İste</a><a class="btn ghost" href="sell.html">Normal Satış Talebi Aç</a></div></div><div class="k-slide-visual"><div class="k-market-visual"><div class="k-market-top"><span class="k-live-dot"></span><strong>KOTAKAS ALIM MASASI</strong><span>HIZLI YANIT</span></div><div class="k-market-item"><div class="k-item-icon">🛡️</div><div><strong>Chitin Shield +0</strong><small>ZERO • Acil satış talebi</small></div><div class="k-item-price">İNCELENİYOR<small>ADMIN</small></div></div><div class="k-admin-offer"><small>KOTAKAS TEKLİFİ</small><strong>18,50 GB</strong><span>Teklifi kabul et → güvenli işlem başlasın</span></div><div class="k-visual-flow"><div class="k-flow-box"><b>📍 ZERO 1</b><span>Hazır konum mesajı</span></div><div class="k-flow-arrow">→</div><div class="k-flow-box"><b>✅ Hazırım</b><span>Serbest sohbet yok</span></div></div></div></div></article>
-      <article class="k-slide" data-tone="purple" aria-hidden="true"><div class="k-slide-copy"><div class="k-slide-kicker">🧙 KARAKTER & TEKLİF PAZARI</div><h1>Karakterini veya itemini <em>pazarcılara teklif aç.</em></h1><p>Class, level, nation ve NP bilgilerini gir; doğrulanmış pazarcılar fiyat versin. Teklifleri tek ekranda karşılaştır ve sana uygun olanla güvenli işlemi başlat.</p><div class="k-slide-actions"><a class="btn purple" href="ring-sell.html">🧙 Karakterimi Sat</a><a class="btn ghost" href="market.html">💸 Gelen Talepleri Gör</a><a class="btn ghost" href="trader-apply.html">🤝 Pazarcı Ol</a></div></div><div class="k-slide-visual"><div class="k-market-visual"><div class="k-market-top"><span class="k-live-dot"></span><strong>KARAKTER VİTRİNİ</strong><span>GÜVENLİ TALEP</span></div><div class="k-char-card"><div class="k-char-avatar">🗡️</div><div><strong>83 Rogue Karakter</strong><span>ZERO • El Morad • 420K NP</span><div class="k-char-tags"><b>83 LEVEL</b><b>ROGUE</b><b>EL MORAD</b></div></div></div><div class="k-admin-offer" style="margin-top:10px;border-color:rgba(140,117,255,.2);background:linear-gradient(135deg,rgba(65,50,133,.2),rgba(16,30,37,.76))"><small style="color:#bfb5ff">EN İYİ PAZARCI TEKLİFİ</small><strong style="color:#dcd6ff">24,00 GB</strong><span>Teklifler süre ve pazarcı puanıyla karşılaştırılır</span></div></div></div></article>
-    </div>
-    <div class="k-slider-controls"><div class="k-slider-dots" aria-label="Slider sayfaları"><button class="k-slider-dot active" type="button" aria-label="1. slayt" aria-current="true"></button><button class="k-slider-dot" type="button" aria-label="2. slayt" aria-current="false"></button><button class="k-slider-dot" type="button" aria-label="3. slayt" aria-current="false"></button></div><div class="k-slider-nav"><button type="button" data-slider-prev aria-label="Önceki slayt">‹</button><button type="button" data-slider-next aria-label="Sonraki slayt">›</button></div></div><div class="k-slider-progress"><span></span></div>
-  </div></div></section>
-  <section class="k-home-after-slider"><div class="container"><div class="quick-grid"><a class="quick-card" href="sell.html"><div class="quick-icon">💰</div><div><strong>Item Sat</strong><span>Teklifleri pazarcılardan topla</span></div></a><a class="quick-card purple" href="ring-sell.html"><div class="quick-icon">🧙</div><div><strong>Karakter Sat</strong><span>Karakterini güvenli satış talebine çıkar</span></div></a><a class="quick-card green" href="buy.html"><div class="quick-icon">🛒</div><div><strong>Item Al</strong><span>Pazarcı ilanlarını incele</span></div></a><a class="quick-card gold" href="trader-apply.html"><div class="quick-icon">🤝</div><div><strong>Pazarcı Ol</strong><span>Başvur, teklif vermeye başla</span></div></a></div><div class="live-strip"><span class="live-dot"></span><strong>Pazar canlı</strong><span>Yeni talepler ve teklifler anlık güncellenir</span><span class="mini-sep"></span><span>🔔 Bildirim</span><span class="mini-sep"></span><span>💬 Hazır işlem mesajları</span></div></div></section>
-  <section class="section-soft"><div class="container"><div class="cta-band"><div><h3>⚡ Acil nakit / hızlı satış mı lazım?</h3><p>Itemini pazarcılara yayınlamadan doğrudan KOTAKAS alım masasına gönder. Adminler fiyat verir; kabul edersen “ZERO 1'e gel”, “Moradon banka önü”, “Hazırım” gibi güvenli hazır mesajlarla işlem ilerler.</p></div><a class="btn teal" href="urgent-sell.html">⚡ Adminlerden Hızlı Fiyat İste</a></div></div></section>
-  <section class="home-stats"><div class="container"><div class="stat-grid"><div class="stat"><div class="ic">✓</div><div><strong id="statDeals">0</strong><span>Tamamlanan İşlem</span></div></div><div class="stat"><div class="ic">👥</div><div><strong id="statUsers">0+</strong><span>Kayıtlı Kullanıcı</span></div></div><div class="stat"><div class="ic">🏪</div><div><strong id="statTraders">0+</strong><span>Onaylı Pazarcı</span></div></div><div class="stat"><div class="ic">⚡</div><div><strong id="statRequests">0</strong><span>Açık Satış Talebi</span></div></div></div></div></section>
-  <section class="section-soft"><div class="container"><div class="home-section-head"><div><h2>Son satış talepleri</h2><p>Pazarcıların şu an teklif verebildiği açık talepler.</p></div><a class="btn ghost sm" href="market.html">Tümünü gör →</a></div><div id="homeRequests" class="grid2"></div></div></section>
-  <section class="section-soft"><div class="container"><div class="home-section-head"><div><h2>Neden KOTAKAS?</h2><p>Teklif, bildirim ve güvenli hazır mesajlar aynı yerde.</p></div></div><div class="trust-grid"><div class="trust-card"><div class="ico">🛡️</div><strong>Doğrulanmış pazarcılar</strong><span>Başvurusu onaylanan pazarcılar profil, puan ve işlem geçmişiyle görünür.</span></div><div class="trust-card"><div class="ico">🔔</div><strong>Anlık teklif bildirimi</strong><span>Talebine yeni teklif geldiğinde bildirim merkezine düşer; gerçek sürümde push olarak da gönderilebilir.</span></div><div class="trust-card"><div class="ico">💬</div><strong>Hazır işlem mesajları</strong><span>Serbest sohbet kapalıdır. Taraflar yalnızca güvenli hazır işlem mesajlarını kullanır; sorun olursa admin devreye girer.</span></div></div></div></section>
-  <section class="section-soft"><div class="container"><div class="home-section-head"><div><h2>Öne çıkan pazarcılar</h2><p>Platformdaki doğrulanmış pazarcılar.</p></div></div><div id="traderShowcase" class="trader-showcase"><div class="empty">Doğrulanmış pazarcılar yükleniyor...</div></div></div></section>
-  <section class="section-soft"><div class="container"><div class="home-section-head"><div><h2>3 adımda işlem</h2><p>Karmaşık menüler yok; talep → teklif → anlaşma.</p></div></div><div class="steps"><div class="step"><div class="stepnum">1</div><div><h3>TALEBİNİ OLUŞTUR</h3><p>Item, server ve minimum beklentini yaz. Talep uygun pazarcılara düşsün.</p></div></div><div class="step"><div class="stepnum">2</div><div><h3>TEKLİFLERİ KARŞILAŞTIR</h3><p>Fiyat, puan ve doğrulanmış durumuna göre en iyi pazarcıyı seç.</p></div></div><div class="step"><div class="stepnum">3</div><div><h3>İŞLEMİ TAMAMLA</h3><p>Hazır işlem mesajlarıyla teslim durumunu netleştir; satıcı teslimi bildirir, pazarcı teslimi onaylar.</p></div></div></div></div></section>
-  <section class="section-soft"><div class="container"><div class="cta-band"><div><h3>Pazarcı mısın?</h3><p>Satış talepleri geldiğinde teklif ver, profil puanını yükselt ve daha fazla kullanıcıya ulaş.</p></div><a class="btn teal" href="trader-apply.html">Pazarcı Başvurusu Yap</a></div></div></section>
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#081117">
+  <title>KOTAKAS • Oyun Pazaryeri</title>
+  <meta name="description" content="Oyun parası, item, karakter ve dijital ürünler için güvenli KOTAKAS pazaryeri.">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header class="site-header"></header>
+<main class="kp-home">
+  <div class="container">
+    <section class="kp-promo-grid" aria-label="KOTAKAS fırsatları">
+      <article class="kp-promo-main">
+        <div class="kp-promo-copy">
+          <span class="kp-eyebrow">● GÜVENLİ OYUN PAZARYERİ</span>
+          <h1>Oyun dünyasında al, sat, <span>güvenle takas et.</span></h1>
+          <p>Knight Online, Rise Online, PUBG Mobile, Valorant ve daha fazlası. Oyun parası, item ve karakter işlemlerini KOTAKAS emanet sistemiyle tek yerden yönet.</p>
+          <div class="kp-promo-actions">
+            <a class="btn teal" href="/buy.html">🛒 Alışverişe Başla</a>
+            <a class="btn ghost" href="/sell.html">📤 Satış Talebi Aç</a>
+            <a class="btn ghost" href="/games.html">🎮 Tüm Oyunlar</a>
+          </div>
+        </div>
+      </article>
+      <div class="kp-promo-stack">
+        <article class="kp-promo-side gold">
+          <small>Knight Online</small>
+          <h3>GB & Item Pazarı</h3>
+          <p>Güncel piyasa kuru, pazarcı ilanları ve güvenli emanet işlemi.</p>
+          <a class="btn gold" href="/buy.html?game=knight-online">Pazarı Aç</a>
+        </article>
+        <article class="kp-promo-side purple">
+          <small>Hızlı Satış</small>
+          <h3>Bize Sat — Hızlı Teklif</h3>
+          <p>Itemini KOTAKAS alım masasına gönder, teklif gelince karar ver.</p>
+          <a class="btn purple" href="/urgent-sell.html">⚡ Fiyat İste</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="kp-market-strip" aria-label="Hızlı pazar işlemleri">
+      <a class="kp-market-action" href="/market.html"><span class="ic">📡</span><span><strong>Teklif Pazarı</strong><span>Pazarcılardan BUY teklifi al</span></span></a>
+      <a class="kp-market-action" href="/buy.html"><span class="ic">🛒</span><span><strong>Item Pazarı</strong><span>Satıştaki itemleri incele</span></span></a>
+      <a class="kp-market-action" href="/ring-sell.html"><span class="ic">🧙</span><span><strong>Karakter Pazarı</strong><span>Karakterini satışa çıkar</span></span></a>
+      <a class="kp-market-action" href="/wallet.html"><span class="ic">💳</span><span><strong>Bakiye Merkezi</strong><span>Yükle, hareketleri takip et</span></span></a>
+    </section>
+
+    <section class="kp-section">
+      <div class="kp-section-head"><div><h2>Popüler Oyunlar</h2><p>En çok işlem gören oyun pazarlarına hızlı erişim.</p></div><a href="/games.html">Tüm oyunları görüntüle →</a></div>
+      <div id="kpPopularGames" class="kp-game-row"><div class="kp-empty-card">Oyunlar yükleniyor...</div></div>
+    </section>
+
+    <section class="kp-section">
+      <div class="kp-section-head"><div><h2>Son Eklenen Item İlanları</h2><p>Doğrulanmış pazarcıların güncel SELL ilanları.</p></div><a href="/buy.html">Tüm item ilanları →</a></div>
+      <div id="kpLatestItems" class="kp-product-grid"><div class="kp-empty-card">İlanlar yükleniyor...</div></div>
+    </section>
+
+    <section class="kp-section">
+      <div class="kp-dual-grid">
+        <article class="kp-list-panel">
+          <div class="kp-section-head"><div><h2>Son Satış Talepleri</h2><p>Kullanıcıların pazarcılardan teklif beklediği talepler.</p></div><a href="/market.html">Tümü →</a></div>
+          <div id="kpLatestRequests" class="kp-mini-list"><div class="kp-empty-card">Talepler yükleniyor...</div></div>
+        </article>
+        <article class="kp-list-panel">
+          <div class="kp-section-head"><div><h2>Doğrulanmış Pazarcılar</h2><p>İşlem geçmişi bulunan aktif mağazalar.</p></div><a href="/trader.html">Pazarcı paneli →</a></div>
+          <div id="kpTopTraders" class="kp-mini-list"><div class="kp-empty-card">Pazarcılar yükleniyor...</div></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="kp-section">
+      <div class="kp-section-head"><div><h2>Oyun Para Birimleri & Dijital Ürünler</h2><p>Her oyun kendi para birimi ve ürün kategorileriyle ayrı pazarda.</p></div></div>
+      <div class="kp-market-strip">
+        <a class="kp-market-action" href="/market.html?game=rise-online"><span class="ic">RO</span><span><strong>Rise Online Gold</strong><span>Gold • Item • Karakter</span></span></a>
+        <a class="kp-market-action" href="/market.html?game=pubg-mobile"><span class="ic">UC</span><span><strong>PUBG Mobile UC</strong><span>UC • Kod • Dijital ürün</span></span></a>
+        <a class="kp-market-action" href="/market.html?game=valorant"><span class="ic">VP</span><span><strong>Valorant VP</strong><span>VP • Kod</span></span></a>
+        <a class="kp-market-action" href="/market.html?game=league-of-legends"><span class="ic">RP</span><span><strong>League of Legends RP</strong><span>RP • Kod</span></span></a>
+      </div>
+    </section>
+
+    <section class="kp-trust-band" aria-label="Güven özellikleri">
+      <div class="kp-trust-item"><span class="i">🔐</span><span><strong>Emanet Ödeme</strong><span>İşlem tamamlanana kadar para korunur.</span></span></div>
+      <div class="kp-trust-item"><span class="i">✅</span><span><strong>Doğrulanmış Pazarcılar</strong><span>Mağaza ve işlem geçmişi görünür.</span></span></div>
+      <div class="kp-trust-item"><span class="i">🔔</span><span><strong>Anlık Bildirim</strong><span>Teklif ve işlem adımlarını kaçırma.</span></span></div>
+      <div class="kp-trust-item"><span class="i">💬</span><span><strong>Güvenli İletişim</strong><span>Hazır mesajlarla site dışına çıkmadan ilerle.</span></span></div>
+    </section>
+
+    <section class="kp-market-strip" aria-label="KOTAKAS istatistikleri">
+      <div class="kp-market-action"><span class="ic">🤝</span><span><strong id="kpCompletedDeals">0</strong><span>Tamamlanan işlem</span></span></div>
+      <div class="kp-market-action"><span class="ic">👥</span><span><strong id="kpUsers">0+</strong><span>Kayıtlı kullanıcı</span></span></div>
+      <div class="kp-market-action"><span class="ic">🏪</span><span><strong id="kpTraders">0+</strong><span>Doğrulanmış pazarcı</span></span></div>
+      <a class="kp-market-action" href="/support.html"><span class="ic">🎧</span><span><strong>Destek Merkezi</strong><span>İşlem sorunlarında KOTAKAS yanında</span></span></a>
+    </section>
+  </div>
 </main>
-<footer><div class="container"><div class="footgrid"><div><a class="logo" href="index.html"><span class="ko">KO</span><span class="tak">TAKAS</span></a><p>Knight Online oyuncuları ile doğrulanmış pazarcıları buluşturan teklif ve takas platformu.</p></div><div><h4>Platform</h4><a href="market.html">Canlı Pazar</a><a href="buy.html">Item Al</a><a href="sell.html">Item Sat</a><a href="urgent-sell.html">Acil Item Sat</a><a href="trader-apply.html">Pazarcı Ol</a></div><div><h4>Destek</h4><a href="support.html">Canlı Destek</a><a href="contact.html">İletişim</a><a href="rules.html">İşlem Kuralları</a></div><div><h4>Yasal</h4><a href="privacy.html">Gizlilik / KVKK</a><a href="cookies.html">Çerez Politikası</a><a href="terms.html">Kullanım Koşulları</a></div></div><div class="copyright">© 2026 KOTAKAS. Knight Online® NTT Game / Mgame markasıdır. KOTAKAS bağımsız bir platformdur ve NTT Game veya Mgame ile bağlantılı değildir.</div></div></footer><div id="toast" class="toast"></div><a class="support-fab" href="support.html">💬 Canlı Destek</a><script src="/js/app.js"></script><script src="/js/chunks/home-slider.js"></script></body></html>
+
+<footer class="kp-footer">
+  <div class="container kp-footer-main">
+    <div>
+      <a class="k-shell-logo" href="/"><span class="ko">KO</span><span class="tak">TAKAS</span></a>
+      <p>Oyun parası, item, karakter ve dijital ürün işlemlerini güvenli emanet sistemiyle buluşturan çok oyunlu pazar yeri.</p>
+    </div>
+    <div><h4>Knight Online</h4><a href="/market.html?game=knight-online">Gold Bar</a><a href="/buy.html?game=knight-online">Item Pazarı</a><a href="/ring-sell.html">Karakter Pazarı</a><a href="/urgent-sell.html">Hızlı Sat</a></div>
+    <div><h4>Popüler Oyunlar</h4><a href="/market.html?game=rise-online">Rise Online</a><a href="/market.html?game=valorant">Valorant VP</a><a href="/market.html?game=league-of-legends">LoL RP</a><a href="/market.html?game=pubg-mobile">PUBG UC</a></div>
+    <div><h4>Hesap & Destek</h4><a href="/dashboard.html">Hesabım</a><a href="/wallet.html">Bakiye</a><a href="/deals.html">İşlemlerim</a><a href="/support.html">Destek Merkezi</a></div>
+    <div><h4>Yasal</h4><a href="/rules.html">İşlem Kuralları</a><a href="/privacy.html">Gizlilik / KVKK</a><a href="/contact.html">İletişim</a><a href="/cookies.html">Çerezler</a></div>
+  </div>
+  <div class="container kp-footer-bottom"><span>© 2026 KOTAKAS</span><span>• Bağımsız oyun pazaryeri</span><span class="spacer"></span><span class="kp-security-pill">🔒 Güvenli Emanet</span><span class="kp-security-pill">🛡️ Hesap Güvenliği</span></div>
+</footer>
+<script src="/js/app.js"></script>
+</body>
+</html>
