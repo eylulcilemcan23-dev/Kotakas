@@ -137,9 +137,15 @@ public static class PanelInsightsEndpoints
             var since14 = new DateTimeOffset(now.UtcDateTime.Date.AddDays(-13), TimeSpan.Zero);
             var completed = await db.Deals.AsNoTracking().Where(x => x.Status == "completed").ToListAsync();
             var recent = completed.Where(x => (x.CompletedAt ?? x.CreatedAt) >= since30).ToList();
-            var users30 = await db.Users.AsNoTracking().Where(x => x.CreatedAt >= since30).ToListAsync();
-            var req30 = await db.SaleRequests.AsNoTracking().Where(x => x.CreatedAt >= since30).ToListAsync();
-            var listings30 = await db.Listings.AsNoTracking().Where(x => x.CreatedAt >= since30).ToListAsync();
+
+            // SQLite cannot translate some DateTimeOffset comparisons. Keep the DB projection small,
+            // then perform the cutoff comparison in memory for provider-neutral behavior.
+            var userDates = await db.Users.AsNoTracking().Select(x => x.CreatedAt).ToListAsync();
+            var requestDates = await db.SaleRequests.AsNoTracking().Select(x => x.CreatedAt).ToListAsync();
+            var listingDates = await db.Listings.AsNoTracking().Select(x => x.CreatedAt).ToListAsync();
+            var newUsers30 = userDates.Count(x => x >= since30);
+            var requests30 = requestDates.Count(x => x >= since30);
+            var newListings30 = listingDates.Count(x => x >= since30);
 
             var daily = Enumerable.Range(0, 14).Select(i =>
             {
@@ -165,9 +171,9 @@ public static class PanelInsightsEndpoints
                     volumeTry = recent.Sum(x => x.GrossTry),
                     commissionTry = recent.Sum(x => x.CommissionTry),
                     averageTicketTry = recent.Count == 0 ? 0m : Math.Round(recent.Average(x => x.GrossTry), 2),
-                    newUsers = users30.Count,
-                    saleRequests = req30.Count,
-                    newListings = listings30.Count
+                    newUsers = newUsers30,
+                    saleRequests = requests30,
+                    newListings = newListings30
                 },
                 allTime = new { deals = completed.Count, volumeTry = completed.Sum(x => x.GrossTry), commissionTry = completed.Sum(x => x.CommissionTry) },
                 daily,
