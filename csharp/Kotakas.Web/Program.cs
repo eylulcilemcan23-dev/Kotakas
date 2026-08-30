@@ -120,6 +120,7 @@ app.MapSessionEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
+app.MapListingEnhancementEndpoints();
 app.MapUploadEndpoints();
 app.MapDealEndpoints();
 app.MapReviewEndpoints();
