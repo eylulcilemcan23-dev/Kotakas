@@ -31,7 +31,12 @@ public static class AdminSearchEndpoints
                 query = query.Where(x => idsForRole.Contains(x.Id));
             }
 
-            var users = await query.OrderByDescending(x => x.CreatedAt).Take(150).ToListAsync();
+            // SQLite DateTimeOffset sıralamasını SQL'e çeviremiyor. Filtreyi DB'de,
+            // CreatedAt sıralamasını bellekte yaparak yerel önizleme ile PostgreSQL'i aynı tutuyoruz.
+            var users = (await query.Take(500).ToListAsync())
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(150)
+                .ToList();
             var ids = users.Select(x => x.Id).ToList();
             var pairs = await (from ur in db.UserRoles.AsNoTracking()
                                join r in db.Roles.AsNoTracking() on ur.RoleId equals r.Id
