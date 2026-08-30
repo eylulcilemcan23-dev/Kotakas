@@ -1,0 +1,44 @@
+name: Generate KOTAKAS V13 EF Baseline
+
+on:
+  push:
+    branches: [csharp-rebuild]
+    paths:
+      - '.github/workflows/generate-v13-baseline.yml'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version 8.0.8
+      - name: Restore and build
+        run: |
+          dotnet restore csharp/Kotakas.Web/Kotakas.Web.csproj
+          dotnet build csharp/Kotakas.Web/Kotakas.Web.csproj -c Release --no-restore
+      - name: Generate PostgreSQL V12 baseline
+        env:
+          KOTAKAS_EF_PROVIDER: postgres
+          KOTAKAS_EF_CONNECTION: Host=127.0.0.1;Port=5432;Database=kotakas_design;Username=postgres;Password=postgres
+        run: |
+          rm -rf csharp/Kotakas.Web/Migrations/Postgres
+          dotnet ef migrations add V12Baseline \
+            --context AppDbContext \
+            --project csharp/Kotakas.Web/Kotakas.Web.csproj \
+            --startup-project csharp/Kotakas.Web/Kotakas.Web.csproj \
+            --output-dir Migrations/Postgres \
+            --configuration Release \
+            --no-build
+          find csharp/Kotakas.Web/Migrations/Postgres -maxdepth 1 -type f -print
+      - name: Upload generated baseline
+        uses: actions/upload-artifact@v4
+        with:
+          name: KOTAKAS_V13_EF_BASELINE
+          path: csharp/Kotakas.Web/Migrations/Postgres
+          if-no-files-found: error
