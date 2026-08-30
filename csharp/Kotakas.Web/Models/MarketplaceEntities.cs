@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Kotakas.Web.Models;
 
 public sealed class SaleRequest
@@ -24,6 +26,7 @@ public sealed class Offer
     public int ExpiryMinutes { get; set; } = 10;
     public string Status { get; set; } = "active";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    [JsonIgnore]
     public SaleRequest? SaleRequest { get; set; }
 }
 
