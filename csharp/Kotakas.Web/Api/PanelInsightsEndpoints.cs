@@ -58,7 +58,7 @@ public static class PanelInsightsEndpoints
             var uid = ApiHelpers.UserId(principal);
             var now = DateTimeOffset.UtcNow;
             var since30 = now.AddDays(-30);
-            var since14 = now.Date.AddDays(-13);
+            var since14 = new DateTimeOffset(now.UtcDateTime.Date.AddDays(-13), TimeSpan.Zero);
 
             var deals = await db.Deals.AsNoTracking()
                 .Where(x => x.TraderUserId == uid)
@@ -134,7 +134,7 @@ public static class PanelInsightsEndpoints
             if (!ApiHelpers.IsFullAdmin(principal)) return Results.Forbid();
             var now = DateTimeOffset.UtcNow;
             var since30 = now.AddDays(-30);
-            var since14 = now.Date.AddDays(-13);
+            var since14 = new DateTimeOffset(now.UtcDateTime.Date.AddDays(-13), TimeSpan.Zero);
             var completed = await db.Deals.AsNoTracking().Where(x => x.Status == "completed").ToListAsync();
             var recent = completed.Where(x => (x.CompletedAt ?? x.CreatedAt) >= since30).ToList();
             var users30 = await db.Users.AsNoTracking().Where(x => x.CreatedAt >= since30).ToListAsync();
