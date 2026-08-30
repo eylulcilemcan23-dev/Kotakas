@@ -198,8 +198,27 @@ static void Validate(DbSummary a, DbSummary b)
         Fail("Finans toplamları eşleşmedi; transaction geri alınacak.");
 }
 
-static async Task<bool> HasBusinessData(AppDbContext db) =>
-    await db.Users.AnyAsync() || await db.Deals.AnyAsync() || await db.WalletLedgers.AnyAsync() || await db.SaleRequests.AnyAsync();
+static async Task<bool> HasBusinessData(AppDbContext db)
+{
+    // Fresh PostgreSQL databases have no application tables yet. Do not query DbSets until
+    // migrations have created AspNetUsers; otherwise the safety check itself would fail.
+    if (db.Database.IsNpgsql() && !await PostgresTableExists(db, "AspNetUsers")) return false;
+    return await db.Users.AnyAsync() || await db.Deals.AnyAsync() || await db.WalletLedgers.AnyAsync() || await db.SaleRequests.AnyAsync();
+}
+
+static async Task<bool> PostgresTableExists(AppDbContext db, string tableName)
+{
+    var connection = db.Database.GetDbConnection();
+    if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync();
+    await using var command = connection.CreateCommand();
+    command.CommandText = "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = @name);";
+    var parameter = command.CreateParameter();
+    parameter.ParameterName = "@name";
+    parameter.Value = tableName;
+    command.Parameters.Add(parameter);
+    var value = await command.ExecuteScalarAsync();
+    return value is bool exists && exists;
+}
 
 static async Task<bool> SqliteTableExists(AppDbContext db, string tableName)
 {
