@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace Kotakas.Web.Models;
@@ -11,6 +12,7 @@ public sealed class ListingPriceHistory
     public decimal PriceGb { get; set; }
     public string Reason { get; set; } = "update";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    [JsonIgnore]
     public TraderListing? Listing { get; set; }
 }
 
@@ -31,5 +33,6 @@ public sealed class ListingPriceOffer
     public DateTimeOffset ExpiresAt { get; set; } = DateTimeOffset.UtcNow.AddMinutes(30);
     public DateTimeOffset? RespondedAt { get; set; }
     public long? PurchasedDealId { get; set; }
+    [JsonIgnore]
     public TraderListing? Listing { get; set; }
 }
