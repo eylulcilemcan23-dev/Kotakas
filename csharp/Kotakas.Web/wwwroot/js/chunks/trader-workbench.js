@@ -11,7 +11,10 @@
   const activeDeal=d=>['funded','seller_delivered','disputed'].includes(String(d?.status||'').toLowerCase());
   let STATE={listings:[],priceOffers:[],requestOffers:[],deals:[],wallet:{},insights:{},profile:{},rate:0,filter:'all',query:''};
 
-  function jsq(v){return JSON.stringify(String(v||''))}
+  function jsq(v){
+    const s=String(v||'').replaceAll('\\','\\\\').replaceAll("'","\\'").replaceAll('\r',' ').replaceAll('\n',' ').replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    return `'${s}'`;
+  }
 
   async function mutateListing(id,body,msg){
     try{await api(`/api/listings/${Number(id)}`,{method:'PATCH',body});toast(msg||'İlan güncellendi.');await refresh()}catch(err){toast(err.data?.error==='listing_cancelled'?'Bu ilan kaldırılmış.':err.data?.error||'İlan güncellenemedi.')}
