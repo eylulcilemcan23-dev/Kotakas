@@ -1,5 +1,5 @@
 (async()=>{
-  const UI_VERSION='20260831-1655-trader-live-clean';
+  const UI_VERSION='20260831-1715-game-drawer-logos';
 
   // Mobil Chrome/Android tarayıcı üst çubuğunu KOTAKAS pembe rengine boya.
   let themeColor=document.querySelector('meta[name="theme-color"]');
