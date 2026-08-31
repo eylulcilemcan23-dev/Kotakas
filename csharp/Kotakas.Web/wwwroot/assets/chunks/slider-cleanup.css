@@ -1,0 +1,5 @@
+/* Slider cleanup overrides */
+.kp-promo-main.k-direct-slider::after{
+  content:none!important;
+  display:none!important;
+}
