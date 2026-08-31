@@ -7,12 +7,19 @@
     const n=Number(normalized);
     return Number.isFinite(n)?n:0;
   };
+  const parseInput=value=>{
+    let s=String(value||'').trim().replace(/\s/g,'');
+    if(!s)return NaN;
+    if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');
+    else if(s.includes(','))s=s.replace(',','.');
+    const n=Number(s);
+    return Number.isFinite(n)?n:NaN;
+  };
   const money=n=>Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ₺';
   const amountPrompt=(title,initial='')=>{
     const raw=prompt(title,initial);
     if(raw===null)return null;
-    const n=Number(String(raw).trim().replace(/\./g,'').replace(',','.'));
-    return Number.isFinite(n)?n:NaN;
+    return parseInput(raw);
   };
 
   function decorate(){
