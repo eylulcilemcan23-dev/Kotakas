@@ -1,0 +1,17 @@
+/* KOTAKAS cart button override: cart stays dark like Knightpin; only login stays pink. */
+.kp-shell-main .k-shell-guest .k-cart-button,
+.kp-shell-main .k-shell-right .k-cart-button{
+  background:#191a27!important;
+  border-color:#292b3a!important;
+  color:#f0f1f5!important;
+  box-shadow:none!important;
+}
+.kp-shell-main .k-shell-guest .k-cart-button:hover,
+.kp-shell-main .k-shell-right .k-cart-button:hover{
+  background:#202230!important;
+  border-color:#3b3e50!important;
+}
+.kp-shell-main .k-cart-button .k-cart-icon,
+.kp-shell-main .k-cart-button .k-cart-label{
+  color:#f0f1f5!important;
+}
