@@ -78,12 +78,20 @@
   function decorateMenu(){
     const drawer=document.getElementById('kShellDrawer');
     if(!drawer)return;
+
     drawer.querySelector('[data-drawer-games]')?.remove();
-    const groups=drawer.querySelectorAll('.k-drawer-group');
-    const account=drawer.querySelector('.k-drawer-account');
-    if(account)account.insertAdjacentHTML('afterend',gameSection());
-    else if(groups[0])groups[0].insertAdjacentHTML('beforebegin',gameSection());
-    else drawer.insertAdjacentHTML('beforeend',gameSection());
+    drawer.querySelector('.k-drawer-account')?.remove();
+    drawer.querySelectorAll('.k-drawer-group').forEach(group=>group.remove());
+
+    const top=drawer.querySelector('.k-drawer-top');
+    top?.querySelector('.k-shell-logo')?.remove();
+    if(top&&!top.querySelector('.k-drawer-title')){
+      top.insertAdjacentHTML('afterbegin','<strong class="k-drawer-title">OYUNLAR</strong>');
+    }
+
+    if(top)top.insertAdjacentHTML('afterend',gameSection());
+    else drawer.insertAdjacentHTML('afterbegin',gameSection());
+
     bindGameButtons(drawer);
     bindSearch(drawer);
   }
