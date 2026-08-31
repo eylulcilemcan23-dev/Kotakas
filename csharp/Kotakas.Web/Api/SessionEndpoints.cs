@@ -16,12 +16,25 @@ public static class SessionEndpoints
             var uid = ApiHelpers.UserId(p);
             var current = http.Items["KOTAKAS_DEVICE_ID"]?.ToString() ?? http.Request.Cookies[SessionSecurityMiddleware.DeviceCookie] ?? "";
 
-            // SQLite DateTimeOffset sıralamasını SQL'e çeviremiyor. Aktif oturumları
-            // veritabanından alıp LastSeenAt sıralamasını bellekte yapıyoruz.
-            var rows = (await db.UserSessions.AsNoTracking()
+            // Aynı bilgisayar/tarayıcı için zaman içinde birden fazla device cookie oluşmuş olabilir
+            // (ör. localhost / 127.0.0.1 veya cookie yenilenmesi). Bunları kullanıcıya ayrı
+            // fiziksel cihazlarmış gibi göstermiyoruz. Aynı cihaz etiketi + tarayıcı imzası + IP
+            // ipucu tek satırda birleştirilir; mevcut oturum varsa her zaman o satır korunur.
+            var active = await db.UserSessions.AsNoTracking()
                 .Where(x => x.UserId == uid && x.RevokedAt == null)
-                .ToListAsync())
-                .OrderByDescending(x => x.LastSeenAt)
+                .ToListAsync();
+
+            var rows = active
+                .GroupBy(x => new
+                {
+                    Label = x.DeviceLabel ?? "",
+                    Hash = string.IsNullOrWhiteSpace(x.UserAgentHash) ? x.DeviceId : x.UserAgentHash,
+                    Ip = x.IpHint ?? ""
+                })
+                .Select(g => g.FirstOrDefault(x => x.DeviceId == current)
+                             ?? g.OrderByDescending(x => x.LastSeenAt).First())
+                .OrderByDescending(x => x.DeviceId == current)
+                .ThenByDescending(x => x.LastSeenAt)
                 .Take(50)
                 .Select(x => new
                 {
@@ -33,6 +46,7 @@ public static class SessionEndpoints
                     current = x.DeviceId == current
                 })
                 .ToList();
+
             return Results.Ok(new { sessions = rows });
         }).RequireAuthorization();
 
