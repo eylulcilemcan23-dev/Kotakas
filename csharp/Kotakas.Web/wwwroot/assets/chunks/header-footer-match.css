@@ -1,0 +1,7 @@
+/* KOTAKAS ana sayfa: ust logo/header zemini ile en alttaki footer zeminini birebir ayni yap. */
+.site-header,
+.site-header.k-shell,
+footer,
+footer.kp-footer{
+  background:linear-gradient(90deg,#10101a 0%,#17121c 32%,#1b111b 55%,#1f101a 76%,#221019 96%,#1e0e15 100%)!important;
+}
