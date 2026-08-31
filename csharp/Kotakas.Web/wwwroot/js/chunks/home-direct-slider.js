@@ -1,11 +1,13 @@
 (()=>{
   if(!['/','/index.html'].includes(location.pathname.toLowerCase()))return;
-  const V='20260831-0552';
+  const V='20260831-0615';
+  const assetBase='/assets/images/games/';
+  const makeSources=stem=>['png','jpg','jpeg','webp'].map(ext=>`${assetBase}${stem}.${ext}?v=${V}`);
   const slides=[
-    {src:`/assets/images/games/slider-1-genel-pazaryeri.png?v=${V}`,alt:'KOTAKAS Genel Pazaryeri',href:'/sell.html'},
-    {src:`/assets/images/games/slider-2-hizli-teslimat.png?v=${V}`,alt:'Knight Online 7/24 Hızlı Teslimat',href:'/buy.html?game=knight-online'},
-    {src:`/assets/images/games/slider-3-30-agustos.png?v=${V}`,alt:'30 Ağustos Zafer Bayramı',href:''},
-    {src:`/assets/images/games/slider-4-bize-sat.png?v=${V}`,alt:'Knight Online Bize Sat',href:'/urgent-sell.html'}
+    {srcs:makeSources('slider-1-genel-pazaryeri'),alt:'KOTAKAS Genel Pazaryeri',href:'/sell.html'},
+    {srcs:makeSources('slider-2-hizli-teslimat'),alt:'Knight Online 7/24 Hızlı Teslimat',href:'/buy.html?game=knight-online'},
+    {srcs:makeSources('slider-3-30-agustos'),alt:'30 Ağustos Zafer Bayramı',href:''},
+    {srcs:makeSources('slider-4-bize-sat'),alt:'Knight Online Bize Sat',href:'/urgent-sell.html'}
   ];
 
   function addCss(){
@@ -20,6 +22,7 @@
       .k-direct-bg,.k-direct-art{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
       .k-direct-bg{object-fit:cover!important;object-position:center!important;filter:blur(20px) brightness(.42)!important;transform:scale(1.07)!important;opacity:.9!important;z-index:0!important}
       .k-direct-art{object-fit:contain!important;object-position:center!important;z-index:1!important;filter:none!important;background:transparent!important}
+      .k-direct-slide.missing:after{content:'Slider görseli bulunamadı';position:absolute;inset:0;display:grid;place-items:center;color:#8992a8;font-size:13px;font-weight:800;letter-spacing:.05em;z-index:1}
       .k-direct-nav{position:absolute!important;z-index:6!important;top:50%!important;transform:translateY(-50%)!important;width:38px!important;height:38px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.24)!important;background:rgba(5,6,11,.7)!important;color:#fff!important;font-size:22px!important;cursor:pointer!important;display:grid!important;place-items:center!important;backdrop-filter:blur(8px)!important}
       .k-direct-nav.prev{left:12px!important}.k-direct-nav.next{right:12px!important}
       .k-direct-dots{position:absolute!important;z-index:6!important;left:50%!important;bottom:10px!important;transform:translateX(-50%)!important;display:flex!important;gap:6px!important;padding:5px 8px!important;border-radius:99px!important;background:rgba(5,6,10,.42)!important}
@@ -30,18 +33,34 @@
     document.head.appendChild(s);
   }
 
+  function attachFallback(img,srcs,slideEl){
+    let i=0;
+    img.src=srcs[0];
+    img.addEventListener('load',()=>slideEl?.classList.remove('missing'));
+    img.addEventListener('error',()=>{
+      i++;
+      if(i<srcs.length){img.src=srcs[i];return;}
+      slideEl?.classList.add('missing');
+      img.style.display='none';
+    });
+  }
+
   function mount(){
     const host=document.querySelector('.kp-promo-main');
     if(!host)return;
-    if(host.dataset.directSlider==='4'&&host.querySelectorAll('.k-direct-slide').length===slides.length)return;
+    if(host.dataset.directSlider==='5'&&host.querySelectorAll('.k-direct-slide').length===slides.length)return;
     addCss();
-    host.dataset.directSlider='4';
+    host.dataset.directSlider='5';
     host.classList.remove('k-game-slider');
     host.classList.add('k-direct-slider');
     host.innerHTML=slides.map((x,i)=>{
-      const inner=`<img class="k-direct-bg" src="${x.src}" alt="" aria-hidden="true"><img class="k-direct-art" src="${x.src}" alt="${x.alt}" decoding="async" ${i===0?'fetchpriority="high"':'loading="lazy"'}>`;
+      const inner=`<img class="k-direct-bg" alt="" aria-hidden="true"><img class="k-direct-art" alt="${x.alt}" decoding="async" ${i===0?'fetchpriority="high"':'loading="lazy"'}>`;
       return `<article class="k-direct-slide${i===0?' active':''}" data-i="${i}">${x.href?`<a class="k-direct-slide-link" href="${x.href}" aria-label="${x.alt}">${inner}</a>`:inner}</article>`;
     }).join('')+`<button class="k-direct-nav prev" type="button" aria-label="Önceki">‹</button><button class="k-direct-nav next" type="button" aria-label="Sonraki">›</button><div class="k-direct-dots">${slides.map((_,i)=>`<button class="k-direct-dot${i===0?' active':''}" type="button" data-i="${i}" aria-label="Slider ${i+1}"></button>`).join('')}</div>`;
+
+    [...host.querySelectorAll('.k-direct-slide')].forEach((el,i)=>{
+      el.querySelectorAll('img').forEach(img=>attachFallback(img,slides[i].srcs,el));
+    });
 
     let current=0,timer=null,touchX=null;
     const show=i=>{const items=[...host.querySelectorAll('.k-direct-slide')],dots=[...host.querySelectorAll('.k-direct-dot')];current=(i+items.length)%items.length;items.forEach((el,n)=>el.classList.toggle('active',n===current));dots.forEach((el,n)=>el.classList.toggle('active',n===current));};
