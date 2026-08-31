@@ -1,5 +1,5 @@
 (async()=>{
-  const UI_VERSION='20260831-2030';
+  const UI_VERSION='20260831-2100';
   const theme=document.createElement('link');
   theme.rel='stylesheet';
   theme.id='kotakasRetailTheme';
