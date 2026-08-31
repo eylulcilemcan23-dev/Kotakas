@@ -7,9 +7,9 @@
   const setHtml=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html};
 
   const GAME_ART=[
-    {code:'knight-online',name:'Knight Online',sub:'GB • Item • Karakter',image:'/assets/images/games/knight-online.webp'},
-    {code:'rise-online',name:'Rise Online',sub:'Gold • Item • Karakter',image:'/assets/images/games/rise-online.webp'},
-    {code:'valorant',name:'Valorant',sub:'VP • Dijital Ürün',image:'/assets/images/games/valorant.webp'},
+    {code:'knight-online',name:'Knight Online',sub:'GB • Item • Karakter',image:'/assets/images/games/knight-online.jpg'},
+    {code:'rise-online',name:'Rise Online',sub:'Gold • Item • Karakter',image:'/assets/images/games/rise-online.jpg'},
+    {code:'valorant',name:'Valorant',sub:'VP • Dijital Ürün',image:'/assets/images/games/valorant.jpg'},
     {code:'mobile-legends',name:'Mobile Legends',sub:'Diamond • Dijital Ürün',image:'/assets/images/games/mobile-legends.webp'}
   ];
 
