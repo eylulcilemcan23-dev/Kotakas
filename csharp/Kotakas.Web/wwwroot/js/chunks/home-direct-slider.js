@@ -1,10 +1,10 @@
 (()=>{
   if(!['/','/index.html'].includes(location.pathname.toLowerCase()))return;
-  const V='20260831-0738';
+  const V='20260831-0748';
   const slides=[
     {src:`/assets/images/sliders/slider-knight-bize-sat.webp?v=${V}`,alt:'Knight Online Bize Sat'},
-    {b64:`/assets/slider-data/slider-30-agustos.b64?v=${V}`,mime:'image/avif',alt:'30 Ağustos Zafer Bayramı'},
-    {b64:`/assets/slider-data/slider-hizli-teslimat.b64?v=${V}`,mime:'image/avif',alt:'Knight Online 7/24 Hızlı Teslimat'}
+    {b64:`/assets/slider-data/slider-30-agustos.txt?v=${V}`,mime:'image/avif',alt:'30 Ağustos Zafer Bayramı'},
+    {b64:`/assets/slider-data/slider-hizli-teslimat.txt?v=${V}`,mime:'image/avif',alt:'Knight Online 7/24 Hızlı Teslimat'}
   ];
 
   function addCss(){
