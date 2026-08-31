@@ -42,14 +42,20 @@
   }
   .kp-shell-main .k-shell-guest>a[href='/register.html']{display:none!important}
   .kp-shell-main .k-shell-guest>a[href='/login.html']{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
     width:44px!important;
     min-width:44px!important;
     height:44px!important;
     padding:0!important;
     border-radius:12px!important;
+    background:#ff285a!important;
+    border-color:#ff285a!important;
+    color:#fff!important;
   }
   .kp-shell-main .k-shell-guest>a[href='/login.html']:after{display:none!important}
-  .kp-shell-main .k-shell-guest>a[href='/login.html']:before{margin:0!important;font-size:18px!important}
+  .kp-shell-main .k-shell-guest>a[href='/login.html']:before{margin:0!important;font-size:18px!important;color:#fff!important}
   .kp-shell-main .k-cart-button{
     width:44px!important;
     min-width:44px!important;
