@@ -56,9 +56,17 @@
     height:44px!important;
     padding:0!important;
     border-radius:12px!important;
+    background:#191a27!important;
+    border-color:#292b3a!important;
+    color:#f0f1f5!important;
+    box-shadow:none!important;
+  }
+  .kp-shell-main .k-cart-button:hover{
+    background:#202230!important;
+    border-color:#3b3e50!important;
   }
   .kp-shell-main .k-cart-label{display:none!important}
-  .kp-shell-main .k-cart-icon{font-size:17px!important}
+  .kp-shell-main .k-cart-icon{font-size:17px!important;color:#f0f1f5!important}
 
   /* Sol açılan panel — referanstaki koyu panel + pembe kenar. */
   .k-drawer{
