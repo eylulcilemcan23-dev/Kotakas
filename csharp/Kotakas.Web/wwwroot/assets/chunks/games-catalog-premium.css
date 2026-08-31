@@ -1,0 +1,31 @@
+/* Premium all-games catalog cards */
+.games-main-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important}
+.game-market-tile.premium-game-card{padding:0!important;min-height:300px!important;overflow:hidden!important;border-radius:16px!important;background:#10131e!important;border:1px solid rgba(255,255,255,.09)!important;box-shadow:0 16px 36px rgba(0,0,0,.20)!important;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease!important}
+.game-market-tile.premium-game-card:hover{transform:translateY(-7px) scale(1.012)!important;border-color:rgba(255,46,96,.42)!important;box-shadow:0 24px 48px rgba(0,0,0,.32)!important}
+.game-market-media{height:150px!important;position:relative!important;overflow:hidden!important;background:radial-gradient(circle at 70% 30%,rgba(255,46,96,.18),transparent 36%),linear-gradient(135deg,#171a29,#0b0e16)!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
+.game-market-cover{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;object-fit:cover!important;object-position:center!important;display:block!important;transition:transform .35s ease,filter .35s ease!important;filter:saturate(.92) brightness(.72)!important}
+.premium-game-card:hover .game-market-cover{transform:scale(1.06)!important;filter:saturate(1.02) brightness(.82)!important}
+.game-market-media.has-cover:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(9,10,16,.04),rgba(9,10,16,.72));pointer-events:none}
+.game-market-media-glow{position:absolute;inset:auto -15% -55% -15%;height:95%;background:radial-gradient(ellipse at center,rgba(255,44,96,.22),transparent 64%);filter:blur(14px);pointer-events:none}
+.game-market-logo-wrap{position:absolute!important;z-index:3!important;left:16px!important;right:16px!important;bottom:14px!important;min-height:48px!important;display:flex!important;align-items:center!important}
+.game-market-real-logo{display:block!important;max-width:76%!important;max-height:52px!important;width:auto!important;height:auto!important;object-fit:contain!important;object-position:left center!important;filter:drop-shadow(0 4px 12px rgba(0,0,0,.72))!important}
+.game-market-media.no-cover .game-market-logo-wrap{inset:0!important;justify-content:center!important;padding:18px!important}
+.game-market-media.no-cover .game-market-real-logo{max-width:78%!important;max-height:64px!important;object-position:center!important;filter:drop-shadow(0 5px 16px rgba(0,0,0,.55))!important}
+.k-game-logo-fallback{display:none!important;width:58px!important;height:58px!important;margin:0!important;border-radius:14px!important;background:linear-gradient(145deg,#25293a,#151826)!important;color:#fff!important;font-size:17px!important;box-shadow:0 10px 24px rgba(0,0,0,.26)!important}
+.k-game-logo-fallback.show{display:grid!important}
+.game-market-media.no-cover .k-game-logo-fallback.show{margin:auto!important}
+.game-market-body{padding:14px 15px 15px!important;display:flex!important;flex-direction:column!important;flex:1!important;min-height:146px!important}
+.game-market-tile.premium-game-card h3{font-size:14px!important;margin:0 0 5px!important;color:#fff!important}
+.game-market-tile.premium-game-card p{font-size:9px!important;min-height:27px!important;color:#9ba2b5!important}.game-market-tile.premium-game-card p strong{color:#f7c764!important}
+.game-market-tile.premium-game-card .game-market-tags{margin:8px 0 12px!important;gap:5px!important}
+.game-market-tile.premium-game-card .game-market-tags span{font-size:8px!important;padding:4px 7px!important;background:#151827!important;border-color:rgba(255,255,255,.08)!important;color:#aeb5c7!important}
+.game-market-tile.premium-game-card .actions{display:flex!important;gap:7px!important;margin-top:auto!important}
+.game-market-tile.premium-game-card .btn{min-height:34px!important;border-radius:8px!important}
+.game-market-tile.premium-game-card .btn.teal{background:#ff285a!important;color:#fff!important;border-color:#ff285a!important}
+.game-market-tile.premium-game-card .btn.teal:hover{background:#ff3f6b!important;border-color:#ff3f6b!important}
+.game-market-tile.premium-game-card[data-game="silkroad-online"] .game-market-media,.game-market-tile.premium-game-card[data-game="world-of-warcraft"] .game-market-media{background:radial-gradient(circle at 50% 32%,rgba(211,152,59,.24),transparent 34%),linear-gradient(135deg,#241b10,#0d1017)!important}
+.game-market-tile.premium-game-card[data-game="free-fire"] .game-market-media,.game-market-tile.premium-game-card[data-game="fortnite"] .game-market-media{background:radial-gradient(circle at 65% 30%,rgba(113,86,255,.26),transparent 36%),linear-gradient(135deg,#1a1733,#0c0e18)!important}
+.game-market-tile.premium-game-card[data-game="roblox"] .game-market-media,.game-market-tile.premium-game-card[data-game="steam"] .game-market-media{background:radial-gradient(circle at 60% 30%,rgba(65,164,255,.22),transparent 36%),linear-gradient(135deg,#142233,#0b1018)!important}
+@media(max-width:1050px){.games-main-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:760px){.games-main-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.game-market-media{height:135px!important}}
+@media(max-width:480px){.games-main-grid{grid-template-columns:1fr!important}.game-market-tile.premium-game-card{min-height:282px!important}.game-market-media{height:160px!important}}
