@@ -1,0 +1,8 @@
+/* Slider slow zoom override: start at 118% */
+@keyframes kDirectSlowZoom118{
+  0%{transform:scale(1.18)}
+  100%{transform:scale(1.305)}
+}
+.k-direct-slide.active .k-direct-zoom{
+  animation-name:kDirectSlowZoom118!important;
+}
