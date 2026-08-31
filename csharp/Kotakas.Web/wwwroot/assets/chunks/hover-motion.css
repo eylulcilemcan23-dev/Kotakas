@@ -1,0 +1,53 @@
+/* KOTAKAS hover motion — restored after drawer changes */
+@media (hover:hover) and (pointer:fine){
+  .kp-game-tile,
+  .kp-product-card,
+  .kp-promo-side,
+  .kp-market-action,
+  .kp-mini-row,
+  .kp-list-panel,
+  .kp-trust-item,
+  .k-drawer-game-row,
+  .kp-shell-main .k-icon-btn,
+  .kp-shell-main .k-profile-btn,
+  .kp-shell-main .k-cart-button,
+  .kp-shell-main .k-shell-menu,
+  .kp-shell-main .k-shell-guest>a,
+  .btn{
+    transition:transform .20s cubic-bezier(.22,.85,.32,1.25),box-shadow .20s ease,border-color .20s ease,background-color .20s ease!important;
+    will-change:transform;
+  }
+
+  .kp-game-tile:hover,
+  .kp-product-card:hover,
+  .kp-promo-side:hover,
+  .kp-market-action:hover,
+  .kp-mini-row:hover{
+    transform:translateY(-7px) scale(1.018)!important;
+    z-index:5;
+    box-shadow:0 16px 34px rgba(0,0,0,.32)!important;
+  }
+
+  .kp-list-panel:hover,
+  .kp-trust-item:hover{
+    transform:translateY(-4px) scale(1.01)!important;
+    z-index:3;
+  }
+
+  .k-drawer-game-row:hover{
+    transform:translateX(5px) scale(1.012)!important;
+  }
+
+  .kp-shell-main .k-icon-btn:hover,
+  .kp-shell-main .k-profile-btn:hover,
+  .kp-shell-main .k-cart-button:hover,
+  .kp-shell-main .k-shell-menu:hover,
+  .kp-shell-main .k-shell-guest>a:hover,
+  .btn:hover{
+    transform:translateY(-3px) scale(1.025)!important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .kp-game-tile,.kp-product-card,.kp-promo-side,.kp-market-action,.kp-mini-row,.kp-list-panel,.kp-trust-item,.k-drawer-game-row,.kp-shell-main .k-icon-btn,.kp-shell-main .k-profile-btn,.kp-shell-main .k-cart-button,.kp-shell-main .k-shell-menu,.kp-shell-main .k-shell-guest>a,.btn{transition:none!important}
+}
