@@ -14,6 +14,13 @@
     'mobile-legends':'MOBILE LEGENDS',
     'metin2':'METİN2',
     'silkroad-online':'SILKROAD ONLINE',
+    'free-fire':'FREE FIRE',
+    'world-of-warcraft':'WORLD OF WARCRAFT',
+    'lost-ark':'LOST ARK',
+    'albion-online':'ALBION ONLINE',
+    'roblox':'ROBLOX',
+    'fortnite':'FORTNITE',
+    'ea-fc':'EA SPORTS FC',
     'steam':'STEAM'
   }[String(g?.code||'')]||String(g?.name||'OYUN').toUpperCase());
   const logoMap={
@@ -23,8 +30,19 @@
     'league-of-legends':'/assets/images/game-logos/league-of-legends.png',
     'pubg-mobile':'/assets/images/game-logos/pubg-mobile.png',
     'mobile-legends':'/assets/images/game-logos/mobile-legends.png',
-    'metin2':'/assets/images/game-logos/metin2.png'
+    'metin2':'/assets/images/game-logos/metin2.png',
+    'silkroad-online':'https://upload.wikimedia.org/wikipedia/de/e/ea/SilkroadOnline-logo.svg',
+    'free-fire':'https://commons.wikimedia.org/wiki/Special:Redirect/file/Freefirelogo.png',
+    'world-of-warcraft':'https://commons.wikimedia.org/wiki/Special:Redirect/file/WoW_icon.svg',
+    'lost-ark':'https://commons.wikimedia.org/wiki/Special:Redirect/file/Lost_Ark_logo.png',
+    'albion-online':'https://albiononline.com/favicon.ico',
+    'roblox':'https://commons.wikimedia.org/wiki/Special:Redirect/file/Roblox_Logo.svg',
+    'fortnite':'https://commons.wikimedia.org/wiki/Special:Redirect/file/FortniteLogo.svg',
+    'ea-fc':'https://commons.wikimedia.org/wiki/Special:Redirect/file/EA_Sports_FC_logo.svg',
+    'steam':'https://commons.wikimedia.org/wiki/Special:Redirect/file/Steam_logo.svg'
   };
+  const invertLogos=new Set(['fortnite','ea-fc']);
+  const iconLogos=new Set(['world-of-warcraft','albion-online','roblox']);
 
   function ensureDrawerAuthStyle(){
     if(document.getElementById('kDrawerAuthStyle'))return;
@@ -38,6 +56,9 @@
       .k-drawer-auth-register{background:#1b1d29;color:#f4f5f8;border:1px solid #2c3040}
       .k-drawer-auth-register:hover{background:#222532;border-color:#3a3e50;transform:translateY(-1px)}
       .k-drawer-auth .ico{font-size:14px;line-height:1}
+      .k-drawer-game-logo-shell{display:flex;align-items:center;min-height:22px;max-width:150px}
+      .k-drawer-game-logo-img.k-logo-invert{filter:brightness(0) invert(1)}
+      .k-drawer-game-logo-img.k-logo-icon{width:auto!important;max-width:34px!important;max-height:30px!important;object-fit:contain}
     `;
     document.head.appendChild(style);
   }
@@ -58,8 +79,9 @@
     const rows=games.filter(g=>!q||`${g.name} ${g.currency} ${(g.types||[]).join(' ')}`.toLowerCase().includes(q));
     return rows.map(g=>{
       const logo=logoMap[g.code];
+      const cls=`k-drawer-game-logo-img${invertLogos.has(g.code)?' k-logo-invert':''}${iconLogos.has(g.code)?' k-logo-icon':''}`;
       const brand=logo
-        ? `<img class="k-drawer-game-logo-img" src="${logo}" alt="${safe(g.name)} logosu" loading="lazy">`
+        ? `<span class="k-drawer-game-logo-shell"><img class="${cls}" src="${logo}" alt="${safe(g.name)} logosu" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'"><span class="k-drawer-game-wordmark" style="display:none">${safe(wordmark(g))}</span></span>`
         : `<span class="k-drawer-game-wordmark">${safe(wordmark(g))}</span>`;
       return `<button type="button" class="k-drawer-game-row ${g.code===current.code?'active':''}" data-drawer-game="${safe(g.code)}">
         <span class="k-drawer-game-brand">${brand}<span class="k-drawer-game-subline"><b>${safe(g.currency)}</b> • ${safe((g.types||[]).join(' • '))}</span></span>
