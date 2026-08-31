@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@500;600;700&display=swap');
 
 /* KOTAKAS top bar — reference layout */
 html,body,button,input,select,textarea{font-family:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif!important}
@@ -166,6 +167,34 @@ html,body,button,input,select,textarea{font-family:'Inter',ui-sans-serif,system-
 .kp-shell-main .k-cart-icon{font-size:14px!important}
 .kp-shell-main .k-cart-label{font-size:13px!important;font-weight:600!important}
 .kp-shell-main .k-cart-button b[data-cart-count]{right:-7px!important;top:-7px!important}
+
+/* Knightpin referansındaki buton yazı karakterine yakın görünüm */
+.kp-shell-main .k-shell-guest>a,
+.kp-shell-main .k-cart-button,
+.kp-shell-main .k-profile-btn,
+.kp-shell-main .k-profile-name{
+  font-family:'Roboto','Segoe UI',Arial,sans-serif!important;
+  letter-spacing:0!important;
+}
+.kp-shell-main .k-shell-guest>a[href='/register.html']{
+  font-size:14px!important;
+  font-weight:500!important;
+}
+.kp-shell-main .k-shell-guest>a[href='/login.html']{
+  font-family:'Roboto','Segoe UI',Arial,sans-serif!important;
+  font-weight:700!important;
+}
+.kp-shell-main .k-shell-guest>a[href='/login.html']:after{
+  font-family:'Roboto','Segoe UI',Arial,sans-serif!important;
+  font-size:14px!important;
+  font-weight:700!important;
+}
+.kp-shell-main .k-cart-label{
+  font-family:'Roboto','Segoe UI',Arial,sans-serif!important;
+  font-size:14px!important;
+  font-weight:500!important;
+  letter-spacing:0!important;
+}
 
 /* logged-in order: notification, profile, cart */
 .kp-shell-main .k-shell-right .k-icon-btn{order:1!important}
