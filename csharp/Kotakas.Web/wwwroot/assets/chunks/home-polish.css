@@ -1,0 +1,148 @@
+/* KOTAKAS ana sayfa premium dokunuslar */
+
+/* Sağdaki 3 promosyon kartını slider kalitesine yaklaştır. */
+.kp-promo-stack .kp-promo-side{
+  padding:20px 22px!important;
+  border-color:rgba(255,255,255,.10)!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.18)!important;
+}
+.kp-promo-stack .kp-promo-side small{
+  font-size:9px!important;
+  font-weight:900!important;
+  letter-spacing:.045em!important;
+  color:#b7bbc8!important;
+}
+.kp-promo-stack .kp-promo-side h3{
+  margin:5px 0 5px!important;
+  font-size:18px!important;
+  line-height:1.12!important;
+  letter-spacing:-.2px!important;
+}
+.kp-promo-stack .kp-promo-side p{
+  max-width:245px!important;
+  margin-bottom:11px!important;
+  font-size:9.5px!important;
+  line-height:1.45!important;
+  color:#b0b4c1!important;
+}
+.kp-promo-stack .kp-promo-side .btn{
+  min-width:108px!important;
+  min-height:31px!important;
+  padding:0 14px!important;
+  border-radius:16px!important;
+  font-size:9px!important;
+  font-weight:850!important;
+}
+.kp-promo-stack .kp-promo-side.red .btn{
+  background:#ff285a!important;
+  border-color:#ff285a!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px rgba(255,40,90,.15)!important;
+}
+.kp-promo-stack .kp-promo-side.red .btn:hover{background:#ff3b69!important;border-color:#ff3b69!important}
+
+/* Sliderın hemen altında ince güven şeridi. */
+.kp-trust-band.kp-trust-compact{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:0!important;
+  margin:2px 0 10px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:1px solid #292c3b!important;
+  border-radius:10px!important;
+  background:linear-gradient(90deg,#151620 0%,#191621 52%,#1d141d 100%)!important;
+  box-shadow:0 10px 26px rgba(0,0,0,.12)!important;
+}
+.kp-trust-band.kp-trust-compact .kp-trust-item{
+  min-height:58px!important;
+  padding:0 18px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  border:0!important;
+  border-right:1px solid rgba(255,255,255,.065)!important;
+  background:transparent!important;
+  border-radius:0!important;
+}
+.kp-trust-band.kp-trust-compact .kp-trust-item:last-child{border-right:0!important}
+.kp-trust-band.kp-trust-compact .kp-trust-item>.i{font-size:16px!important;opacity:.95!important}
+.kp-trust-band.kp-trust-compact .kp-trust-item strong{display:block!important;font-size:10px!important;color:#f5f6f9!important;white-space:nowrap!important}
+.kp-trust-band.kp-trust-compact .kp-trust-item strong+span{display:block!important;margin-top:3px!important;font-size:8px!important;color:#858b9b!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+
+/* Popüler oyun kartı hover: hafif zoom + karartma + aksiyon. */
+#kpPopularGames .kp-game-tile.k-cover{transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease!important}
+#kpPopularGames .kp-game-tile.k-cover:hover{
+  transform:translateY(-3px)!important;
+  border-color:rgba(255,40,90,.42)!important;
+  box-shadow:0 20px 44px rgba(0,0,0,.38)!important;
+}
+#kpPopularGames .kp-game-tile.k-cover:before{
+  content:''!important;
+  position:absolute!important;
+  inset:0!important;
+  z-index:2!important;
+  pointer-events:none!important;
+  background:linear-gradient(180deg,transparent 48%,rgba(5,6,11,.16) 66%,rgba(5,6,11,.42) 100%)!important;
+  opacity:0!important;
+  transition:opacity .28s ease!important;
+}
+#kpPopularGames .kp-game-tile.k-cover:hover:before{opacity:1!important}
+#kpPopularGames .k-cover-info{z-index:3!important}
+#kpPopularGames .k-cover-cta{
+  position:absolute!important;
+  right:16px!important;
+  bottom:15px!important;
+  z-index:4!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  padding:8px 11px!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  border-radius:999px!important;
+  background:rgba(255,40,90,.92)!important;
+  color:#fff!important;
+  font-size:9px!important;
+  font-weight:850!important;
+  opacity:0!important;
+  transform:translateY(7px)!important;
+  transition:opacity .25s ease,transform .25s ease!important;
+  box-shadow:0 8px 22px rgba(255,40,90,.18)!important;
+}
+#kpPopularGames .kp-game-tile.k-cover:hover .k-cover-cta{opacity:1!important;transform:translateY(0)!important}
+
+/* Profil içinde küçük bakiye satırı. */
+.kp-shell-main .k-profile-btn .k-profile-name{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:center!important;
+  gap:2px!important;
+  line-height:1.05!important;
+}
+.k-profile-name-line{display:block;max-width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.k-profile-wallet-mini{
+  display:block!important;
+  color:#ff7999!important;
+  font-size:9px!important;
+  font-weight:700!important;
+  letter-spacing:0!important;
+  white-space:nowrap!important;
+  cursor:pointer!important;
+}
+.k-profile-wallet-mini:hover{color:#ff9bb2!important;text-decoration:underline!important}
+
+@media(max-width:1050px){
+  .kp-trust-band.kp-trust-compact{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .kp-trust-band.kp-trust-compact .kp-trust-item:nth-child(2){border-right:0!important}
+  .kp-trust-band.kp-trust-compact .kp-trust-item:nth-child(-n+2){border-bottom:1px solid rgba(255,255,255,.055)!important}
+  .k-profile-wallet-mini{display:none!important}
+}
+@media(max-width:680px){
+  .kp-promo-stack .kp-promo-side{padding:20px!important}
+  .kp-trust-band.kp-trust-compact{grid-template-columns:1fr 1fr!important;margin-top:10px!important}
+  .kp-trust-band.kp-trust-compact .kp-trust-item{min-height:52px!important;padding:0 11px!important;gap:7px!important}
+  .kp-trust-band.kp-trust-compact .kp-trust-item strong{font-size:9px!important;white-space:normal!important}
+  .kp-trust-band.kp-trust-compact .kp-trust-item strong+span{display:none!important}
+  #kpPopularGames .k-cover-cta{opacity:1!important;transform:none!important;right:12px!important;bottom:12px!important;padding:7px 10px!important}
+}
