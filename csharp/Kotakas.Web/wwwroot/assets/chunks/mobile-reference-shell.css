@@ -67,46 +67,67 @@
     color:#f0f1f5!important;
     box-shadow:none!important;
   }
-  .kp-shell-main .k-cart-button:hover{
-    background:#202230!important;
-    border-color:#3b3e50!important;
-  }
+  .kp-shell-main .k-cart-button:hover{background:#202230!important;border-color:#3b3e50!important}
   .kp-shell-main .k-cart-label{display:none!important}
   .kp-shell-main .k-cart-icon{font-size:17px!important;color:#f0f1f5!important}
 
-  /* Sol açılan panel — mobilde panelin TAMAMI parmakla yukarı/aşağı kayar. */
+  /* Tek ve stabil mobil scroll yüzeyi. 100dvh yerine sabit küçük viewport kullanılır; adres çubuğu oynarken panel zıplamaz. */
   .k-drawer{
     width:min(390px,86vw)!important;
     position:fixed!important;
     top:0!important;
-    bottom:0!important;
-    height:100dvh!important;
-    max-height:100dvh!important;
+    bottom:auto!important;
+    height:100vh!important;
+    height:100svh!important;
+    max-height:100vh!important;
+    max-height:100svh!important;
     box-sizing:border-box!important;
-    padding:18px 16px 34px!important;
+    padding:18px 16px calc(38px + env(safe-area-inset-bottom,0px))!important;
     background:#171720!important;
     border-right:4px solid #ff285a!important;
     box-shadow:30px 0 75px rgba(0,0,0,.62)!important;
-    overflow-y:auto!important;
+    overflow-y:scroll!important;
     overflow-x:hidden!important;
-    overscroll-behavior:contain!important;
+    overscroll-behavior-x:none!important;
+    overscroll-behavior-y:none!important;
     -webkit-overflow-scrolling:touch!important;
     touch-action:pan-y!important;
+    scroll-behavior:auto!important;
     scrollbar-width:thin!important;
     scrollbar-color:#ff285a #171720!important;
+    transform:translate3d(-102%,0,0)!important;
+    will-change:transform!important;
   }
+  .k-drawer.open{transform:translate3d(0,0,0)!important}
   .k-drawer::-webkit-scrollbar{width:4px!important}
   .k-drawer::-webkit-scrollbar-track{background:#171720!important}
   .k-drawer::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#ff285a,#8d1738)!important;border-radius:10px!important}
 
-  /* Oyun listesinin kendi scroll'unu kapat: telefonda iç içe kaydırma sorununu engeller. */
+  /* İç içe scroll yok: oyun listesini ana panel taşır. */
   .k-drawer .k-drawer-game-list,
   .k-drawer [data-drawer-game-list]{
     max-height:none!important;
     height:auto!important;
     overflow:visible!important;
     overscroll-behavior:auto!important;
-    touch-action:auto!important;
+    touch-action:pan-y!important;
+  }
+
+  /* Panelde parmağı bir butonun üstünden başlatsan bile yukarı/aşağı kaydırabil. Kısa dokunuşlar JS ile çalışır. */
+  .k-drawer a,
+  .k-drawer button,
+  .k-drawer [role="button"],
+  .k-drawer label{
+    pointer-events:auto!important;
+    touch-action:pan-y!important;
+    -webkit-tap-highlight-color:transparent!important;
+  }
+  .k-drawer .k-drawer-all-games,
+  .k-drawer a[href*="urgent-sell"],
+  .k-drawer a[href*="sell.html"],
+  .k-drawer button{
+    position:relative!important;
+    z-index:3!important;
   }
 
   .k-drawer-top{
@@ -116,48 +137,24 @@
     border-bottom:1px solid rgba(255,255,255,.055)!important;
   }
   .k-drawer-top .k-shell-logo{font-size:24px!important}
-  .k-drawer-close{
-    border:0!important;
-    background:transparent!important;
-    color:#9ea4b7!important;
-    font-size:19px!important;
-  }
+  .k-drawer-close{border:0!important;background:transparent!important;color:#9ea4b7!important;font-size:19px!important}
+
+  /* Giriş/Kayıt yalnız drawer-game-nav.js tarafında tek kez gösterilir. */
   .k-mobile-drawer-priority{display:none!important}
-  .k-mobile-drawer-search{
-    height:54px;
-    display:flex;
-    align-items:center;
-    gap:11px;
-    background:#1e1f2a;
-    border:1px solid #292b38;
-    border-radius:14px;
-    padding:0 14px;
-    margin-bottom:14px;
-  }
-  .k-mobile-drawer-search span{font-size:21px;color:#9aa4bd;flex:0 0 auto}
-  .k-mobile-drawer-search input{
-    min-width:0;
-    width:100%;
-    height:50px;
-    padding:0!important;
-    border:0!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    color:#f4f5f8!important;
-    font-size:14px!important;
-  }
-  .k-mobile-drawer-search input::placeholder{color:#8f94a7!important;opacity:1}
   .k-mobile-auth{display:none!important}
   .k-drawer-auth{display:grid!important;gap:9px!important;padding:8px 0 12px!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
   .k-drawer-auth a{min-height:46px!important;border-radius:12px!important;font-size:14px!important}
+
+  .k-mobile-drawer-search{
+    height:54px;display:flex;align-items:center;gap:11px;background:#1e1f2a;border:1px solid #292b38;border-radius:14px;padding:0 14px;margin-bottom:14px;
+  }
+  .k-mobile-drawer-search span{font-size:21px;color:#9aa4bd;flex:0 0 auto}
+  .k-mobile-drawer-search input{min-width:0;width:100%;height:50px;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;color:#f4f5f8!important;font-size:14px!important}
+  .k-mobile-drawer-search input::placeholder{color:#8f94a7!important;opacity:1}
+
   .k-drawer-group{margin:17px 0!important}
   .k-drawer-label{font-size:11px!important;color:#8f94a5!important;padding-bottom:8px!important}
-  .k-drawer a,.k-drawer button.k-drawer-link{
-    min-height:46px!important;
-    border-radius:11px!important;
-    color:#c6cad7!important;
-    font-size:14px!important;
-  }
+  .k-drawer a,.k-drawer button.k-drawer-link{min-height:46px!important;border-radius:11px!important;color:#c6cad7!important;font-size:14px!important}
   .k-drawer a:hover,.k-drawer button.k-drawer-link:hover{background:#222430!important;color:#fff!important}
 }
 
