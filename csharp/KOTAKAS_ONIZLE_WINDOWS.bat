@@ -33,15 +33,15 @@ if /I not "%CURRENT_BRANCH%"=="csharp-rebuild" (
 git pull --ff-only origin csharp-rebuild
 if errorlevel 1 goto :pullerror
 
-echo [2/4] Oyun ve slider gorselleri kontrol ediliyor...
+echo [2/4] Oyun, slider ve populer oyun gorselleri kontrol ediliyor...
 set "GAME_ASSET_DIR=%CD%\csharp\Kotakas.Web\wwwroot\assets\images\games"
 if not exist "%GAME_ASSET_DIR%" mkdir "%GAME_ASSET_DIR%"
 
 rem Takip edilen oyun kapaklari yerelde silinmis/bozulmussa Git'ten geri getir.
 git checkout -- "csharp/Kotakas.Web/wwwroot/assets/images/games/knight-online.jpg" "csharp/Kotakas.Web/wwwroot/assets/images/games/rise-online.jpg" "csharp/Kotakas.Web/wwwroot/assets/images/games/valorant.jpg" "csharp/Kotakas.Web/wwwroot/assets/images/games/mobile-legends.webp" >nul 2>nul
 
-rem Kullanici sliderlari yanlis KOTAKAS kopyasina koyduysa Masaustu/Indirilenler/Belgeler icinden bulup gercek wwwroot'a kopyala.
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$target='%GAME_ASSET_DIR%'; $names=@('slider-1-genel-pazaryeri.png','slider-2-hizli-teslimat.png','slider-3-30-agustos.png','slider-4-bize-sat.png'); $roots=@([Environment]::GetFolderPath('Desktop'),(Join-Path $env:USERPROFILE 'Downloads'),[Environment]::GetFolderPath('MyDocuments')); foreach($n in $names){ $dest=Join-Path $target $n; if(Test-Path $dest){ Write-Host ('[OK] '+$n); continue }; $found=$null; foreach($r in $roots){ if($r -and (Test-Path $r)){ $found=Get-ChildItem -LiteralPath $r -Filter $n -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $dest } | Select-Object -First 1; if($found){ break } } }; if($found){ Copy-Item -LiteralPath $found.FullName -Destination $dest -Force; Write-Host ('[OK] '+$n+' otomatik kopyalandi') } else { Write-Host ('[UYARI] '+$n+' bulunamadi') -ForegroundColor Yellow } }"
+rem Slider ve kullanicinin verdigi premium populer oyun gorsellerini Masaustu/Indirilenler/Belgeler icinden bulup gercek wwwroot'a kopyala.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$target='%GAME_ASSET_DIR%'; $names=@('slider-1-genel-pazaryeri.png','slider-2-hizli-teslimat.png','slider-3-30-agustos.png','slider-4-bize-sat.png','popular-knight-online.webp','popular-mobile-legends.webp'); $roots=@([Environment]::GetFolderPath('Desktop'),(Join-Path $env:USERPROFILE 'Downloads'),[Environment]::GetFolderPath('MyDocuments')); foreach($n in $names){ $dest=Join-Path $target $n; if(Test-Path $dest){ Write-Host ('[OK] '+$n); continue }; $found=$null; foreach($r in $roots){ if($r -and (Test-Path $r)){ $found=Get-ChildItem -LiteralPath $r -Filter $n -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $dest } | Select-Object -First 1; if($found){ break } } }; if($found){ Copy-Item -LiteralPath $found.FullName -Destination $dest -Force; Write-Host ('[OK] '+$n+' otomatik kopyalandi') } else { Write-Host ('[UYARI] '+$n+' bulunamadi') -ForegroundColor Yellow } }"
 
 echo [3/4] Yerel SQLite veritabani hazirlaniyor...
 set "ASPNETCORE_ENVIRONMENT=Development"
