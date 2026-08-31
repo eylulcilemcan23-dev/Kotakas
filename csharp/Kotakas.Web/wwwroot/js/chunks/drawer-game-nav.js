@@ -26,6 +26,31 @@
     'metin2':'/assets/images/game-logos/metin2.png'
   };
 
+  function ensureDrawerAuthStyle(){
+    if(document.getElementById('kDrawerAuthStyle'))return;
+    const style=document.createElement('style');
+    style.id='kDrawerAuthStyle';
+    style.textContent=`
+      .k-drawer-auth{display:grid;gap:8px;padding:10px 14px 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+      .k-drawer-auth a{min-height:40px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:9px;text-decoration:none;font-family:'Roboto','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:850;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+      .k-drawer-auth-login{background:#ff285a;color:#fff;border:1px solid #ff285a;box-shadow:0 8px 20px rgba(255,40,90,.14)}
+      .k-drawer-auth-login:hover{background:#ff3b69;border-color:#ff3b69;transform:translateY(-1px)}
+      .k-drawer-auth-register{background:#1b1d29;color:#f4f5f8;border:1px solid #2c3040}
+      .k-drawer-auth-register:hover{background:#222532;border-color:#3a3e50;transform:translateY(-1px)}
+      .k-drawer-auth .ico{font-size:14px;line-height:1}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function guestSection(){
+    const logged=typeof ME!=='undefined'&&!!ME;
+    if(logged)return '';
+    return `<div class="k-drawer-auth" data-drawer-auth>
+      <a class="k-drawer-auth-login" href="/login.html"><span class="ico">↪</span><span>Giriş Yap</span></a>
+      <a class="k-drawer-auth-register" href="/register.html"><span class="ico">👤＋</span><span>Kayıt Ol</span></a>
+    </div>`;
+  }
+
   function gameRows(query=''){
     const games=window.KOTAKAS_GAMES||[];
     const current=currentGame();
@@ -93,8 +118,10 @@
   function decorateMenu(){
     const drawer=document.getElementById('kShellDrawer');
     if(!drawer)return;
+    ensureDrawerAuthStyle();
 
     drawer.querySelector('[data-drawer-games]')?.remove();
+    drawer.querySelector('[data-drawer-auth]')?.remove();
     drawer.querySelector('.k-drawer-account')?.remove();
     drawer.querySelectorAll('.k-drawer-group').forEach(group=>group.remove());
 
@@ -104,8 +131,15 @@
       top.insertAdjacentHTML('afterbegin','<strong class="k-drawer-title">OYUNLAR</strong>');
     }
 
-    if(top)top.insertAdjacentHTML('afterend',gameSection());
-    else drawer.insertAdjacentHTML('afterbegin',gameSection());
+    const authHtml=guestSection();
+    if(top){
+      if(authHtml)top.insertAdjacentHTML('afterend',authHtml);
+      const anchor=drawer.querySelector('[data-drawer-auth]')||top;
+      anchor.insertAdjacentHTML('afterend',gameSection());
+    }else{
+      drawer.insertAdjacentHTML('afterbegin',gameSection());
+      if(authHtml)drawer.insertAdjacentHTML('afterbegin',authHtml);
+    }
 
     bindGameButtons(drawer);
     bindSearch(drawer);
