@@ -7,8 +7,11 @@
 .k-drawer-label{padding:0 7px 7px!important;color:#71849b!important;font-size:9px!important;letter-spacing:1.15px!important;font-weight:900!important}
 .k-drawer-game-search{height:38px!important;margin-bottom:8px!important;padding:0 10px!important;background:#151824!important;border:1px solid #303345!important;border-radius:9px!important;color:#7f8799!important}
 .k-drawer-game-search input{height:36px!important;color:#eef0f5!important;font-size:10px!important}.k-drawer-game-search input::placeholder{color:#777e91!important}
-.k-drawer-game-list{gap:6px!important;max-height:calc(100vh - 190px)!important;padding-right:4px!important}
-.k-drawer-game-list::-webkit-scrollbar{width:4px!important}.k-drawer-game-list::-webkit-scrollbar-thumb{background:#2c8795!important}
+.k-drawer-game-list{gap:6px!important;max-height:calc(100vh - 190px)!important;padding-right:4px!important;scrollbar-width:thin!important;scrollbar-color:#9b2948 #161824!important}
+.k-drawer-game-list::-webkit-scrollbar{width:4px!important}
+.k-drawer-game-list::-webkit-scrollbar-track{background:#161824!important;border-radius:999px!important}
+.k-drawer-game-list::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#ff285a 0%,#8a2643 100%)!important;border-radius:999px!important}
+.k-drawer-game-list::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ff3f6b 0%,#a92b4f 100%)!important}
 .k-drawer-game-row{min-height:56px!important;padding:7px 9px!important;border-radius:10px!important;border:1px solid #303344!important;background:#1a1d2b!important;color:#fff!important;gap:9px!important;box-shadow:none!important;transform:none!important}
 .k-drawer-game-row:hover{background:#202434!important;border-color:#45495e!important;transform:translateX(2px)!important}
 .k-drawer-game-row.active{background:#1b1e2c!important;border-color:#ff285a!important;box-shadow:inset 2px 0 0 #ff285a!important}
