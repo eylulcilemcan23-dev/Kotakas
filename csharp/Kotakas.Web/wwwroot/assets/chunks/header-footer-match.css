@@ -30,16 +30,22 @@ footer.kp-footer{
   background:transparent!important;
 }
 
-/* Ana sayfanin SOL kenari da header/footer ile ayni renk dilinde aksin.
-   Sadece sol bolgeyi boyar; orta ve sag taraftaki mevcut koyu/mavi atmosfer korunur. */
+/* Ana sayfanin SOL kenari daha belirgin bordo/lacivert olsun.
+   Sol tarafta iki katmanli bordo parilti var; orta ve sagdaki mavi atmosfer korunur. */
 .kp-home{
-  background-image:linear-gradient(90deg,
-    rgba(19,19,30,.96) 0%,
-    rgba(22,18,29,.90) 10%,
-    rgba(26,18,28,.78) 20%,
-    rgba(29,17,27,.58) 30%,
-    rgba(33,16,26,.30) 39%,
-    rgba(35,16,25,0) 49%)!important;
+  background-image:
+    radial-gradient(760px 620px at 0% 18%,
+      rgba(105,18,49,.68) 0%,
+      rgba(82,17,43,.48) 34%,
+      rgba(54,16,36,.22) 62%,
+      rgba(35,16,25,0) 82%),
+    linear-gradient(90deg,
+      rgba(24,17,29,.98) 0%,
+      rgba(40,16,31,.92) 11%,
+      rgba(53,15,34,.78) 22%,
+      rgba(43,16,32,.56) 33%,
+      rgba(31,17,29,.30) 43%,
+      rgba(23,18,28,0) 54%)!important;
   background-repeat:no-repeat!important;
   background-size:100% 100%!important;
 }
