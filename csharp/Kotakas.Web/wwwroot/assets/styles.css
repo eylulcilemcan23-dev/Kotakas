@@ -15,4 +15,24 @@
 @import url('/assets/chunks/slider-zoom-118.css?v=20260831-2045');
 @import url('/assets/chunks/games-catalog-premium.css?v=20260831-2110');
 @import url('/assets/chunks/drawer-scrollbar-hide.css?v=20260831-0714');
-@import url('/assets/chunks/header-footer-match.css?v=20260831-1255');
+@import url('/assets/chunks/header-footer-match.css?v=20260831-1315');
+
+/* INDEX HEADER — footer referans ekran goruntusundeki ayni yatay renk. */
+body .site-header,
+body .site-header.k-shell{
+  background:#14131e!important;
+  background-image:linear-gradient(90deg,#14131e 0%,#17121d 25%,#1b111c 50%,#1f111a 75%,#231019 100%)!important;
+  background-color:#14131e!important;
+}
+body .site-header:before,
+body .site-header:after,
+body .site-header.k-shell:before,
+body .site-header.k-shell:after{
+  display:none!important;
+  content:none!important;
+  background:none!important;
+}
+body .site-header>.container,
+body .site-header .k-shell-bar{
+  background:transparent!important;
+}
