@@ -3,7 +3,8 @@
 
   const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=v=>{try{return new Date(v).toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}catch{return ''}};
-  const isAdmin=()=>!!window.ME&&String(window.ME.role||'').startsWith('admin_');
+  let currentUser=null;
+  const isAdmin=()=>!!currentUser&&String(currentUser.role||'').startsWith('admin_');
   const root=document.createElement('div');
   root.id='kLiveSupport';root.className='k-live-support';
   root.innerHTML=`<div class="k-live-support-panel" role="dialog" aria-label="KOTAKAS Canlı Sohbet">
@@ -37,7 +38,8 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeChat()});
 
   async function ensureMe(){
-    try{if(!window.ME&&typeof window.loadMe==='function')await window.loadMe()}catch{}
+    try{currentUser=(await api('/api/me')).user||null}catch{currentUser=null}
+    return currentUser;
   }
 
   function loginState(){
@@ -134,7 +136,7 @@
     if(refreshing)return;refreshing=true;
     try{
       await ensureMe();
-      if(!window.ME){loginState();return}
+      if(!currentUser){loginState();return}
       if(isAdmin()){
         if(activeAdminTicket)await loadAdminDetail(forceBottom);else await loadAdminList();
       }else await loadUserChat(forceBottom);
