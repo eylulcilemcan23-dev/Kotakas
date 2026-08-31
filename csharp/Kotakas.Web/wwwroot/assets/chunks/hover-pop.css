@@ -1,0 +1,57 @@
+/* KOTAKAS — subtle hover lift/pop effect */
+@media (hover:hover) and (pointer:fine){
+  .kp-game-tile,
+  .kp-promo-side,
+  .kp-product-card,
+  .game-market-tile,
+  .quick-card,
+  .trader-mini,
+  .v5-card,
+  .card,
+  .listitem,
+  .kp-market-action,
+  .kp-mini-row,
+  .k-store-footer-grid a,
+  .kp-shell-main .k-icon-btn,
+  .kp-shell-main .k-profile-btn,
+  .kp-shell-main .k-cart-button,
+  .kp-shell-main .k-shell-menu,
+  .btn,
+  .k-direct-nav,
+  .k-direct-dot{
+    transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease,border-color .18s ease,filter .18s ease!important;
+    transform-origin:center!important;
+  }
+
+  .kp-game-tile:hover,
+  .kp-promo-side:hover,
+  .kp-product-card:hover,
+  .game-market-tile:hover,
+  .quick-card:hover,
+  .trader-mini:hover,
+  .v5-card:hover,
+  .card:hover,
+  .listitem:hover,
+  .kp-market-action:hover,
+  .kp-mini-row:hover{
+    transform:translateY(-7px) scale(1.018)!important;
+    box-shadow:0 14px 32px rgba(0,0,0,.30)!important;
+    z-index:4!important;
+  }
+
+  .kp-shell-main .k-icon-btn:hover,
+  .kp-shell-main .k-profile-btn:hover,
+  .kp-shell-main .k-cart-button:hover,
+  .kp-shell-main .k-shell-menu:hover,
+  .btn:hover,
+  .k-direct-nav:hover{
+    transform:translateY(-3px) scale(1.035)!important;
+  }
+
+  .k-direct-dot:hover{transform:translateY(-2px) scale(1.18)!important}
+  .k-store-footer-grid a:hover{transform:translateX(4px)!important}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .kp-game-tile,.kp-promo-side,.kp-product-card,.game-market-tile,.quick-card,.trader-mini,.v5-card,.card,.listitem,.kp-market-action,.kp-mini-row,.k-store-footer-grid a,.kp-shell-main .k-icon-btn,.kp-shell-main .k-profile-btn,.kp-shell-main .k-cart-button,.kp-shell-main .k-shell-menu,.btn,.k-direct-nav,.k-direct-dot{transition:none!important;transform:none!important}
+}
