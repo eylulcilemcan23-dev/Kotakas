@@ -1,5 +1,5 @@
 (async()=>{
-  const UI_VERSION='20260831-1855-exact-game-covers-v3';
+  const UI_VERSION='20260831-1905-exact-game-covers-v4';
 
   // Mobil Chrome/Android tarayıcı üst çubuğunu KOTAKAS pembe rengine boya.
   let themeColor=document.querySelector('meta[name="theme-color"]');
