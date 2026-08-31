@@ -1,5 +1,5 @@
 (async()=>{
-  const UI_VERSION='20260831-1535-live-chat-auth-fix';
+  const UI_VERSION='20260831-1545-live-chat-draft-fix';
 
   // Mobil Chrome/Android tarayıcı üst çubuğunu KOTAKAS pembe rengine boya.
   let themeColor=document.querySelector('meta[name="theme-color"]');
