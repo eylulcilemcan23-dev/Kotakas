@@ -5,6 +5,17 @@
     const u=new URL(path,location.origin);u.searchParams.set('game',code);return u.pathname+u.search;
   };
   const currentGame=()=>window.KOTAKAS_GAME||window.KOTAKAS_GAMES?.[0]||{code:'knight-online',mark:'KO',name:'Knight Online',currency:'GB'};
+  const wordmark=g=>({
+    'knight-online':'KNIGHT ONLINE',
+    'rise-online':'RISE ONLINE',
+    'valorant':'VALORANT',
+    'league-of-legends':'LEAGUE OF LEGENDS',
+    'pubg-mobile':'PUBG MOBILE',
+    'mobile-legends':'MOBILE LEGENDS',
+    'metin2':'METİN2',
+    'silkroad-online':'SILKROAD ONLINE',
+    'steam':'STEAM'
+  }[String(g?.code||'')]||String(g?.name||'OYUN').toUpperCase());
 
   function gameRows(query=''){
     const games=window.KOTAKAS_GAMES||[];
@@ -12,8 +23,7 @@
     const q=String(query||'').trim().toLowerCase();
     const rows=games.filter(g=>!q||`${g.name} ${g.currency} ${(g.types||[]).join(' ')}`.toLowerCase().includes(q));
     return rows.map(g=>`<button type="button" class="k-drawer-game-row ${g.code===current.code?'active':''}" data-drawer-game="${safe(g.code)}">
-      <span class="k-drawer-game-logo">${safe(g.mark)}</span>
-      <span class="k-drawer-game-info"><strong>${safe(g.name)}</strong><small><b>${safe(g.currency)}</b> • ${safe((g.types||[]).join(' • '))}</small></span>
+      <span class="k-drawer-game-brand"><span class="k-drawer-game-wordmark">${safe(wordmark(g))}</span><span class="k-drawer-game-subline"><b>${safe(g.currency)}</b> • ${safe((g.types||[]).join(' • '))}</span></span>
       ${g.code===current.code?'<i>✓</i>':''}
     </button>`).join('')||'<div class="k-drawer-game-empty">Oyun bulunamadı.</div>';
   }
@@ -22,7 +32,7 @@
     const games=window.KOTAKAS_GAMES||[];
     if(!games.length)return '';
     return `<div class="k-drawer-group k-drawer-games" data-drawer-games>
-      <div class="k-drawer-label">🎮 Oyunlar & Oyun Paraları</div>
+      <div class="k-drawer-label">🎮 OYUNLAR & OYUN PARALARI</div>
       <label class="k-drawer-game-search">⌕ <input id="kDrawerGameSearch" autocomplete="off" placeholder="Oyun veya para ara..."></label>
       <div class="k-drawer-game-list" data-drawer-game-list>${gameRows()}</div>
       <a class="k-drawer-all-games" href="/games.html">＋ Tüm Oyunlar Sayfası</a>
