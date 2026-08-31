@@ -28,11 +28,13 @@
   let activeAdminTicket=null;
   let adminTickets=[];
   let refreshing=false;
+  let sending=false;
 
   function setSub(text){if(sub)sub.innerHTML=`<i class="k-live-support-dot"></i>${safe(text)}`}
   function scrollBottom(){const list=root.querySelector('.k-live-chat-list');if(list)list.scrollTop=list.scrollHeight}
   function openChat(){root.classList.add('open');toggle?.setAttribute('aria-expanded','true');toggle?.setAttribute('aria-label','Canlı sohbeti kapat');refresh(true)}
   function closeChat(){root.classList.remove('open');toggle?.setAttribute('aria-expanded','false');toggle?.setAttribute('aria-label','Canlı sohbeti aç')}
+  function hasDraft(){const ta=root.querySelector('[data-live-compose] textarea');return !!ta&&ta.value.trim().length>0}
   toggle?.addEventListener('click',()=>root.classList.contains('open')?closeChat():openChat());
   close?.addEventListener('click',closeChat);
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeChat()});
@@ -55,14 +57,31 @@
   }
 
   function composeHtml(placeholder='Mesajını yaz…'){
-    return `<form class="k-live-chat-compose" data-live-compose><textarea name="message" maxlength="1000" minlength="2" required placeholder="${safe(placeholder)}"></textarea><button class="k-live-chat-send" type="submit" title="Gönder">➤</button></form>`;
+    return `<form class="k-live-chat-compose" data-live-compose novalidate><textarea name="message" maxlength="1000" minlength="2" placeholder="${safe(placeholder)}"></textarea><button class="k-live-chat-send" type="submit" title="Gönder">➤</button></form>`;
   }
 
   function bindCompose(handler){
     const form=root.querySelector('[data-live-compose]');
     const textarea=form?.querySelector('textarea');
     if(!form||!textarea)return;
-    form.addEventListener('submit',async e=>{e.preventDefault();const message=textarea.value.trim();if(message.length<2)return;const btn=form.querySelector('button');btn.disabled=true;try{await handler(message);textarea.value=''}finally{btn.disabled=false;textarea.focus()}});
+    form.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const message=textarea.value.trim();
+      if(message.length<2){textarea.focus();return}
+      if(sending)return;
+      const btn=form.querySelector('button');
+      sending=true;btn.disabled=true;
+      try{
+        await handler(message);
+      }catch(err){
+        console.error('Canlı sohbet mesajı gönderilemedi',err);
+        if(typeof toast==='function')toast('Mesaj gönderilemedi. Tekrar dene.');
+      }finally{
+        sending=false;
+        const newTextarea=root.querySelector('[data-live-compose] textarea');
+        if(newTextarea)newTextarea.focus();
+      }
+    });
     textarea.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});
   }
 
@@ -133,7 +152,9 @@
   }
 
   async function refresh(forceBottom=false){
-    if(refreshing)return;refreshing=true;
+    if(refreshing||sending)return;
+    if(!forceBottom&&hasDraft())return;
+    refreshing=true;
     try{
       await ensureMe();
       if(!currentUser){loginState();return}
@@ -144,5 +165,9 @@
   }
 
   setTimeout(()=>refresh(false),350);
-  setInterval(()=>{if(root.classList.contains('open'))refresh(false);else if(isAdmin())fetchAdminTickets().catch(()=>{})},3500);
+  setInterval(()=>{
+    if(root.classList.contains('open')){
+      if(!hasDraft()&&!sending)refresh(false);
+    }else if(isAdmin())fetchAdminTickets().catch(()=>{});
+  },3500);
 })();
