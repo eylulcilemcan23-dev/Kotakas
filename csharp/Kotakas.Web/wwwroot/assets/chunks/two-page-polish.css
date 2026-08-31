@@ -1,0 +1,118 @@
+/* KOTAKAS ana sayfa + pazarcı paneli son premium dokunuşları */
+
+/* ANA SAYFA: bölüm başlıkları daha güçlü */
+.kp-home .kp-section-head h2{
+  position:relative;
+  padding-left:14px;
+  letter-spacing:-.2px;
+}
+.kp-home .kp-section-head h2:before{
+  content:'';
+  position:absolute;
+  left:0;top:50%;transform:translateY(-50%);
+  width:4px;height:18px;border-radius:8px;
+  background:linear-gradient(180deg,#ff285a,#7c2345);
+  box-shadow:0 0 14px rgba(255,40,90,.22);
+}
+.kp-home .kp-section-head>a{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:30px;padding:0 12px;border-radius:999px;
+  border:1px solid rgba(255,40,90,.24);
+  background:rgba(255,40,90,.055);
+  color:#e7e8ee!important;font-size:9px!important;font-weight:850!important;
+  transition:.2s ease;
+}
+.kp-home .kp-section-head>a:hover{
+  color:#fff!important;background:rgba(255,40,90,.14);
+  border-color:rgba(255,40,90,.48);transform:translateY(-1px);
+}
+
+/* ANA SAYFA: güven şeridi ikonları daha premium */
+.kp-trust-band.kp-trust-compact .kp-trust-item>.i{
+  transition:transform .2s ease,box-shadow .2s ease,background .2s ease;
+}
+.kp-trust-band.kp-trust-compact .kp-trust-item:hover>.i{transform:translateY(-1px) scale(1.04)}
+.kp-trust-band.kp-trust-compact .kp-trust-item:nth-child(1)>.i{box-shadow:inset 0 0 0 1px rgba(255,177,64,.12),0 0 18px rgba(255,177,64,.08)}
+.kp-trust-band.kp-trust-compact .kp-trust-item:nth-child(2)>.i{box-shadow:inset 0 0 0 1px rgba(49,214,151,.14),0 0 18px rgba(49,214,151,.08)}
+.kp-trust-band.kp-trust-compact .kp-trust-item:nth-child(3)>.i{box-shadow:inset 0 0 0 1px rgba(255,40,90,.14),0 0 18px rgba(255,40,90,.08)}
+.kp-trust-band.kp-trust-compact .kp-trust-item:nth-child(4)>.i{box-shadow:inset 0 0 0 1px rgba(184,134,255,.14),0 0 18px rgba(184,134,255,.08)}
+
+/* ANA SAYFA: arama kutusuna hızlı erişim seçenekleri */
+.kp-search-results.k-quick-open{display:block!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important}
+.kp-search-quick-wrap{padding:10px 11px 12px}
+.kp-search-quick-title{display:flex;align-items:center;gap:7px;padding:1px 3px 9px;color:#8e94a4;font-size:9px;font-weight:850;letter-spacing:.045em;text-transform:uppercase}
+.kp-search-quick-title:before{content:'⚡';font-size:10px}
+.kp-search-quick-grid{display:flex;flex-wrap:wrap;gap:7px}
+.kp-search-quick{
+  display:inline-flex;align-items:center;gap:6px;min-height:31px;padding:0 10px;
+  border:1px solid #303241;border-radius:9px;background:#1a1b26;color:#d8dbe3;
+  font-size:9.5px;font-weight:800;transition:.18s ease;
+}
+.kp-search-quick:hover{color:#fff;border-color:#6f3048;background:#231a24;transform:translateY(-1px)}
+.kp-search-quick.hot{background:rgba(255,40,90,.10);border-color:rgba(255,40,90,.32);color:#ff91aa}
+
+/* Canlı destek çevrimiçi göstergesi */
+.k-live-support-toggle{position:relative}
+.k-live-support-toggle:before{
+  content:'';width:7px;height:7px;border-radius:50%;background:#24d38b;
+  box-shadow:0 0 0 3px rgba(36,211,139,.11),0 0 10px rgba(36,211,139,.28);
+  flex:0 0 auto;
+}
+
+/* PAZARCI PANELİ: ana çalışma merkezi daha net hiyerarşi */
+body:has(#traderWorkbench) #traderWorkbench{
+  border-color:#343544!important;
+  box-shadow:0 18px 45px rgba(0,0,0,.16)!important;
+  overflow:hidden;
+}
+body:has(#traderWorkbench) #traderWorkbench>.v5-card-head{
+  margin:-1px -1px 13px!important;padding:15px 17px!important;
+  background:linear-gradient(90deg,rgba(255,40,90,.075),rgba(255,40,90,.015) 35%,rgba(19,31,49,.22));
+  border-bottom:1px solid rgba(255,255,255,.055);
+}
+body:has(#traderWorkbench) #traderWorkbench>.v5-card-head h3{font-size:14px!important}
+
+.k-trader-focusbar{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;
+  margin:0 0 14px;padding:0;
+}
+.k-trader-focus{
+  min-height:64px;padding:10px 12px;border:1px solid #2c2f3e;border-radius:12px;
+  background:linear-gradient(145deg,#181923,#1b1821);color:#eef0f5;
+  display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.k-trader-focus:hover{transform:translateY(-2px);border-color:#5d3346;box-shadow:0 10px 25px rgba(0,0,0,.20)}
+.k-trader-focus .kf-ico{width:34px;height:34px;border-radius:10px;background:#222431;display:grid;place-items:center;font-size:15px;flex:0 0 auto}
+.k-trader-focus .kf-copy{min-width:0;flex:1}.k-trader-focus small{display:block;color:#9298a8;font-size:8.5px;font-weight:800;margin-bottom:3px}.k-trader-focus strong{display:block;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.k-trader-focus .kf-go{color:#ff7697;font-size:12px;font-weight:900}
+.k-trader-focus.hot{border-color:rgba(255,40,90,.40);background:linear-gradient(145deg,rgba(255,40,90,.12),#1b1821)}
+.k-trader-focus.warn{border-color:rgba(255,179,71,.32)}
+.k-trader-focus.ok{border-color:rgba(42,208,144,.24)}
+
+body:has(#traderWorkbench) #traderWorkbench .v5-stat{
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+body:has(#traderWorkbench) #traderWorkbench .v5-stat:hover{
+  transform:translateY(-2px);border-color:rgba(255,40,90,.22)!important;
+  box-shadow:0 11px 24px rgba(0,0,0,.14);
+}
+body:has(#traderWorkbench) #traderWorkbench .v5-card-head h3{
+  position:relative;padding-left:10px;
+}
+body:has(#traderWorkbench) #traderWorkbench .v5-card-head h3:before{
+  content:'';position:absolute;left:0;top:2px;bottom:2px;width:3px;border-radius:4px;
+  background:linear-gradient(#ff285a,#7c2345);
+}
+body:has(#traderWorkbench) .trader-toolbar{
+  border-color:rgba(44,200,145,.22)!important;
+  background:linear-gradient(90deg,rgba(31,194,137,.055),rgba(255,255,255,.015))!important;
+}
+body:has(#traderWorkbench) .trader-toolbar .toggle.on{box-shadow:0 0 0 3px rgba(32,202,142,.08),0 0 18px rgba(32,202,142,.10)}
+
+@media(max-width:980px){.k-trader-focusbar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){
+  .kp-home .kp-section-head h2{padding-left:10px}.kp-home .kp-section-head h2:before{height:15px;width:3px}
+  .kp-search-quick-grid{gap:6px}.kp-search-quick{min-height:29px;padding:0 8px;font-size:9px}
+  .k-trader-focusbar{grid-template-columns:1fr 1fr;gap:6px}.k-trader-focus{min-height:57px;padding:8px}.k-trader-focus .kf-ico{width:30px;height:30px;font-size:13px}.k-trader-focus strong{font-size:11px}.k-trader-focus small{font-size:8px}
+  .k-live-support-toggle:before{position:absolute;right:1px;top:1px;width:8px;height:8px;border:2px solid #ff285a}
+}
