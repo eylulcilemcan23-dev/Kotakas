@@ -1,6 +1,6 @@
 (()=>{
   if(!['/','/index.html'].includes(location.pathname.toLowerCase()))return;
-  const V='20260831-2015';
+  const V='20260831-2030';
   const assetBase='/assets/images/games/';
   const makeSources=stem=>['png','jpg','jpeg','webp'].map(ext=>`${assetBase}${stem}.${ext}?v=${V}`);
   const slides=[
@@ -19,9 +19,9 @@
       .k-direct-slide{position:absolute!important;inset:0!important;opacity:0!important;pointer-events:none!important;transition:opacity .42s ease!important;background:#07080d!important;overflow:hidden!important}
       .k-direct-slide.active{opacity:1!important;pointer-events:auto!important}
       .k-direct-slide-link{position:absolute!important;inset:0!important;display:block!important;z-index:2!important;text-decoration:none!important;color:inherit!important;overflow:hidden!important}
-      .k-direct-zoom{position:absolute!important;inset:0!important;overflow:hidden!important;transform:scale(1.055);transform-origin:50% 48%;will-change:transform}
+      .k-direct-zoom{position:absolute!important;inset:0!important;overflow:hidden!important;transform:scale(1.15);transform-origin:50% 48%;will-change:transform}
       .k-direct-slide.active .k-direct-zoom{animation:kDirectSlowZoom 5.9s linear forwards}
-      @keyframes kDirectSlowZoom{0%{transform:scale(1.055)}100%{transform:scale(1.18)}}
+      @keyframes kDirectSlowZoom{0%{transform:scale(1.15)}100%{transform:scale(1.275)}}
       .k-direct-bg,.k-direct-art{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
       .k-direct-bg{object-fit:cover!important;object-position:center!important;filter:blur(32px) brightness(.28) saturate(.78) contrast(.9)!important;transform:scale(1.12)!important;opacity:.68!important;z-index:0!important}
       .k-direct-art{object-fit:contain!important;object-position:center!important;z-index:1!important;filter:none!important;background:transparent!important}
@@ -51,9 +51,9 @@
   function mount(){
     const host=document.querySelector('.kp-promo-main');
     if(!host)return;
-    if(host.dataset.directSlider==='10'&&host.querySelectorAll('.k-direct-slide').length===slides.length)return;
+    if(host.dataset.directSlider==='11'&&host.querySelectorAll('.k-direct-slide').length===slides.length)return;
     addCss();
-    host.dataset.directSlider='10';
+    host.dataset.directSlider='11';
     host.classList.remove('k-game-slider');
     host.classList.add('k-direct-slider');
     host.innerHTML=slides.map((x,i)=>{
