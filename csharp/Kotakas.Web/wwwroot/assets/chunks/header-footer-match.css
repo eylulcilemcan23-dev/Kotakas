@@ -1,7 +1,31 @@
-/* KOTAKAS ana sayfa: ust logo/header zemini ile en alttaki footer zeminini birebir ayni yap. */
+/* KOTAKAS: ust logo/header zemini, referanstaki alt footer rengiyle birebir ayni. */
 .site-header,
 .site-header.k-shell,
 footer,
 footer.kp-footer{
-  background:linear-gradient(90deg,#10101a 0%,#17121c 32%,#1b111b 55%,#1f101a 76%,#221019 96%,#1e0e15 100%)!important;
+  background-color:#13131e!important;
+  background-image:linear-gradient(90deg,
+    #13131e 0%,
+    #16121d 20%,
+    #1a121c 40%,
+    #1d111b 60%,
+    #21101a 80%,
+    #231019 100%)!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%!important;
+}
+
+/* Header'a baska CSS'lerden gelen bordo/parlak katmanlar rengi degistirmesin. */
+.site-header:before,
+.site-header:after,
+.site-header.k-shell:before,
+.site-header.k-shell:after{
+  display:none!important;
+  content:none!important;
+  background:none!important;
+}
+
+.site-header .k-shell-bar,
+.site-header .container{
+  background:transparent!important;
 }
