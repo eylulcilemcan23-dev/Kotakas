@@ -9,10 +9,11 @@
 .k-drawer-game-search input{height:36px!important;color:#eef0f5!important;font-size:10px!important}.k-drawer-game-search input::placeholder{color:#777e91!important}
 .k-drawer-game-list{gap:6px!important;max-height:calc(100vh - 190px)!important;padding-right:4px!important}
 .k-drawer-game-list::-webkit-scrollbar{width:4px!important}.k-drawer-game-list::-webkit-scrollbar-thumb{background:#2c8795!important}
-.k-drawer-game-row{min-height:52px!important;padding:7px 9px!important;border-radius:10px!important;border:1px solid #303344!important;background:#1a1d2b!important;color:#fff!important;gap:9px!important;box-shadow:none!important;transform:none!important}
+.k-drawer-game-row{min-height:56px!important;padding:7px 9px!important;border-radius:10px!important;border:1px solid #303344!important;background:#1a1d2b!important;color:#fff!important;gap:9px!important;box-shadow:none!important;transform:none!important}
 .k-drawer-game-row:hover{background:#202434!important;border-color:#45495e!important;transform:translateX(2px)!important}
 .k-drawer-game-row.active{background:#1b1e2c!important;border-color:#ff285a!important;box-shadow:inset 2px 0 0 #ff285a!important}
-.k-drawer-game-brand{min-width:0;display:flex;flex-direction:column;justify-content:center;flex:1}
+.k-drawer-game-brand{min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;flex:1}
+.k-drawer-game-logo-img{display:block!important;max-width:138px!important;max-height:30px!important;width:auto!important;height:auto!important;object-fit:contain!important;object-position:left center!important;filter:drop-shadow(0 1px 0 rgba(255,255,255,.08))!important}
 .k-drawer-game-wordmark{display:block;color:#fff;font-size:13px;line-height:1.05;font-weight:900;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .k-drawer-game-subline{display:block;margin-top:4px;color:#8290a4;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.k-drawer-game-subline b{color:#f2c24f;font-weight:850}
 .k-drawer-game-row>i{color:#52e4d8!important;font-size:13px!important}
