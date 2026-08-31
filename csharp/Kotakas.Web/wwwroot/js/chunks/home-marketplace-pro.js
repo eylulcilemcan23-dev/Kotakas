@@ -31,17 +31,6 @@
     `;document.head.appendChild(s);
   }
 
-  function renderHeroSlider(){
-    const host=document.querySelector('.kp-promo-main');if(!host)return;
-    addShowcaseCss();host.classList.add('k-game-slider');
-    host.innerHTML=GAME_ART.map((g,i)=>`<article class="k-game-slide ${i===0?'active':''}" data-slide="${i}"><img src="${g.image}" alt="${safe(g.name)}" fetchpriority="${i===0?'high':'auto'}"><div class="k-game-slide-copy"><small>KOTAKAS • OYUN PAZARYERİ</small><h2>${safe(g.name)}</h2><p>${safe(g.sub)} pazarına güvenli erişim. İlanları incele veya kendi ilanını oluştur.</p><div class="k-game-slide-actions"><a class="btn teal" href="${gameUrl('/market.html',g.code)}">Pazarı Gör</a><a class="btn ghost" href="${gameUrl('/sell.html',g.code)}">İlan Ekle</a></div></div></article>`).join('')+`<div class="k-game-slider-dots">${GAME_ART.map((_,i)=>`<button class="${i===0?'active':''}" data-dot="${i}" aria-label="Slayt ${i+1}"></button>`).join('')}</div><div class="k-game-slider-nav"><button data-prev aria-label="Önceki">‹</button><button data-next aria-label="Sonraki">›</button></div>`;
-    let current=0,timer;
-    const show=n=>{current=(n+GAME_ART.length)%GAME_ART.length;host.querySelectorAll('.k-game-slide').forEach((x,i)=>x.classList.toggle('active',i===current));host.querySelectorAll('[data-dot]').forEach((x,i)=>x.classList.toggle('active',i===current))};
-    const auto=()=>{clearInterval(timer);timer=setInterval(()=>show(current+1),5500)};
-    host.addEventListener('click',e=>{if(e.target.closest('[data-prev]')){show(current-1);auto()}if(e.target.closest('[data-next]')){show(current+1);auto()}const d=e.target.closest('[data-dot]');if(d){show(Number(d.dataset.dot));auto()}});
-    let sx=0;host.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});host.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>45){show(current+(dx<0?1:-1));auto()}},{passive:true});auto();
-  }
-
   function renderGames(){
     addShowcaseCss();
     const preferred=['knight-online','rise-online','valorant','mobile-legends','league-of-legends','pubg-mobile','metin2','steam'];
@@ -58,7 +47,7 @@
   function traderRows(rows){return rows.slice(0,6).map(t=>`<a class="kp-mini-row" href="/trader-profile.html?id=${encodeURIComponent(t.id)}"><span class="icon">🏪</span><span><strong>${safe(t.displayName)} ✓</strong><span>Doğrulanmış pazarcı • ${Number(t.completedDeals||0)} tamamlanan işlem</span></span><b>Profili Gör</b></a>`).join('')||'<div class="kp-empty-card">Henüz doğrulanmış pazarcı yok.</div>'}
 
   async function boot(){
-    renderHeroSlider();renderGames();
+    renderGames();
     try{
       const [listings,requests,traders,stats]=await Promise.all([api('/api/listings').catch(()=>({listings:[]})),api('/api/sale-requests').catch(()=>({requests:[]})),api('/api/traders').catch(()=>({traders:[]})),api('/api/public/stats').catch(()=>({}))]);
       const rows=(listings.listings||[]).slice(0,8);setHtml('kpLatestItems',rows.length?rows.map(listingCard).join(''):'<div class="kp-empty-card">Henüz aktif item ilanı yok. İlk ilanı pazarcılar oluşturabilir.</div>');setHtml('kpLatestRequests',requestRows(requests.requests||[]));setHtml('kpTopTraders',traderRows(traders.traders||[]));
