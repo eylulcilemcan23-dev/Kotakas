@@ -1,0 +1,10 @@
+/* Keep the games drawer scrollable but hide the browser's outer white scrollbar. */
+.k-drawer{
+  scrollbar-width:none!important;
+  -ms-overflow-style:none!important;
+}
+.k-drawer::-webkit-scrollbar{
+  width:0!important;
+  height:0!important;
+  display:none!important;
+}
