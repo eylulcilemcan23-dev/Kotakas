@@ -1,6 +1,6 @@
 (()=>{
   if(!['/','/index.html'].includes(location.pathname.toLowerCase()))return;
-  const V='20260831-0615';
+  const V='20260831-0645';
   const assetBase='/assets/images/games/';
   const makeSources=stem=>['png','jpg','jpeg','webp'].map(ext=>`${assetBase}${stem}.${ext}?v=${V}`);
   const slides=[
@@ -18,10 +18,14 @@
       .kp-promo-main.k-direct-slider{position:relative!important;overflow:hidden!important;isolation:isolate!important;min-height:0!important;aspect-ratio:24/11!important;background:#07080d!important;border-radius:12px!important;padding:0!important}
       .k-direct-slide{position:absolute!important;inset:0!important;opacity:0!important;pointer-events:none!important;transition:opacity .42s ease!important;background:#07080d!important;overflow:hidden!important}
       .k-direct-slide.active{opacity:1!important;pointer-events:auto!important}
-      .k-direct-slide-link{position:absolute!important;inset:0!important;display:block!important;z-index:2!important;text-decoration:none!important;color:inherit!important}
-      .k-direct-bg,.k-direct-art{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important}
+      .k-direct-slide-link{position:absolute!important;inset:0!important;display:block!important;z-index:2!important;text-decoration:none!important;color:inherit!important;overflow:hidden!important}
+      .k-direct-bg,.k-direct-art{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;display:block!important;will-change:transform!important;transform-origin:50% 48%!important}
       .k-direct-bg{object-fit:cover!important;object-position:center!important;filter:blur(20px) brightness(.42)!important;transform:scale(1.07)!important;opacity:.9!important;z-index:0!important}
-      .k-direct-art{object-fit:contain!important;object-position:center!important;z-index:1!important;filter:none!important;background:transparent!important}
+      .k-direct-art{object-fit:contain!important;object-position:center!important;z-index:1!important;filter:none!important;background:transparent!important;transform:scale(1)!important}
+      .k-direct-slide.active .k-direct-art{animation:kDirectArtZoom 6s cubic-bezier(.18,.65,.24,1) forwards!important}
+      .k-direct-slide.active .k-direct-bg{animation:kDirectBgZoom 6s cubic-bezier(.18,.65,.24,1) forwards!important}
+      @keyframes kDirectArtZoom{from{transform:scale(1)}to{transform:scale(1.065)}}
+      @keyframes kDirectBgZoom{from{transform:scale(1.07)}to{transform:scale(1.14)}}
       .k-direct-slide.missing:after{content:'Slider görseli bulunamadı';position:absolute;inset:0;display:grid;place-items:center;color:#8992a8;font-size:13px;font-weight:800;letter-spacing:.05em;z-index:1}
       .k-direct-nav{position:absolute!important;z-index:6!important;top:50%!important;transform:translateY(-50%)!important;width:38px!important;height:38px!important;border-radius:50%!important;border:1px solid rgba(255,255,255,.24)!important;background:rgba(5,6,11,.7)!important;color:#fff!important;font-size:22px!important;cursor:pointer!important;display:grid!important;place-items:center!important;backdrop-filter:blur(8px)!important}
       .k-direct-nav.prev{left:12px!important}.k-direct-nav.next{right:12px!important}
@@ -29,6 +33,7 @@
       .k-direct-dot{width:8px!important;height:8px!important;padding:0!important;border:0!important;border-radius:50%!important;background:rgba(255,255,255,.38)!important;cursor:pointer!important}.k-direct-dot.active{width:22px!important;border-radius:6px!important;background:#fff!important}
       @media(max-width:900px){.kp-promo-main.k-direct-slider{aspect-ratio:24/11!important}.k-direct-nav{width:32px!important;height:32px!important;font-size:18px!important}}
       @media(max-width:520px){.kp-promo-main.k-direct-slider{aspect-ratio:16/8!important;border-radius:8px!important}.k-direct-art{object-fit:contain!important}.k-direct-nav{width:28px!important;height:28px!important;font-size:16px!important}.k-direct-nav.prev{left:6px!important}.k-direct-nav.next{right:6px!important}.k-direct-dots{bottom:6px!important}.k-direct-dot{width:6px!important;height:6px!important}.k-direct-dot.active{width:17px!important}}
+      @media(prefers-reduced-motion:reduce){.k-direct-slide.active .k-direct-art,.k-direct-slide.active .k-direct-bg{animation:none!important}.k-direct-art{transform:scale(1)!important}.k-direct-bg{transform:scale(1.07)!important}}
     `;
     document.head.appendChild(s);
   }
@@ -48,9 +53,9 @@
   function mount(){
     const host=document.querySelector('.kp-promo-main');
     if(!host)return;
-    if(host.dataset.directSlider==='5'&&host.querySelectorAll('.k-direct-slide').length===slides.length)return;
+    if(host.dataset.directSlider==='6'&&host.querySelectorAll('.k-direct-slide').length===slides.length)return;
     addCss();
-    host.dataset.directSlider='5';
+    host.dataset.directSlider='6';
     host.classList.remove('k-game-slider');
     host.classList.add('k-direct-slider');
     host.innerHTML=slides.map((x,i)=>{
@@ -63,7 +68,21 @@
     });
 
     let current=0,timer=null,touchX=null;
-    const show=i=>{const items=[...host.querySelectorAll('.k-direct-slide')],dots=[...host.querySelectorAll('.k-direct-dot')];current=(i+items.length)%items.length;items.forEach((el,n)=>el.classList.toggle('active',n===current));dots.forEach((el,n)=>el.classList.toggle('active',n===current));};
+    const restartZoom=el=>{
+      if(!el)return;
+      el.querySelectorAll('.k-direct-art,.k-direct-bg').forEach(img=>{
+        img.style.animation='none';
+        void img.offsetWidth;
+        img.style.animation='';
+      });
+    };
+    const show=i=>{
+      const items=[...host.querySelectorAll('.k-direct-slide')],dots=[...host.querySelectorAll('.k-direct-dot')];
+      current=(i+items.length)%items.length;
+      items.forEach((el,n)=>el.classList.toggle('active',n===current));
+      dots.forEach((el,n)=>el.classList.toggle('active',n===current));
+      restartZoom(items[current]);
+    };
     const stop=()=>{if(timer){clearInterval(timer);timer=null;}};
     const start=()=>{stop();timer=setInterval(()=>show(current+1),6000);};
     host.querySelector('.prev')?.addEventListener('click',e=>{e.preventDefault();show(current-1);start();});
@@ -72,6 +91,7 @@
     host.addEventListener('mouseenter',stop);host.addEventListener('mouseleave',start);
     host.addEventListener('touchstart',e=>{touchX=e.touches[0]?.clientX??null;},{passive:true});
     host.addEventListener('touchend',e=>{if(touchX==null)return;const x=e.changedTouches[0]?.clientX??touchX,d=x-touchX;if(Math.abs(d)>45)show(current+(d<0?1:-1));touchX=null;start();},{passive:true});
+    restartZoom(host.querySelector('.k-direct-slide.active'));
     start();
   }
 
