@@ -16,16 +16,31 @@
     'silkroad-online':'SILKROAD ONLINE',
     'steam':'STEAM'
   }[String(g?.code||'')]||String(g?.name||'OYUN').toUpperCase());
+  const logoMap={
+    'knight-online':'/assets/images/game-logos/knight-online.png',
+    'rise-online':'/assets/images/game-logos/rise-online.png',
+    'valorant':'/assets/images/game-logos/valorant.png',
+    'league-of-legends':'/assets/images/game-logos/league-of-legends.png',
+    'pubg-mobile':'/assets/images/game-logos/pubg-mobile.png',
+    'mobile-legends':'/assets/images/game-logos/mobile-legends.png',
+    'metin2':'/assets/images/game-logos/metin2.png'
+  };
 
   function gameRows(query=''){
     const games=window.KOTAKAS_GAMES||[];
     const current=currentGame();
     const q=String(query||'').trim().toLowerCase();
     const rows=games.filter(g=>!q||`${g.name} ${g.currency} ${(g.types||[]).join(' ')}`.toLowerCase().includes(q));
-    return rows.map(g=>`<button type="button" class="k-drawer-game-row ${g.code===current.code?'active':''}" data-drawer-game="${safe(g.code)}">
-      <span class="k-drawer-game-brand"><span class="k-drawer-game-wordmark">${safe(wordmark(g))}</span><span class="k-drawer-game-subline"><b>${safe(g.currency)}</b> • ${safe((g.types||[]).join(' • '))}</span></span>
-      ${g.code===current.code?'<i>✓</i>':''}
-    </button>`).join('')||'<div class="k-drawer-game-empty">Oyun bulunamadı.</div>';
+    return rows.map(g=>{
+      const logo=logoMap[g.code];
+      const brand=logo
+        ? `<img class="k-drawer-game-logo-img" src="${logo}" alt="${safe(g.name)} logosu" loading="lazy">`
+        : `<span class="k-drawer-game-wordmark">${safe(wordmark(g))}</span>`;
+      return `<button type="button" class="k-drawer-game-row ${g.code===current.code?'active':''}" data-drawer-game="${safe(g.code)}">
+        <span class="k-drawer-game-brand">${brand}<span class="k-drawer-game-subline"><b>${safe(g.currency)}</b> • ${safe((g.types||[]).join(' • '))}</span></span>
+        ${g.code===current.code?'<i>✓</i>':''}
+      </button>`;
+    }).join('')||'<div class="k-drawer-game-empty">Oyun bulunamadı.</div>';
   }
 
   function gameSection(){
