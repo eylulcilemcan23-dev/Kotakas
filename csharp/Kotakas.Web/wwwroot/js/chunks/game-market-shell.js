@@ -34,6 +34,15 @@
   window.kGameUrl=gameUrl;
   const safe=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+  const GAME_COVERS={
+    'knight-online':'/assets/images/games/knight-online.jpg',
+    'rise-online':'/assets/images/games/rise-online.jpg',
+    'valorant':'/assets/images/games/valorant.jpg',
+    'mobile-legends':'/assets/images/games/mobile-legends.webp'
+  };
+  const GAME_LOGOS=new Set(['knight-online','rise-online','valorant','league-of-legends','pubg-mobile','mobile-legends','metin2']);
+  const logoUrl=code=>`/assets/images/game-logos/${code}.png`;
+
   function select(code){
     const g=GAMES.find(x=>x.code===code);if(!g)return;
     localStorage.setItem('kotakas_game',g.code);
@@ -66,9 +75,30 @@
     return !!document.querySelector('.k-shell-center');
   }
 
+  function gameMedia(g){
+    const cover=GAME_COVERS[g.code];
+    const hasLogo=GAME_LOGOS.has(g.code);
+    return `<div class="game-market-media ${cover?'has-cover':'no-cover'}" data-game-code="${safe(g.code)}">
+      ${cover?`<img class="game-market-cover" src="${cover}" alt="${safe(g.name)}" loading="lazy">`:''}
+      <span class="game-market-media-glow"></span>
+      <div class="game-market-logo-wrap">
+        ${hasLogo?`<img class="game-market-real-logo" src="${logoUrl(g.code)}" alt="${safe(g.name)} logosu" loading="lazy" onerror="this.remove();this.parentElement.querySelector('.k-game-logo-fallback')?.classList.add('show')">`:''}
+        <span class="k-game-logo k-game-logo-fallback ${hasLogo?'':'show'}">${safe(g.mark)}</span>
+      </div>
+    </div>`;
+  }
+
   function gamesPage(){
     const grid=document.getElementById('gamesCatalog');if(!grid)return;
-    grid.innerHTML=GAMES.map(g=>`<article class="game-market-tile"><span class="k-game-logo">${safe(g.mark)}</span><h3>${safe(g.name)}</h3><p><strong>${safe(g.currency)}</strong> • ${safe(g.types.join(' • '))}</p><div class="game-market-tags">${g.types.map(t=>`<span>${safe(t)}</span>`).join('')}</div><div class="actions"><a class="btn ghost" href="${gameUrl('/market.html',g.code)}">Pazarı Gör</a><button class="btn teal" onclick="kSelectGame('${g.code}')">Seç</button></div></article>`).join('');
+    grid.innerHTML=GAMES.map(g=>`<article class="game-market-tile premium-game-card" data-game="${safe(g.code)}">
+      ${gameMedia(g)}
+      <div class="game-market-body">
+        <h3>${safe(g.name)}</h3>
+        <p><strong>${safe(g.currency)}</strong> • ${safe(g.types.join(' • '))}</p>
+        <div class="game-market-tags">${g.types.map(t=>`<span>${safe(t)}</span>`).join('')}</div>
+        <div class="actions"><a class="btn ghost" href="${gameUrl('/market.html',g.code)}">Pazarı Gör</a><button class="btn teal" onclick="kSelectGame('${g.code}')">Seç</button></div>
+      </div>
+    </article>`).join('');
   }
 
   let tries=0;
