@@ -1,0 +1,29 @@
+/* KOTAKAS ana sayfa / tarayıcı dikey kaydırma çubuğu */
+html{
+  scrollbar-width:thin;
+  scrollbar-color:#8f2349 #10111a;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar{
+  width:10px;
+  height:10px;
+}
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track{
+  background:#10111a;
+  border-left:1px solid rgba(255,255,255,.035);
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,#ff285a 0%,#a32955 48%,#5c2038 100%);
+  border-radius:999px;
+  border:2px solid #10111a;
+}
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(180deg,#ff3b69 0%,#bd315d 50%,#742846 100%);
+}
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner{
+  background:#10111a;
+}
