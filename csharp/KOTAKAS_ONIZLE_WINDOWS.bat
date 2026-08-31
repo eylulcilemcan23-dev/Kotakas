@@ -45,21 +45,34 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "$target='%GAME_ASSET_DIR
 
 echo [3/4] Yerel SQLite veritabani hazirlaniyor...
 set "ASPNETCORE_ENVIRONMENT=Development"
-set "ASPNETCORE_URLS=http://127.0.0.1:5097"
+rem 0.0.0.0 sayesinde KOTAKAS ayni Wi-Fi/LAN'daki telefon ve tabletlerden de acilir.
+set "ASPNETCORE_URLS=http://0.0.0.0:5097"
 set "Database__Provider=sqlite"
 set "ConnectionStrings__Default=Data Source=App_Data/kotakas-preview.db"
 set "KOTAKAS_ADMIN_EMAIL=admin@kotakas.local"
 set "KOTAKAS_ADMIN_PASSWORD=Kotakas12345"
 set "MarketRateFeed__Enabled=true"
 
+rem Aktif ag baglantisinin IPv4 adresini otomatik bul. DHCP ile IP degisse bile telefon adresi dogru gosterilir.
+set "LAN_IP="
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -Command "$cfg=Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1; if($cfg -and $cfg.IPv4Address){ $cfg.IPv4Address.IPAddress }"`) do set "LAN_IP=%%I"
+
 pushd "csharp\Kotakas.Web"
 
 echo [4/4] KOTAKAS baslatiliyor...
 echo.
-echo Adres: http://127.0.0.1:5097
+echo PC: http://127.0.0.1:5097
+if defined LAN_IP (
+  echo Telefon: http://%LAN_IP%:5097
+) else (
+  echo Telefon: Yerel IPv4 adresi otomatik bulunamadi.
+)
 echo Admin: admin@kotakas.local
 echo Sifre: Kotakas12345
 echo Canli GB kuru: Kopazar ZERO (5 dakikada bir)
+echo.
+echo Mobil kontrol icin telefon ve bilgisayar ayni Wi-Fi aginda olmali.
+echo Windows Guvenlik Duvari sorarsa Ozel aglar icin erisime izin ver.
 echo.
 echo ONEMLI: Bu siyah pencere acik kaldigi surece site calisir.
 echo Kapatirsan yerel KOTAKAS da kapanir.
