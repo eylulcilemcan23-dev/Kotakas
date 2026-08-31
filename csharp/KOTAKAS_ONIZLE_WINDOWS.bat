@@ -20,7 +20,7 @@ if errorlevel 1 goto :nodotnet
 rem Masaustunde onizleme ve tam test kisayollarini olustur.
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$desktop=[Environment]::GetFolderPath('Desktop'); $ws=New-Object -ComObject WScript.Shell; $preview=Join-Path $desktop 'KOTAKAS Onizleme.lnk'; if(-not (Test-Path $preview)){ $s=$ws.CreateShortcut($preview); $s.TargetPath='%~f0'; $s.WorkingDirectory='%~dp0..'; $s.Description='KOTAKAS csharp-rebuild yerel onizleme'; $s.Save() }; $test=Join-Path $desktop 'KOTAKAS Tam Test.lnk'; if(-not (Test-Path $test)){ $t=$ws.CreateShortcut($test); $t.TargetPath='%~dp0KOTAKAS_TAM_TEST_WINDOWS.bat'; $t.WorkingDirectory='%~dp0..'; $t.Description='KOTAKAS kritik akislari tek tik test et'; $t.Save() }" >nul 2>nul
 
-echo [1/3] csharp-rebuild guncelleniyor...
+echo [1/4] csharp-rebuild guncelleniyor...
 git fetch origin csharp-rebuild
 if errorlevel 1 goto :giterror
 
@@ -33,7 +33,17 @@ if /I not "%CURRENT_BRANCH%"=="csharp-rebuild" (
 git pull --ff-only origin csharp-rebuild
 if errorlevel 1 goto :pullerror
 
-echo [2/3] Yerel SQLite veritabani hazirlaniyor...
+echo [2/4] Oyun ve slider gorselleri kontrol ediliyor...
+set "GAME_ASSET_DIR=%CD%\csharp\Kotakas.Web\wwwroot\assets\images\games"
+if not exist "%GAME_ASSET_DIR%" mkdir "%GAME_ASSET_DIR%"
+
+rem Takip edilen oyun kapaklari yerelde silinmis/bozulmussa Git'ten geri getir.
+git checkout -- "csharp/Kotakas.Web/wwwroot/assets/images/games/knight-online.jpg" "csharp/Kotakas.Web/wwwroot/assets/images/games/rise-online.jpg" "csharp/Kotakas.Web/wwwroot/assets/images/games/valorant.jpg" "csharp/Kotakas.Web/wwwroot/assets/images/games/mobile-legends.webp" >nul 2>nul
+
+rem Kullanici sliderlari yanlis KOTAKAS kopyasina koyduysa Masaustu/Indirilenler/Belgeler icinden bulup gercek wwwroot'a kopyala.
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$target='%GAME_ASSET_DIR%'; $names=@('slider-1-genel-pazaryeri.png','slider-2-hizli-teslimat.png','slider-3-30-agustos.png','slider-4-bize-sat.png'); $roots=@([Environment]::GetFolderPath('Desktop'),(Join-Path $env:USERPROFILE 'Downloads'),[Environment]::GetFolderPath('MyDocuments')); foreach($n in $names){ $dest=Join-Path $target $n; if(Test-Path $dest){ Write-Host ('[OK] '+$n); continue }; $found=$null; foreach($r in $roots){ if($r -and (Test-Path $r)){ $found=Get-ChildItem -LiteralPath $r -Filter $n -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $dest } | Select-Object -First 1; if($found){ break } } }; if($found){ Copy-Item -LiteralPath $found.FullName -Destination $dest -Force; Write-Host ('[OK] '+$n+' otomatik kopyalandi') } else { Write-Host ('[UYARI] '+$n+' bulunamadi') -ForegroundColor Yellow } }"
+
+echo [3/4] Yerel SQLite veritabani hazirlaniyor...
 set "ASPNETCORE_ENVIRONMENT=Development"
 set "ASPNETCORE_URLS=http://127.0.0.1:5097"
 set "Database__Provider=sqlite"
@@ -44,7 +54,7 @@ set "MarketRateFeed__Enabled=true"
 
 pushd "csharp\Kotakas.Web"
 
-echo [3/3] KOTAKAS baslatiliyor...
+echo [4/4] KOTAKAS baslatiliyor...
 echo.
 echo Adres: http://127.0.0.1:5097
 echo Admin: admin@kotakas.local
