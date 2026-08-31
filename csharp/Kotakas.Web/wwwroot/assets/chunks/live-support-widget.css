@@ -30,6 +30,28 @@
 }
 .k-live-support-toggle:hover{transform:translateY(-2px);background:#ff3b69}
 .k-live-support-toggle .ico{font-size:19px}.k-live-support.open .k-live-support-toggle .label:after{content:' Kapat'}
+
+/* Hesap panelindeki dikey kaydırma çubuğunu site renklerine uyarla. */
+.k-account-drawer{
+  scrollbar-width:thin!important;
+  scrollbar-color:#8d2448 #151620!important;
+}
+.k-account-drawer::-webkit-scrollbar{width:8px!important}
+.k-account-drawer::-webkit-scrollbar-track{
+  background:#151620!important;
+  border-left:1px solid rgba(255,255,255,.035)!important;
+}
+.k-account-drawer::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,#ff285a 0%,#9b274d 52%,#5a2037 100%)!important;
+  border-radius:999px!important;
+  border:2px solid #151620!important;
+}
+.k-account-drawer::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(180deg,#ff3b69 0%,#b22d58 55%,#6f2842 100%)!important;
+}
+.k-account-drawer::-webkit-scrollbar-corner{background:#151620!important}
+
 @media(max-width:680px){
   .k-live-support{right:14px;bottom:14px}.k-live-support-toggle{width:52px;min-width:52px;height:52px;padding:0;border-radius:50%}.k-live-support-toggle .label{display:none}.k-live-support-panel{width:min(300px,calc(100vw - 28px))}
+  .k-account-drawer::-webkit-scrollbar{width:6px!important}
 }
