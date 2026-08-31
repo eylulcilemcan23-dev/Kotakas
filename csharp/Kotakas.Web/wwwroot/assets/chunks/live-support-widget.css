@@ -1,0 +1,35 @@
+/* KOTAKAS sabit canlı destek butonu */
+.k-live-support{
+  position:fixed;right:24px;bottom:24px;z-index:120;
+  display:flex;flex-direction:column;align-items:flex-end;gap:10px;
+  font-family:'Roboto','Segoe UI',Arial,sans-serif
+}
+.k-live-support-panel{
+  width:300px;max-width:calc(100vw - 32px);
+  padding:16px;border:1px solid #343646;border-radius:16px;
+  background:linear-gradient(145deg,#171823 0%,#1b151e 100%);
+  box-shadow:0 24px 70px rgba(0,0,0,.52);
+  color:#f5f6f8;opacity:0;transform:translateY(8px) scale(.98);
+  pointer-events:none;transition:opacity .2s ease,transform .2s ease
+}
+.k-live-support.open .k-live-support-panel{opacity:1;transform:none;pointer-events:auto}
+.k-live-support-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.k-live-support-avatar{width:42px;height:42px;border-radius:13px;background:#ff285a;display:grid;place-items:center;font-size:19px;box-shadow:0 8px 22px rgba(255,40,90,.22)}
+.k-live-support-head strong{display:block;font-size:14px}.k-live-support-head span{display:block;margin-top:2px;color:#969cad;font-size:10px}
+.k-live-support-dot{width:7px;height:7px;border-radius:50%;background:#19c889;display:inline-block;margin-right:5px;box-shadow:0 0 0 4px rgba(25,200,137,.10)}
+.k-live-support-copy{padding:11px 12px;border:1px solid #2c2e3d;border-radius:12px;background:#1b1d29;color:#b6bbc8;font-size:11px;line-height:1.45;margin-bottom:11px}
+.k-live-support-actions{display:grid;gap:8px}
+.k-live-support-actions a{height:40px;display:flex;align-items:center;justify-content:center;border-radius:11px;text-decoration:none;font-size:11px;font-weight:800}
+.k-live-support-primary{background:#ff285a;color:#fff;border:1px solid #ff285a;box-shadow:0 8px 20px rgba(255,40,90,.16)}
+.k-live-support-secondary{background:#20222f;color:#eef0f5;border:1px solid #303343}
+.k-live-support-toggle{
+  height:54px;min-width:54px;padding:0 17px;border:0;border-radius:27px;
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  background:#ff285a;color:#fff;cursor:pointer;font:inherit;font-size:12px;font-weight:900;
+  box-shadow:0 14px 32px rgba(255,40,90,.28);transition:transform .2s ease,background .2s ease
+}
+.k-live-support-toggle:hover{transform:translateY(-2px);background:#ff3b69}
+.k-live-support-toggle .ico{font-size:19px}.k-live-support.open .k-live-support-toggle .label:after{content:' Kapat'}
+@media(max-width:680px){
+  .k-live-support{right:14px;bottom:14px}.k-live-support-toggle{width:52px;min-width:52px;height:52px;padding:0;border-radius:50%}.k-live-support-toggle .label{display:none}.k-live-support-panel{width:min(300px,calc(100vw - 28px))}
+}
