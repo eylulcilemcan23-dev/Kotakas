@@ -1,8 +1,36 @@
 (()=>{
   if(!['/','/index.html'].includes(location.pathname.toLowerCase()))return;
-  const slider=document.querySelector('[data-k-slider]');
-  if(!slider)return;
 
+  const mountSlider=()=>{
+    let slider=document.querySelector('[data-k-slider]');
+    if(slider)return slider;
+    const oldHero=document.querySelector('.kp-promo-grid');
+    if(!oldHero)return null;
+    const section=document.createElement('section');
+    section.className='k-hero-slider k-art-slider';
+    section.setAttribute('aria-label','KOTAKAS kampanyaları');
+    section.innerHTML=`<div class="k-slider-shell" data-k-slider>
+      <div class="k-slider-track">
+        <article class="k-slide k-slide-art" data-asset="s1" aria-hidden="false"><img alt="KOTAKAS kampanya görseli 1"><span class="k-slide-loading">KOTAKAS hazırlanıyor…</span></article>
+        <article class="k-slide k-slide-art" data-asset="s2" aria-hidden="true"><img alt="KOTAKAS kampanya görseli 2"><span class="k-slide-loading">KOTAKAS hazırlanıyor…</span></article>
+        <article class="k-slide k-slide-art" data-asset="s3" aria-hidden="true"><img alt="KOTAKAS kampanya görseli 3"><span class="k-slide-loading">KOTAKAS hazırlanıyor…</span></article>
+      </div>
+      <div class="k-slider-controls">
+        <div class="k-slider-dots" aria-label="Slider seçimi">
+          <button class="k-slider-dot active" aria-label="1. görsel" aria-current="true"></button>
+          <button class="k-slider-dot" aria-label="2. görsel" aria-current="false"></button>
+          <button class="k-slider-dot" aria-label="3. görsel" aria-current="false"></button>
+        </div>
+        <div class="k-slider-nav"><button type="button" data-slider-prev aria-label="Önceki görsel">‹</button><button type="button" data-slider-next aria-label="Sonraki görsel">›</button></div>
+      </div>
+      <div class="k-slider-progress" aria-hidden="true"><span></span></div>
+    </div>`;
+    oldHero.replaceWith(section);
+    return section.querySelector('[data-k-slider]');
+  };
+
+  const slider=mountSlider();
+  if(!slider)return;
   const track=slider.querySelector('.k-slider-track');
   const slides=[...slider.querySelectorAll('.k-slide')];
   const dots=[...slider.querySelectorAll('.k-slider-dot')];
@@ -34,12 +62,12 @@
     return URL.createObjectURL(new Blob([bytes],{type:mimeFor(b64)}));
   };
   const validImage=url=>new Promise(resolve=>{const im=new Image();im.onload=()=>resolve(true);im.onerror=()=>resolve(false);im.src=url});
-  const loadParts=async paths=>{
-    const b64=(await Promise.all(paths.map(fetchPart))).join('');
-    const url=objectUrl(b64);
+  const loadPartsFromText=async parts=>{
+    const b64=parts.join('');const url=objectUrl(b64);
     if(await validImage(url))return url;
     URL.revokeObjectURL(url);throw new Error('invalid image');
   };
+  const loadParts=async paths=>loadPartsFromText(await Promise.all(paths.map(fetchPart)));
   const loadFinal=async key=>{
     const parts=[];
     for(let i=0;i<24;i++){
@@ -51,14 +79,8 @@
     }
     throw new Error('final incomplete');
   };
-  const loadPartsFromText=async parts=>{
-    const b64=parts.join('');const url=objectUrl(b64);
-    if(await validImage(url))return url;
-    URL.revokeObjectURL(url);throw new Error('invalid final image');
-  };
   const hydrateSlide=async slide=>{
-    const key=slide.dataset.asset;
-    const img=slide.querySelector('img');
+    const key=slide.dataset.asset;const img=slide.querySelector('img');
     if(!key||!img)return;
     let url=null;
     try{url=await loadFinal(key)}catch{
