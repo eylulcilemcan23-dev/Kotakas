@@ -29,3 +29,17 @@ footer.kp-footer{
 .site-header .container{
   background:transparent!important;
 }
+
+/* Ana sayfanin SOL kenari da header/footer ile ayni renk dilinde aksin.
+   Sadece sol bolgeyi boyar; orta ve sag taraftaki mevcut koyu/mavi atmosfer korunur. */
+.kp-home{
+  background-image:linear-gradient(90deg,
+    rgba(19,19,30,.96) 0%,
+    rgba(22,18,29,.90) 10%,
+    rgba(26,18,28,.78) 20%,
+    rgba(29,17,27,.58) 30%,
+    rgba(33,16,26,.30) 39%,
+    rgba(35,16,25,0) 49%)!important;
+  background-repeat:no-repeat!important;
+  background-size:100% 100%!important;
+}
