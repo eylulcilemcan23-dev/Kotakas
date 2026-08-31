@@ -1,5 +1,5 @@
 (async()=>{
-  const UI_VERSION='20260831-2015-mobile-drawer-stable-actions';
+  const UI_VERSION='20260831-2045-mobile-native-links';
 
   // Mobil Chrome/Android tarayıcı üst çubuğunu KOTAKAS pembe rengine boya.
   let themeColor=document.querySelector('meta[name="theme-color"]');
