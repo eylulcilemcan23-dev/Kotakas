@@ -2,7 +2,7 @@
 @import url('/assets/chunks/v4.css');
 @import url('/assets/chunks/v5.css');
 @import url('/assets/chunks/shell.css');
-@import url('/assets/chunks/game-market.css');
+@import url('/assets/chunks/game-market.css?v=20260831-2110');
 @import url('/assets/chunks/drawer-plus.css');
 @import url('/assets/chunks/marketplace-pro.css');
 @import url('/assets/chunks/marketplace-pages.css');
@@ -13,3 +13,4 @@
 @import url('/assets/chunks/hover-motion.css?v=20260831-2005');
 @import url('/assets/chunks/drawer-reference.css?v=20260831-1945');
 @import url('/assets/chunks/slider-zoom-118.css?v=20260831-2045');
+@import url('/assets/chunks/games-catalog-premium.css?v=20260831-2110');
