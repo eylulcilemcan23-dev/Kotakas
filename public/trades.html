@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KOTAKAS — GB İşlem Defteri</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <style>
+    .trade-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.trade-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.trade-form .full{grid-column:1/-1}.trade-table{width:100%;border-collapse:collapse}.trade-table th,.trade-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left}.muted{opacity:.72}.notice{padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:14px}.danger-link{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer}@media(max-width:760px){.trade-grid,.trade-form{grid-template-columns:1fr}.trade-table{font-size:13px}.table-wrap{overflow:auto}}
+  </style>
+</head>
+<body>
+<header class="topbar"><div class="wrap nav"><a class="brand" href="/">KOTA<span>KAS</span></a><button class="menu" onclick="history.back()">← Geri</button></div></header>
+<main class="wrap section">
+  <div class="section-title"><div><div class="kicker">Yeni Ticaret Modeli</div><h1>GB İşlem Defteri</h1><p class="muted">Buraya yalnızca oyun içinde tamamladığın alış ve satışları kaydet. KOTAKAS GB saklamaz, transfer etmez ve kullanıcılar arasında ödeme yapmaz.</p></div></div>
+
+  <div class="trade-grid">
+    <div class="card stat"><span>Toplam Alış</span><strong id="buySpend">0 GB</strong></div>
+    <div class="card stat"><span>Toplam Satış</span><strong id="sellRevenue">0 GB</strong></div>
+    <div class="card stat"><span>Net GB Akışı</span><strong id="netGb">0 GB</strong></div>
+    <div class="card stat"><span>İşlem Sayısı</span><strong id="tradeCount">0</strong></div>
+  </div>
+
+  <section class="section card">
+    <div class="section-title"><h2>İşlem Ekle</h2></div>
+    <form id="tradeForm" class="trade-form">
+      <label>İşlem<select name="side" required><option value="buy">Alış</option><option value="sell">Satış</option></select></label>
+      <label>Tür<select name="assetType"><option value="item">Item</option><option value="ring">Ring</option><option value="gb">GB</option><option value="other">Diğer</option></select></label>
+      <label>Sunucu<input name="serverCode" placeholder="ZERO" maxlength="24" required></label>
+      <label>Ürün / Item<input name="assetName" placeholder="Raptor +8" maxlength="120" required></label>
+      <label>Adet<input name="quantity" type="number" step="0.0001" min="0.0001" value="1" required></label>
+      <label>Birim fiyat (GB)<input name="unitPriceGb" type="number" step="0.0001" min="0.0001" required></label>
+      <label class="full">Not<input name="note" maxlength="500" placeholder="İsteğe bağlı kişisel not"></label>
+      <div class="full row"><button class="btn primary" type="submit">Kaydı Ekle</button><span id="formMsg" class="muted"></span></div>
+    </form>
+  </section>
+
+  <section class="section card">
+    <div class="section-title"><h2>Son İşlemler</h2><button class="btn" id="refreshBtn" type="button">Yenile</button></div>
+    <div class="table-wrap"><table class="trade-table"><thead><tr><th>Tarih</th><th>İşlem</th><th>Sunucu</th><th>Ürün</th><th>Adet</th><th>Birim</th><th>Toplam</th><th></th></tr></thead><tbody id="tradeRows"></tbody></table></div>
+  </section>
+
+  <div class="notice muted">Bu ekran bir cüzdan değildir. Buradaki “GB” alanları yalnızca kullanıcının kendi kayıtlarıdır; KOTAKAS adına yatırma, çekme, escrow veya kullanıcıdan kullanıcıya transfer yapılmaz.</div>
+</main>
+<script>
+const fmt=(n)=>`${Number(n||0).toLocaleString('tr-TR',{maximumFractionDigits:4})} GB`;
+async function api(path,opts={}){const r=await fetch(path,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});if(r.status===401){location.href='/login.html';throw new Error('auth');}const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'İşlem başarısız');return j;}
+function escapeHtml(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+async function load(){const [list,summary]=await Promise.all([api('/api/trade-journal'),api('/api/trade-journal/summary')]);buySpend.textContent=fmt(summary.summary.buySpendGb);sellRevenue.textContent=fmt(summary.summary.sellRevenueGb);netGb.textContent=fmt(summary.summary.netGb);tradeCount.textContent=summary.summary.tradeCount;tradeRows.innerHTML=list.trades.length?list.trades.map(t=>`<tr><td>${new Date(t.completedAt).toLocaleString('tr-TR')}</td><td>${t.side==='buy'?'ALIŞ':'SATIŞ'}</td><td>${escapeHtml(t.serverCode)}</td><td>${escapeHtml(t.assetName)}</td><td>${t.quantity}</td><td>${fmt(t.unitPriceGb)}</td><td>${fmt(t.totalGb)}</td><td><button class="danger-link" data-delete="${t.id}">Sil</button></td></tr>`).join(''):`<tr><td colspan="8" class="muted">Henüz kayıt yok.</td></tr>`;}
+tradeForm.addEventListener('submit',async e=>{e.preventDefault();formMsg.textContent='Kaydediliyor...';const f=new FormData(tradeForm);try{await api('/api/trade-journal',{method:'POST',body:JSON.stringify({side:f.get('side'),assetType:f.get('assetType'),serverCode:f.get('serverCode'),assetName:f.get('assetName'),quantity:Number(f.get('quantity')),unitPriceGb:Number(f.get('unitPriceGb')),note:f.get('note')})});formMsg.textContent='Kaydedildi.';tradeForm.reset();tradeForm.quantity.value='1';await load();}catch(err){formMsg.textContent=err.message;}});
+tradeRows.addEventListener('click',async e=>{const id=e.target.dataset.delete;if(!id)return;if(!confirm('Bu kaydı silmek istiyor musun?'))return;await api(`/api/trade-journal/${id}`,{method:'DELETE'});await load();});
+refreshBtn.addEventListener('click',load);load().catch(()=>{});
+</script>
+</body>
+</html>
