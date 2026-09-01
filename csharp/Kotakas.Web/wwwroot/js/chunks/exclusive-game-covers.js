@@ -1,7 +1,7 @@
 (()=>{
-  const VERSION='20260901-0630-pubg-kotakas-cover';
+  const VERSION='20260901-0645-pubg-kotakas-webp';
   const SPRITE=`/assets/images/games/kotakas-hd-covers-v7.webp?v=${VERSION}`;
-  const PUBGCOVER=`/assets/images/games/pubg-mobile-kotakas.jpg?v=${VERSION}`;
+  const PUBGCOVER=`/assets/images/games/pubg-mobile-kotakas.webp?v=${VERSION}`;
   const ORDER=['knight-online','rise-online','pubg-mobile','metin2','silkroad-online','valorant','league-of-legends','mobile-legends','free-fire','world-of-warcraft','lost-ark','albion-online','roblox','fortnite','ea-fc','steam'];
   const POS=Object.fromEntries(ORDER.map((code,i)=>[code,[i%4,Math.floor(i/4)]]));
   let ready=false;
