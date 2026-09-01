@@ -21,8 +21,10 @@ import { createMarketRateRouter } from './market-rates/routes.js';
 import { createDealRepository } from './deals/repository.js';
 import { createDealRouter } from './deals/routes.js';
 import { createAdminRouter } from './admin/routes.js';
+import { createTradeJournalRepository } from './trade-journal/repository.js';
+import { createTradeJournalRouter } from './trade-journal/routes.js';
 
-const RELEASE = '21.8.0';
+const RELEASE = '22.0.0';
 const config = loadConfig();
 const db = createDb(config.databaseUrl);
 const users = db ? createUserRepository(db) : null;
@@ -33,6 +35,7 @@ const notifications = db ? createNotificationRepository(db) : null;
 const sellerRequests = db ? createSellerRequestRepository(db) : null;
 const marketRates = db ? createMarketRateRepository(db) : null;
 const deals = db ? createDealRepository(db) : null;
+const tradeJournal = db ? createTradeJournalRepository(db) : null;
 const app = express();
 
 app.disable('x-powered-by');
@@ -65,6 +68,7 @@ if (sellerRequests && listings && notifications) app.use('/api', createSellerReq
 if (marketRates) app.use('/api', createMarketRateRouter({ marketRates }));
 if (deals && listings && marketRates && escrow && notifications) app.use('/api', createDealRouter({ deals, listings, marketRates, escrow, notifications, normalRate: config.normalCommissionRate, traderRate: config.traderCommissionRate }));
 if (db && deals && escrow && notifications) app.use('/api', createAdminRouter({ pool: db, deals, escrow, notifications, normalRate: config.normalCommissionRate, traderRate: config.traderCommissionRate }));
+if (tradeJournal) app.use('/api', createTradeJournalRouter({ tradeJournal }));
 
 app.get('/api/health', async (_req, res) => {
   const database = await checkDb(db);
@@ -75,10 +79,10 @@ app.get('/api/health', async (_req, res) => {
   }
   const migrationGateOk = !config.production || config.sourceBaselineReady;
   const ok = database.ok && authSchema.ok && migrationGateOk;
-  res.status(ok ? 200 : 503).json({ ok, app: 'KOTAKAS', phase: 21, release: RELEASE, source: 'github', database: database.ok ? 'ok' : 'error', authSchema: authSchema.ok ? 'compatible' : authSchema.reason, migrationGate: migrationGateOk ? 'open' : 'closed' });
+  res.status(ok ? 200 : 503).json({ ok, app: 'KOTAKAS', phase: 22, release: RELEASE, source: 'github', database: database.ok ? 'ok' : 'error', authSchema: authSchema.ok ? 'compatible' : authSchema.reason, migrationGate: migrationGateOk ? 'open' : 'closed' });
 });
 
-app.get('/api/meta', (_req, res) => res.json({ ok: true, app: 'KOTAKAS', phase: 21, release: RELEASE, normalCommissionRate: config.normalCommissionRate, traderCommissionRate: config.traderCommissionRate, freeFormChatEnabled: false, escrowEnabled: true, googleLoginEnabled: Boolean(config.googleClientId && config.googleClientSecret) }));
+app.get('/api/meta', (_req, res) => res.json({ ok: true, app: 'KOTAKAS', phase: 22, release: RELEASE, operatingModel: 'gb-journal-first', tradeJournalEnabled: true, normalCommissionRate: config.normalCommissionRate, traderCommissionRate: config.traderCommissionRate, freeFormChatEnabled: false, escrowEnabled: true, googleLoginEnabled: Boolean(config.googleClientId && config.googleClientSecret) }));
 app.get('/api/stats', async (_req,res,next)=>{try{const [l,d]=await Promise.all([db.query(`select count(*)::int c from listings where status='active'`),db.query(`select count(*)::int c from deals where status='completed'`)]);res.json({ok:true,activeListings:l.rows[0].c,completedDeals:d.rows[0].c});}catch(e){next(e);}});
 app.get('/admin-access.html', (_req,res)=>res.redirect(302,'/admin.html'));
 
