@@ -1,5 +1,5 @@
 (async()=>{
-  const UI_VERSION='20260901-0632-pubg-custom-cover';
+  const UI_VERSION='20260901-0646-pubg-kotakas-webp';
 
   // Mobil Chrome/Android tarayıcı üst çubuğunu KOTAKAS pembe rengine boya.
   let themeColor=document.querySelector('meta[name="theme-color"]');
