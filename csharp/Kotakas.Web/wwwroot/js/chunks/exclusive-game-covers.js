@@ -1,6 +1,7 @@
 (()=>{
-  const VERSION='20260831-2235-hd-covers-v7';
+  const VERSION='20260901-0630-pubg-kotakas-cover';
   const SPRITE=`/assets/images/games/kotakas-hd-covers-v7.webp?v=${VERSION}`;
+  const PUBGCOVER=`/assets/images/games/pubg-mobile-kotakas.jpg?v=${VERSION}`;
   const ORDER=['knight-online','rise-online','pubg-mobile','metin2','silkroad-online','valorant','league-of-legends','mobile-legends','free-fire','world-of-warcraft','lost-ark','albion-online','roblox','fortnite','ea-fc','steam'];
   const POS=Object.fromEntries(ORDER.map((code,i)=>[code,[i%4,Math.floor(i/4)]]));
   let ready=false;
@@ -20,6 +21,11 @@
         background-color:#090b12!important;
         isolation:isolate!important;
       }
+      .game-market-media.k-hd-cover-v7.k-pubg-kotakas-cover{
+        background-image:url("${PUBGCOVER}")!important;
+        background-size:cover!important;
+        background-position:center center!important;
+      }
       .game-market-media.k-hd-cover-v7 .game-market-cover{display:none!important}
       .game-market-media.k-hd-cover-v7 .game-market-media-glow{display:none!important}
       .game-market-media.k-hd-cover-v7:before{
@@ -28,7 +34,7 @@
         inset:0!important;
         z-index:2!important;
         pointer-events:none!important;
-        background:linear-gradient(180deg,rgba(5,7,12,.02) 0%,rgba(5,7,12,.04) 38%,rgba(5,7,12,.38) 56%,rgba(5,7,12,.82) 78%,rgba(5,7,12,.94) 100%)!important;
+        background:linear-gradient(180deg,rgba(5,7,12,.02) 0%,rgba(5,7,12,.04) 38%,rgba(5,7,12,.34) 58%,rgba(5,7,12,.80) 80%,rgba(5,7,12,.93) 100%)!important;
       }
       .game-market-media.k-hd-cover-v7 .game-market-logo-wrap{
         display:flex!important;
@@ -47,9 +53,9 @@
         left:14%!important;
         top:31%!important;
         border-radius:50%!important;
-        background:radial-gradient(ellipse at center,rgba(7,9,15,.76) 0%,rgba(7,9,15,.62) 36%,rgba(7,9,15,.24) 62%,transparent 78%)!important;
-        backdrop-filter:blur(7px) brightness(.64)!important;
-        -webkit-backdrop-filter:blur(7px) brightness(.64)!important;
+        background:radial-gradient(ellipse at center,rgba(7,9,15,.64) 0%,rgba(7,9,15,.48) 36%,rgba(7,9,15,.18) 62%,transparent 78%)!important;
+        backdrop-filter:blur(4px) brightness(.76)!important;
+        -webkit-backdrop-filter:blur(4px) brightness(.76)!important;
         pointer-events:none!important;
       }
       .game-market-media.k-hd-cover-v7 .game-market-real-logo,
@@ -85,30 +91,41 @@
     document.querySelectorAll('.game-market-media[data-game-code]').forEach(media=>{
       const code=media.getAttribute('data-game-code');
       const p=POS[code];if(!p)return;
-      media.classList.remove('no-cover','k-cover-fallback','k-exclusive-cover','k-exact-generated-cover','k-exact-cover-v2','k-exact-cover-v3','k-exact-cover-v4','k-exact-cover-v5','k-exact-cover-v6');
+      media.classList.remove('no-cover','k-cover-fallback','k-exclusive-cover','k-exact-generated-cover','k-exact-cover-v2','k-exact-cover-v3','k-exact-cover-v4','k-exact-cover-v5','k-exact-cover-v6','k-pubg-kotakas-cover');
       media.classList.add('has-cover','k-hd-cover-v7');
-      media.style.setProperty('background-position',`${p[0]*100/3}% ${p[1]*100/3}%`,'important');
+      if(code==='pubg-mobile'){
+        media.classList.add('k-pubg-kotakas-cover');
+        media.style.removeProperty('background-position');
+      }else{
+        media.style.setProperty('background-position',`${p[0]*100/3}% ${p[1]*100/3}%`,'important');
+      }
     });
     window.kRefreshLocalGameLogos?.();
   }
 
   function fallback(){
     document.querySelectorAll('.game-market-media').forEach(media=>{
-      media.classList.remove('k-hd-cover-v7');
+      media.classList.remove('k-hd-cover-v7','k-pubg-kotakas-cover');
       media.style.removeProperty('background-position');
     });
     window.kRefreshLocalGameLogos?.();
   }
 
   function load(){
-    const img=new Image();
-    img.onload=()=>{
-      if(!img.naturalWidth||!img.naturalHeight){fallback();return;}
+    const spriteImg=new Image();
+    const pubgImg=new Image();
+    let spriteOk=false,pubgOk=false;
+    const done=()=>{
+      if(!spriteOk)return;
       ready=true;
       [0,80,180,400,900,1600].forEach(ms=>setTimeout(apply,ms));
     };
-    img.onerror=fallback;
-    img.src=SPRITE;
+    spriteImg.onload=()=>{spriteOk=!!(spriteImg.naturalWidth&&spriteImg.naturalHeight);done();};
+    spriteImg.onerror=fallback;
+    pubgImg.onload=()=>{pubgOk=!!(pubgImg.naturalWidth&&pubgImg.naturalHeight);done();};
+    pubgImg.onerror=()=>{pubgOk=false;done();};
+    spriteImg.src=SPRITE;
+    pubgImg.src=PUBGCOVER;
   }
 
   const observer=new MutationObserver(()=>requestAnimationFrame(apply));
