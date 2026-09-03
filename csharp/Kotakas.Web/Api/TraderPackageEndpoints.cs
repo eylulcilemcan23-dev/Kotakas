@@ -185,7 +185,7 @@ public sealed record TraderPackageDefinition(
     bool FeaturedListings,
     bool EliteBadge);
 
-public sealed class TraderPackageOrderRow
+public class TraderPackageOrderRow
 {
     public long Id { get; set; }
     public string UserId { get; set; } = "";
