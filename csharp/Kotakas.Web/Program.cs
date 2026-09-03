@@ -184,6 +184,7 @@ app.MapMarketplaceEndpoints();
 app.MapGbTradeEndpoints();
 app.MapTraderPackageEndpoints();
 app.MapKotakasStockEndpoints();
+app.MapKotakasGbSaleEndpoints();
 app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
 app.MapListingEnhancementEndpoints();
