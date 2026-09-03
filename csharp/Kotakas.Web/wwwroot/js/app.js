@@ -1,5 +1,5 @@
 (async()=>{
-  const UI_VERSION='20260903-1645-hide-hamburger';
+  const UI_VERSION='20260903-1715-home-cleanup';
 
   // Mobil Chrome/Android tarayıcı üst çubuğunu KOTAKAS pembe rengine boya.
   let themeColor=document.querySelector('meta[name="theme-color"]');
