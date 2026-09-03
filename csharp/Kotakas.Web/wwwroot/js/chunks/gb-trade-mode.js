@@ -32,39 +32,39 @@
 
   window.sellSubmit=async e=>{
     e?.preventDefault?.();
-    if(!window.ME){location.href='/login.html';return;}
+    if(!ME){location.href='/login.html';return;}
     const enhance=window._enhance??8;
     const itemBase=document.getElementById('item')?.value.trim()||'';
     const itemName=/\+\d+$/.test(itemBase)?itemBase:`${itemBase} +${enhance}`;
     const minimumGb=Number(String(document.getElementById('min')?.value||'0').replace(',','.'));
-    if(itemBase.length<2 || !minimumGb || minimumGb<=0){window.toast?.('Item adı ve GB fiyatı gerekli.');return;}
+    if(itemBase.length<2 || !minimumGb || minimumGb<=0){toast('Item adı ve GB fiyatı gerekli.');return;}
     try{
-      await window.api('/api/gb-trade/requests',{method:'POST',body:{
+      await api('/api/gb-trade/requests',{method:'POST',body:{
         itemName,
         serverCode:document.getElementById('server')?.value||'ZERO',
         quantity:Number(document.getElementById('qty')?.value||1),
         minimumGb,
         note:document.getElementById('note')?.value||''
       }});
-      window.toast?.('Item talebin KOTAKAS alım masasına gönderildi.');
+      toast('Item talebin KOTAKAS alım masasına gönderildi.');
       setTimeout(()=>location.href='/dashboard.html',500);
     }catch(err){
-      window.toast?.(err?.data?.error||'Item talebi gönderilemedi.');
+      toast(err?.data?.error||'Item talebi gönderilemedi.');
     }
   };
 
   window.acceptOffer=async id=>{
     if(!confirm('Bu GB teklifini kabul etmek istiyor musun? Kabulden sonra item teslim aşamasına geçilecek.'))return;
     try{
-      const d=await window.api(`/api/gb-trade/offers/${id}/accept`,{method:'POST'});
-      window.toast?.('Teklif kabul edildi. Item teslim aşamasına geçildi.');
+      const d=await api(`/api/gb-trade/offers/${id}/accept`,{method:'POST'});
+      toast('Teklif kabul edildi. Item teslim aşamasına geçildi.');
       setTimeout(()=>location.href=`/deals.html?id=${d.deal.id}`,450);
     }catch(err){
-      window.toast?.(err?.data?.error||'Teklif kabul edilemedi.');
+      toast(err?.data?.error||'Teklif kabul edilemedi.');
     }
   };
 
-  window.buyListing=()=>window.toast?.('Eski TL ile item satın alma kapatıldı. Yeni KOTAKAS GB stok mağazası kuruluyor.');
+  window.buyListing=()=>toast('Eski TL ile item satın alma kapatıldı. Yeni KOTAKAS GB stok mağazası kuruluyor.');
 
   removeMoneyUi();
   const observer=new MutationObserver(()=>requestAnimationFrame(removeMoneyUi));
