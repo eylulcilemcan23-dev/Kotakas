@@ -16,7 +16,7 @@
       body.k-home-simplified .kp-promo-main{display:flex!important;width:100%!important;margin-bottom:14px!important}
       body.k-home-simplified .kp-promo-stack{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;width:100%!important}
       body.k-home-simplified .kp-promo-stack>.kp-promo-side{min-height:180px!important}
-      .k-footer-four-cols{display:grid!important;grid-template-columns:minmax(280px,1.45fr) repeat(3,minmax(170px,1fr))!important;column-gap:64px!important;row-gap:28px!important;align-items:start!important}
+      .k-footer-four-cols{display:grid!important;grid-template-columns:minmax(300px,1.45fr) repeat(3,minmax(180px,1fr))!important;column-gap:72px!important;row-gap:28px!important;align-items:start!important}
       .k-footer-four-cols>*{min-width:0!important}
       .k-admin-collapse-btn{margin-left:auto!important;white-space:nowrap}
       @media(max-width:980px){.k-footer-four-cols{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:30px 44px!important}}
@@ -30,48 +30,56 @@
     if(section)section.remove();
   }
 
-  function footerColumnForTitle(title,root){
+  function footerRoot(){
+    return document.querySelector('footer,.kp-footer,.site-footer,[data-footer],.k-footer');
+  }
+
+  function footerBlockForTitle(title,footer){
+    const known=new Set(['hukuki','destek','knight online','rise online','popüler oyunlar']);
     let node=title;
-    while(node.parentElement&&node.parentElement!==root){
+    while(node.parentElement&&node.parentElement!==footer){
       const parent=node.parentElement;
-      const headingCount=parent.querySelectorAll('h1,h2,h3,h4,h5,h6').length;
-      const linkCount=parent.querySelectorAll('a').length;
-      if(linkCount>0&&headingCount<=1)return parent;
+      const headings=[...parent.querySelectorAll('h1,h2,h3,h4,h5,h6,strong')].map(x=>norm(x.textContent)).filter(x=>known.has(x));
+      if(headings.length>1)break;
       node=parent;
     }
-    return title.parentElement;
+    return node;
+  }
+
+  function findFooterGrid(footer){
+    const titles=[...footer.querySelectorAll('h1,h2,h3,h4,h5,h6,strong')];
+    const wanted=['hukuki','destek','knight online'];
+    const nodes=wanted.map(w=>titles.find(x=>norm(x.textContent)===w)).filter(Boolean);
+    if(nodes.length!==wanted.length)return null;
+    let grid=nodes[0].parentElement;
+    while(grid&&grid!==footer&&!nodes.every(n=>grid.contains(n)))grid=grid.parentElement;
+    return grid&&grid!==footer?grid:null;
   }
 
   function removeFooterGameColumns(){
+    const footer=footerRoot();
+    if(!footer)return;
     const targets=new Set(['rise online','popüler oyunlar']);
-    const roots=[...document.querySelectorAll('footer,.kp-footer,.site-footer,[class*="footer"]')];
-    const grids=new Set();
 
-    roots.forEach(root=>{
-      root.querySelectorAll('h1,h2,h3,h4,h5,h6,strong').forEach(title=>{
-        if(!targets.has(norm(title.textContent)))return;
-        const col=footerColumnForTitle(title,root);
-        if(!col||col===root)return;
-        if(col.parentElement)grids.add(col.parentElement);
-        col.remove();
-      });
-    });
-
-    // Footer geç yüklenirse veya özel sınıf kullanıyorsa başlıkları yine yakala.
-    document.querySelectorAll('h1,h2,h3,h4,h5,h6,strong').forEach(title=>{
+    [...footer.querySelectorAll('h1,h2,h3,h4,h5,h6,strong')].forEach(title=>{
       if(!targets.has(norm(title.textContent)))return;
-      const root=title.closest('footer,.kp-footer,.site-footer,[class*="footer"]');
-      if(!root)return;
-      const col=footerColumnForTitle(title,root);
-      if(!col||col===root)return;
-      if(col.parentElement)grids.add(col.parentElement);
-      col.remove();
+      const block=footerBlockForTitle(title,footer);
+      if(block&&block!==footer)block.remove();
     });
 
-    grids.forEach(grid=>{
-      const text=norm(grid.textContent);
-      if(text.includes('hukuki')&&text.includes('destek')&&text.includes('knight online'))grid.classList.add('k-footer-four-cols');
-    });
+    // Başlık farklı bir sarmalayıcıda kalırsa, Rise/Popüler oyun bloklarını metinden de temizle.
+    [...footer.querySelectorAll('section,nav,article,div,ul')]
+      .sort((a,b)=>b.querySelectorAll('*').length-a.querySelectorAll('*').length)
+      .forEach(el=>{
+        if(!el.isConnected||el===footer)return;
+        const text=norm(el.textContent);
+        if(!(text.startsWith('rise online')||text.startsWith('popüler oyunlar')))return;
+        if(text.includes('hukuki')||text.includes('destek')||text.includes('knight online')||text.includes('kotakas'))return;
+        el.remove();
+      });
+
+    const grid=findFooterGrid(footer);
+    if(grid)grid.classList.add('k-footer-four-cols');
   }
 
   function removeHomeCurrencyGames(){
@@ -206,10 +214,5 @@
   apply();
   const mo=new MutationObserver(queue);
   mo.observe(document.documentElement,{childList:true,subtree:true});
-  setTimeout(queue,300);
-  setTimeout(queue,900);
-  setTimeout(queue,1800);
-  setTimeout(queue,3500);
-  setTimeout(queue,6500);
-  setTimeout(()=>mo.disconnect(),15000);
+  [250,600,1200,2200,4000,7000,12000].forEach(ms=>setTimeout(queue,ms));
 })();
