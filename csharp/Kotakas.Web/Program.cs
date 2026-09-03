@@ -109,6 +109,47 @@ if (app.Environment.IsProduction())
     app.UseHttpsRedirection();
 }
 app.UseMiddleware<SecurityHeadersMiddleware>();
+
+// Windows'ta yerel ZIP klasöründen çalıştırırken static-web-assets cache'i bazen eski
+// bir fiziksel yolu tutabiliyor. Development modunda CSS/JS'yi doğrudan gerçek
+// wwwroot klasöründen servis eden güvenli bir fallback kullanıyoruz.
+if (app.Environment.IsDevelopment())
+{
+    var localWebRoot = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "wwwroot"));
+    var localContentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+
+    app.Use(async (context, next) =>
+    {
+        var requestPath = context.Request.Path.Value ?? "";
+        var isStaticAsset = requestPath.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
+            || requestPath.StartsWith("/js/", StringComparison.OrdinalIgnoreCase);
+
+        if (isStaticAsset)
+        {
+            var relative = requestPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var fullPath = Path.GetFullPath(Path.Combine(localWebRoot, relative));
+            var allowedRoot = localWebRoot.EndsWith(Path.DirectorySeparatorChar)
+                ? localWebRoot
+                : localWebRoot + Path.DirectorySeparatorChar;
+
+            if (fullPath.StartsWith(allowedRoot, StringComparison.OrdinalIgnoreCase) && File.Exists(fullPath))
+            {
+                if (!localContentTypes.TryGetContentType(fullPath, out var contentType))
+                    contentType = "application/octet-stream";
+
+                context.Response.ContentType = contentType;
+                context.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
+                context.Response.Headers["Pragma"] = "no-cache";
+                context.Response.Headers["Expires"] = "0";
+                await context.Response.SendFileAsync(fullPath);
+                return;
+            }
+        }
+
+        await next();
+    });
+}
+
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
