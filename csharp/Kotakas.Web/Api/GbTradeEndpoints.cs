@@ -11,7 +11,7 @@ public static class GbTradeEndpoints
     {
         app.MapPost("/api/gb-trade/requests", async (ClaimsPrincipal principal, GbSellRequestInput input, AppDbContext db) =>
         {
-            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(userId)) return Results.Unauthorized();
 
             var itemName = (input.ItemName ?? "").Trim();
@@ -62,7 +62,7 @@ public static class GbTradeEndpoints
 
         app.MapPost("/api/gb-trade/offers/{id:long}/accept", async (long id, ClaimsPrincipal principal, AppDbContext db) =>
         {
-            var sellerUserId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var sellerUserId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(sellerUserId)) return Results.Unauthorized();
 
             var offer = await db.Offers.Include(x => x.SaleRequest).FirstOrDefaultAsync(x => x.Id == id);
