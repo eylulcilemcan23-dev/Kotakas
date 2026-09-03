@@ -99,6 +99,7 @@ else
     await ListingEnhancementSqliteSeeder.InitializeAsync(app);
 }
 await MultiGameSchemaSeeder.InitializeAsync(app);
+await TraderPackageSchemaSeeder.InitializeAsync(app);
 await SchemaVersionSeeder.InitializeAsync(app);
 await SiteRuntimeState.InitializeAsync(app);
 
@@ -127,6 +128,7 @@ app.UseMiddleware<MaintenanceModeMiddleware>();
 app.UseMiddleware<CsrfProtectionMiddleware>();
 app.UseMiddleware<CriticalRequestGuardMiddleware>();
 app.UseMiddleware<AdminAuditMiddleware>();
+app.UseMiddleware<TraderPackageGateMiddleware>();
 app.UseMiddleware<TraderAvailabilityMiddleware>();
 
 app.MapHealthEndpoints();
@@ -137,6 +139,7 @@ app.MapSessionEndpoints();
 app.MapItemCatalogEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapGbTradeEndpoints();
+app.MapTraderPackageEndpoints();
 app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
 app.MapListingEnhancementEndpoints();
