@@ -9,7 +9,7 @@
     const s=document.createElement('style');
     s.id='kSimpleLayoutCleanupCss';
     s.textContent=`
-      .k-shell-menu{display:none!important}
+      .k-shell-menu,.site-header button[aria-label="Menüyü aç"],.site-header button[aria-label="Menüyü Aç"]{display:none!important}
       body.k-home-simplified .kp-promo-grid{display:block!important}
       body.k-home-simplified .kp-promo-main{display:flex!important;width:100%!important;margin-bottom:14px!important}
       body.k-home-simplified .kp-promo-stack{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;width:100%!important}
@@ -52,7 +52,12 @@
   }
 
   function removeGameDrawer(){
-    document.querySelectorAll('.k-shell-menu').forEach(btn=>btn.style.display='none');
+    document.querySelectorAll('.site-header .k-shell-menu,.site-header button[aria-label="Menüyü aç"],.site-header button[aria-label="Menüyü Aç"]').forEach(btn=>btn.remove());
+    document.querySelectorAll('.site-header button').forEach(btn=>{
+      const text=(btn.textContent||'').trim();
+      const label=(btn.getAttribute('aria-label')||'').toLocaleLowerCase('tr-TR');
+      if(text==='☰'||label.includes('menü'))btn.remove();
+    });
     document.getElementById('kShellDrawer')?.remove();
     if(typeof window.kOpenMenu==='function'&&!window.kOpenMenu.__disabledBySimpleLayout){
       const disabled=()=>{};
@@ -110,5 +115,5 @@
   setTimeout(queue,300);
   setTimeout(queue,900);
   setTimeout(queue,1800);
-  setTimeout(()=>mo.disconnect(),6000);
+  setTimeout(()=>mo.disconnect(),12000);
 })();
