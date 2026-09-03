@@ -216,10 +216,10 @@ internal static class TraderPackageStore
         {
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                SELECT \"Id\",\"UserId\",\"PackageCode\",\"PriceGb\",\"ListingLimit\",\"ListingsUsed\",\"DurationDays\",\"Status\",\"CreatedAt\",\"ActivatedAt\",\"ExpiresAt\",\"ApprovedAt\",\"ApprovedByUserId\"
-                FROM \"TraderPackageOrders\"
-                WHERE \"UserId\"=@uid
-                ORDER BY \"Id\" DESC
+                SELECT "Id","UserId","PackageCode","PriceGb","ListingLimit","ListingsUsed","DurationDays","Status","CreatedAt","ActivatedAt","ExpiresAt","ApprovedAt","ApprovedByUserId"
+                FROM "TraderPackageOrders"
+                WHERE "UserId"=@uid
+                ORDER BY "Id" DESC
                 LIMIT 100
                 """;
             Add(cmd, "@uid", userId);
@@ -243,8 +243,8 @@ internal static class TraderPackageStore
         {
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                SELECT \"Id\",\"UserId\",\"PackageCode\",\"PriceGb\",\"ListingLimit\",\"ListingsUsed\",\"DurationDays\",\"Status\",\"CreatedAt\",\"ActivatedAt\",\"ExpiresAt\",\"ApprovedAt\",\"ApprovedByUserId\"
-                FROM \"TraderPackageOrders\" WHERE \"Id\"=@id LIMIT 1
+                SELECT "Id","UserId","PackageCode","PriceGb","ListingLimit","ListingsUsed","DurationDays","Status","CreatedAt","ActivatedAt","ExpiresAt","ApprovedAt","ApprovedByUserId"
+                FROM "TraderPackageOrders" WHERE "Id"=@id LIMIT 1
                 """;
             Add(cmd, "@id", id);
             using var reader = await cmd.ExecuteReaderAsync();
@@ -258,11 +258,11 @@ internal static class TraderPackageStore
         {
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                SELECT o.\"Id\",o.\"UserId\",o.\"PackageCode\",o.\"PriceGb\",o.\"ListingLimit\",o.\"ListingsUsed\",o.\"DurationDays\",o.\"Status\",o.\"CreatedAt\",o.\"ActivatedAt\",o.\"ExpiresAt\",o.\"ApprovedAt\",o.\"ApprovedByUserId\",
-                       COALESCE(u.\"DisplayName\",''), COALESCE(u.\"Email\",'')
-                FROM \"TraderPackageOrders\" o
-                LEFT JOIN \"AspNetUsers\" u ON u.\"Id\"=o.\"UserId\"
-                ORDER BY CASE WHEN o.\"Status\"='pending' THEN 0 ELSE 1 END, o.\"Id\" DESC
+                SELECT o."Id",o."UserId",o."PackageCode",o."PriceGb",o."ListingLimit",o."ListingsUsed",o."DurationDays",o."Status",o."CreatedAt",o."ActivatedAt",o."ExpiresAt",o."ApprovedAt",o."ApprovedByUserId",
+                       COALESCE(u."DisplayName",''), COALESCE(u."Email",'')
+                FROM "TraderPackageOrders" o
+                LEFT JOIN "AspNetUsers" u ON u."Id"=o."UserId"
+                ORDER BY CASE WHEN o."Status"='pending' THEN 0 ELSE 1 END, o."Id" DESC
                 LIMIT 250
                 """;
             using var reader = await cmd.ExecuteReaderAsync();
@@ -300,8 +300,8 @@ internal static class TraderPackageStore
         {
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO \"TraderPackageOrders\"
-                (\"UserId\",\"PackageCode\",\"PriceGb\",\"ListingLimit\",\"ListingsUsed\",\"DurationDays\",\"Status\",\"CreatedAt\")
+                INSERT INTO "TraderPackageOrders"
+                ("UserId","PackageCode","PriceGb","ListingLimit","ListingsUsed","DurationDays","Status","CreatedAt")
                 VALUES (@uid,@code,@price,@limit,0,@days,'pending',@created)
                 """;
             Add(cmd, "@uid", userId);
@@ -324,9 +324,9 @@ internal static class TraderPackageStore
             using (var replace = conn.CreateCommand())
             {
                 replace.CommandText = """
-                    UPDATE \"TraderPackageOrders\"
-                    SET \"Status\"='replaced'
-                    WHERE \"UserId\"=@uid AND \"Status\"='active' AND \"Id\"<>@id
+                    UPDATE "TraderPackageOrders"
+                    SET "Status"='replaced'
+                    WHERE "UserId"=@uid AND "Status"='active' AND "Id"<>@id
                     """;
                 Add(replace, "@uid", order.UserId);
                 Add(replace, "@id", order.Id);
@@ -335,10 +335,10 @@ internal static class TraderPackageStore
 
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                UPDATE \"TraderPackageOrders\"
-                SET \"Status\"='active', \"ListingsUsed\"=0, \"ActivatedAt\"=@now, \"ExpiresAt\"=@expires,
-                    \"ApprovedAt\"=@now, \"ApprovedByUserId\"=@admin
-                WHERE \"Id\"=@id AND \"Status\"='pending'
+                UPDATE "TraderPackageOrders"
+                SET "Status"='active', "ListingsUsed"=0, "ActivatedAt"=@now, "ExpiresAt"=@expires,
+                    "ApprovedAt"=@now, "ApprovedByUserId"=@admin
+                WHERE "Id"=@id AND "Status"='pending'
                 """;
             Add(cmd, "@now", now);
             Add(cmd, "@expires", expires);
@@ -355,9 +355,9 @@ internal static class TraderPackageStore
         {
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                UPDATE \"TraderPackageOrders\"
-                SET \"Status\"=@status, \"ApprovedAt\"=@now, \"ApprovedByUserId\"=@admin
-                WHERE \"Id\"=@id
+                UPDATE "TraderPackageOrders"
+                SET "Status"=@status, "ApprovedAt"=@now, "ApprovedByUserId"=@admin
+                WHERE "Id"=@id
                 """;
             Add(cmd, "@status", status);
             Add(cmd, "@now", DateTimeOffset.UtcNow);
@@ -374,9 +374,9 @@ internal static class TraderPackageStore
         {
             using var cmd = conn.CreateCommand();
             cmd.CommandText = """
-                UPDATE \"TraderPackageOrders\"
-                SET \"ListingsUsed\"=\"ListingsUsed\"+1
-                WHERE \"Id\"=@id AND \"Status\"='active'
+                UPDATE "TraderPackageOrders"
+                SET "ListingsUsed"="ListingsUsed"+1
+                WHERE "Id"=@id AND "Status"='active'
                 """;
             Add(cmd, "@id", id);
             await cmd.ExecuteNonQueryAsync();
