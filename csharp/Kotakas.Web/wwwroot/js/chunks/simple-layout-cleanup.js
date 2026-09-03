@@ -11,11 +11,12 @@
     s.textContent=`
       .k-shell-menu{display:none!important}
       body.k-home-simplified .kp-promo-grid{display:block!important}
+      body.k-home-simplified .kp-promo-main{display:flex!important;width:100%!important;margin-bottom:14px!important}
       body.k-home-simplified .kp-promo-stack{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;width:100%!important}
       body.k-home-simplified .kp-promo-stack>.kp-promo-side{min-height:180px!important}
       body.k-home-simplified .kp-footer-main{grid-template-columns:minmax(260px,1.5fr) repeat(2,minmax(150px,1fr))!important}
       .k-admin-collapse-btn{margin-left:auto!important;white-space:nowrap}
-      @media(max-width:760px){body.k-home-simplified .kp-promo-stack{grid-template-columns:1fr!important}body.k-home-simplified .kp-footer-main{grid-template-columns:1fr!important}}
+      @media(max-width:760px){body.k-home-simplified .kp-promo-stack{grid-template-columns:1fr!important}body.k-home-simplified .kp-promo-main{min-height:330px!important;padding:32px 28px!important}body.k-home-simplified .kp-promo-main h1{font-size:48px!important}body.k-home-simplified .kp-footer-main{grid-template-columns:1fr!important}}
     `;
     document.head.appendChild(s);
   }
@@ -29,7 +30,6 @@
     if(!isHome)return;
     document.body.classList.add('k-home-simplified');
 
-    document.querySelector('.kp-promo-main')?.remove();
     document.querySelectorAll('.kp-promo-side').forEach(card=>{
       const text=(card.textContent||'').toLocaleLowerCase('tr-TR');
       if(text.includes('düşük komisyon'))card.remove();
