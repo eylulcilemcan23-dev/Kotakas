@@ -136,6 +136,7 @@ app.MapAvatarEndpoints();
 app.MapSessionEndpoints();
 app.MapItemCatalogEndpoints();
 app.MapMarketplaceEndpoints();
+app.MapGbTradeEndpoints();
 app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
 app.MapListingEnhancementEndpoints();
