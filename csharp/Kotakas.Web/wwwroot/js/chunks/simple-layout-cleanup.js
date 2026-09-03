@@ -31,16 +31,9 @@
   function removeFooterGameColumns(){
     const footer=document.querySelector('footer');
     if(!footer)return;
-    const removableTitles=new Set(['rise online','popüler oyunlar','oyunlar']);
     footer.querySelectorAll('h2,h3,h4,strong').forEach(title=>{
-      if(!removableTitles.has(norm(title.textContent)))return;
-      let col=title;
-      while(col.parentElement&&col.parentElement!==footer){
-        const parent=col.parentElement;
-        if(parent.classList.contains('kp-footer-main')||parent.classList.contains('k-footer-main')||parent.classList.contains('k-footer-grid')||parent.classList.contains('footer-grid'))break;
-        col=parent;
-      }
-      if(col===title)col=title.parentElement||title;
+      if(norm(title.textContent)!=='rise online')return;
+      const col=title.parentElement;
       if(col&&col!==footer)col.remove();
     });
   }
