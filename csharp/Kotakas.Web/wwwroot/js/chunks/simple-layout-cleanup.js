@@ -4,7 +4,14 @@
   const isAdmin=path.endsWith('/admin.html');
   let scheduled=false;
 
-  const norm=value=>String(value||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr-TR');
+  // Türkçe locale'de "RISE" -> "rıse" olabildiği için önce küçültüp
+  // noktasız i karakterini ASCII i'ye çeviriyoruz. Böylece Rise Online
+  // ve diğer footer başlıkları güvenilir şekilde eşleşir.
+  const norm=value=>String(value||'')
+    .trim()
+    .replace(/\s+/g,' ')
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ı/g,'i');
 
   function addCss(){
     if(document.getElementById('kSimpleLayoutCleanupCss'))return;
@@ -67,7 +74,6 @@
       if(block&&block!==footer)block.remove();
     });
 
-    // Başlık farklı bir sarmalayıcıda kalırsa, Rise/Popüler oyun bloklarını metinden de temizle.
     [...footer.querySelectorAll('section,nav,article,div,ul')]
       .sort((a,b)=>b.querySelectorAll('*').length-a.querySelectorAll('*').length)
       .forEach(el=>{
