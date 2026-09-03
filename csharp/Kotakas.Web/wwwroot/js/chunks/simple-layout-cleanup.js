@@ -16,9 +16,11 @@
       body.k-home-simplified .kp-promo-main{display:flex!important;width:100%!important;margin-bottom:14px!important}
       body.k-home-simplified .kp-promo-stack{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;width:100%!important}
       body.k-home-simplified .kp-promo-stack>.kp-promo-side{min-height:180px!important}
-      body.k-home-simplified .kp-footer-main{grid-template-columns:minmax(260px,1.5fr) repeat(3,minmax(150px,1fr))!important}
+      .k-footer-four-cols{display:grid!important;grid-template-columns:minmax(280px,1.45fr) repeat(3,minmax(170px,1fr))!important;column-gap:64px!important;row-gap:28px!important;align-items:start!important}
+      .k-footer-four-cols>*{min-width:0!important}
       .k-admin-collapse-btn{margin-left:auto!important;white-space:nowrap}
-      @media(max-width:760px){body.k-home-simplified .kp-promo-stack{grid-template-columns:1fr!important}body.k-home-simplified .kp-promo-main{min-height:330px!important;padding:32px 28px!important}body.k-home-simplified .kp-promo-main h1{font-size:48px!important}body.k-home-simplified .kp-footer-main{grid-template-columns:1fr!important}}
+      @media(max-width:980px){.k-footer-four-cols{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:30px 44px!important}}
+      @media(max-width:760px){body.k-home-simplified .kp-promo-stack{grid-template-columns:1fr!important}body.k-home-simplified .kp-promo-main{min-height:330px!important;padding:32px 28px!important}body.k-home-simplified .kp-promo-main h1{font-size:48px!important}.k-footer-four-cols{grid-template-columns:1fr!important;gap:24px!important}}
     `;
     document.head.appendChild(s);
   }
@@ -28,13 +30,47 @@
     if(section)section.remove();
   }
 
+  function footerColumnForTitle(title,root){
+    let node=title;
+    while(node.parentElement&&node.parentElement!==root){
+      const parent=node.parentElement;
+      const headingCount=parent.querySelectorAll('h1,h2,h3,h4,h5,h6').length;
+      const linkCount=parent.querySelectorAll('a').length;
+      if(linkCount>0&&headingCount<=1)return parent;
+      node=parent;
+    }
+    return title.parentElement;
+  }
+
   function removeFooterGameColumns(){
-    const footer=document.querySelector('footer');
-    if(!footer)return;
-    footer.querySelectorAll('h2,h3,h4,strong').forEach(title=>{
-      if(norm(title.textContent)!=='rise online')return;
-      const col=title.parentElement;
-      if(col&&col!==footer)col.remove();
+    const targets=new Set(['rise online','popüler oyunlar']);
+    const roots=[...document.querySelectorAll('footer,.kp-footer,.site-footer,[class*="footer"]')];
+    const grids=new Set();
+
+    roots.forEach(root=>{
+      root.querySelectorAll('h1,h2,h3,h4,h5,h6,strong').forEach(title=>{
+        if(!targets.has(norm(title.textContent)))return;
+        const col=footerColumnForTitle(title,root);
+        if(!col||col===root)return;
+        if(col.parentElement)grids.add(col.parentElement);
+        col.remove();
+      });
+    });
+
+    // Footer geç yüklenirse veya özel sınıf kullanıyorsa başlıkları yine yakala.
+    document.querySelectorAll('h1,h2,h3,h4,h5,h6,strong').forEach(title=>{
+      if(!targets.has(norm(title.textContent)))return;
+      const root=title.closest('footer,.kp-footer,.site-footer,[class*="footer"]');
+      if(!root)return;
+      const col=footerColumnForTitle(title,root);
+      if(!col||col===root)return;
+      if(col.parentElement)grids.add(col.parentElement);
+      col.remove();
+    });
+
+    grids.forEach(grid=>{
+      const text=norm(grid.textContent);
+      if(text.includes('hukuki')&&text.includes('destek')&&text.includes('knight online'))grid.classList.add('k-footer-four-cols');
     });
   }
 
@@ -105,7 +141,6 @@
     const traderBlock=document.getElementById('kpTopTraders');
     removeClosestSection(requestBlock||traderBlock);
 
-    removeFooterGameColumns();
     removeHomeCurrencyGames();
   }
 
@@ -157,6 +192,7 @@
     scheduled=false;
     addCss();
     removeGameDrawer();
+    removeFooterGameColumns();
     cleanHome();
     makeAdminControlCollapsible();
   }
@@ -173,5 +209,7 @@
   setTimeout(queue,300);
   setTimeout(queue,900);
   setTimeout(queue,1800);
-  setTimeout(()=>mo.disconnect(),12000);
+  setTimeout(queue,3500);
+  setTimeout(queue,6500);
+  setTimeout(()=>mo.disconnect(),15000);
 })();
