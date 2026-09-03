@@ -98,9 +98,31 @@ public sealed class MarketRateSyncService(
         await Upsert(db, "gb_try_rate_sync_status", "ok");
         if (effectiveMode == "auto")
             await Upsert(db, "gb_try_rate", rate.ToString(CultureInfo.InvariantCulture));
+
+        // KOTAKAS'in kendi hazır GB satış stoğu da aynı canlı Kopazar "Satın Al"
+        // fiyatını kullanır. Kopazar 10M fiyat verdiği için yukarıda 1 GB (100M)
+        // karşılığına çevrilmiştir. Satışın açık/kapalı durumu ve rezerv miktarı korunur.
+        if (feedMode is "kopazar_html" or "html" && sourceBuyTryPerGb is > 0)
+        {
+            var serverCode = (configuration["MarketRateFeed:ServerCode"] ?? "ZERO").Trim().ToUpperInvariant();
+            if (serverCode.Length >= 2)
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO "KotakasGbSaleSettings" ("ServerCode","SalePriceTry","ReservedGb","IsActive","UpdatedAt")
+                    VALUES ({serverCode},{sourceBuyTryPerGb.Value},0,0,{DateTimeOffset.UtcNow})
+                    ON CONFLICT("ServerCode") DO UPDATE SET
+                        "SalePriceTry"=excluded."SalePriceTry",
+                        "UpdatedAt"=excluded."UpdatedAt"
+                    """, cancellationToken);
+                await Upsert(db, "gb_try_rate_server", serverCode);
+            }
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
-        logger.LogInformation("KOTAKAS GB/TRY synchronized from {Source}: {Rate} (mode: {Mode})", sourceName, rate, effectiveMode);
+        logger.LogInformation(
+            "KOTAKAS GB/TRY synchronized from {Source}: buy={BuyRate}, sell={SellRate}, effective={Rate} (mode: {Mode})",
+            sourceName, sourceBuyTryPerGb, sourceSellTryPerGb, rate, effectiveMode);
     }
 
     private static string NormalizeHtmlText(string html)
