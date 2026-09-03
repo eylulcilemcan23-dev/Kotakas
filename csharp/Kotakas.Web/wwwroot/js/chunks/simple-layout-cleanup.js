@@ -4,6 +4,8 @@
   const isAdmin=path.endsWith('/admin.html');
   let scheduled=false;
 
+  const norm=value=>String(value||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr-TR');
+
   function addCss(){
     if(document.getElementById('kSimpleLayoutCleanupCss'))return;
     const s=document.createElement('style');
@@ -14,7 +16,7 @@
       body.k-home-simplified .kp-promo-main{display:flex!important;width:100%!important;margin-bottom:14px!important}
       body.k-home-simplified .kp-promo-stack{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;width:100%!important}
       body.k-home-simplified .kp-promo-stack>.kp-promo-side{min-height:180px!important}
-      body.k-home-simplified .kp-footer-main{grid-template-columns:minmax(260px,1.5fr) repeat(2,minmax(150px,1fr))!important}
+      body.k-home-simplified .kp-footer-main{grid-template-columns:minmax(260px,1.5fr) repeat(3,minmax(150px,1fr))!important}
       .k-admin-collapse-btn{margin-left:auto!important;white-space:nowrap}
       @media(max-width:760px){body.k-home-simplified .kp-promo-stack{grid-template-columns:1fr!important}body.k-home-simplified .kp-promo-main{min-height:330px!important;padding:32px 28px!important}body.k-home-simplified .kp-promo-main h1{font-size:48px!important}body.k-home-simplified .kp-footer-main{grid-template-columns:1fr!important}}
     `;
@@ -26,12 +28,80 @@
     if(section)section.remove();
   }
 
+  function removeFooterGameColumns(){
+    const footer=document.querySelector('footer');
+    if(!footer)return;
+    const removableTitles=new Set(['rise online','popüler oyunlar','oyunlar']);
+    footer.querySelectorAll('h2,h3,h4,strong').forEach(title=>{
+      if(!removableTitles.has(norm(title.textContent)))return;
+      let col=title;
+      while(col.parentElement&&col.parentElement!==footer){
+        const parent=col.parentElement;
+        if(parent.classList.contains('kp-footer-main')||parent.classList.contains('k-footer-main')||parent.classList.contains('k-footer-grid')||parent.classList.contains('footer-grid'))break;
+        col=parent;
+      }
+      if(col===title)col=title.parentElement||title;
+      if(col&&col!==footer)col.remove();
+    });
+  }
+
+  function removeHomeCurrencyGames(){
+    if(!isHome)return;
+    const main=document.querySelector('main');
+    if(!main)return;
+
+    const titleNeedle='oyun para birimleri & dijital ürünler';
+    [...main.querySelectorAll('h1,h2,h3,h4,strong,.k-ref-section-title,.kp-section-head,div')].forEach(el=>{
+      const text=norm(el.textContent);
+      if(text!==titleNeedle)return;
+      const target=el.closest('.k-ref-section-title,.kp-section-head,.section-title')||el;
+      target.remove();
+    });
+
+    const gameLabels=['rise online gold','pubg mobile uc','valorant vp','league of legends rp'];
+    const statLabels=['tamamlanan işlem','kayıtlı kullanıcı','doğrulanmış pazarcı','destek merkezi'];
+    const seed=[...main.querySelectorAll('*')].find(el=>norm(el.textContent).includes(gameLabels[0]));
+    if(!seed)return;
+
+    let row=seed;
+    while(row&&row!==main){
+      const text=norm(row.textContent);
+      if(gameLabels.every(x=>text.includes(x)))break;
+      row=row.parentElement;
+    }
+    if(!row||row===main)return;
+
+    const rowText=norm(row.textContent);
+    if(!statLabels.some(x=>rowText.includes(x))){
+      row.remove();
+      return;
+    }
+
+    gameLabels.forEach(label=>{
+      const leaf=[...main.querySelectorAll('*')].find(el=>{
+        const text=norm(el.textContent);
+        return text.includes(label)&&!statLabels.some(x=>text.includes(x));
+      });
+      if(!leaf)return;
+      let card=leaf.closest('a,article,.card,.tile,.kp-game-tile,.kp-product-card,.k-product-card');
+      if(!card){
+        card=leaf;
+        while(card.parentElement&&card.parentElement!==main){
+          const parentText=norm(card.parentElement.textContent);
+          if(gameLabels.filter(x=>parentText.includes(x)).length>1)break;
+          card=card.parentElement;
+        }
+      }
+      if(card&&card!==main)card.remove();
+    });
+  }
+
   function cleanHome(){
     if(!isHome)return;
     document.body.classList.add('k-home-simplified');
 
     document.querySelectorAll('.kp-promo-side').forEach(card=>{
-      const text=(card.textContent||'').toLocaleLowerCase('tr-TR');
+      const text=norm(card.textContent);
       if(text.includes('düşük komisyon'))card.remove();
     });
 
@@ -42,13 +112,8 @@
     const traderBlock=document.getElementById('kpTopTraders');
     removeClosestSection(requestBlock||traderBlock);
 
-    document.querySelectorAll('footer h4, footer h3, footer strong').forEach(title=>{
-      const text=(title.textContent||'').trim().toLocaleLowerCase('tr-TR');
-      if(text==='knight online'||text==='rise online'||text==='popüler oyunlar'||text==='oyunlar'){
-        const col=title.parentElement;
-        if(col&&col.closest('footer'))col.remove();
-      }
-    });
+    removeFooterGameColumns();
+    removeHomeCurrencyGames();
   }
 
   function removeGameDrawer(){
