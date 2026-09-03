@@ -6,83 +6,22 @@
   <meta name="theme-color" content="#11121f">
   <title>KOTAKAS • Oyun Pazaryeri</title>
   <meta name="description" content="Oyun parası, item, karakter ve dijital ürünler için güvenli KOTAKAS pazaryeri.">
-  <link rel="stylesheet" href="/assets/styles.css?v=20260903-1735-home-static-final">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260903-1740-home-final-last">
   <style id="kHomeStaticLayoutCss">
     .kp-home>.container{display:block!important}
-    .kp-promo-grid{
-      display:block!important;
-      grid-template-columns:none!important;
-      min-height:0!important;
-      height:auto!important;
-      padding:32px 0 18px!important;
-    }
-    .kp-promo-main{
-      display:flex!important;
-      width:100%!important;
-      min-height:382px!important;
-      margin:0 0 14px!important;
-      box-sizing:border-box!important;
-    }
-    .kp-promo-stack.k-home-promo-stack-final{
-      display:grid!important;
-      grid-template-columns:repeat(3,minmax(0,1fr))!important;
-      grid-template-rows:none!important;
-      gap:14px!important;
-      width:100%!important;
-      min-height:0!important;
-      margin:0!important;
-    }
-    .kp-promo-stack.k-home-promo-stack-final>.kp-promo-side{
-      min-height:176px!important;
-      height:auto!important;
-      margin:0!important;
-    }
-    #kHomeStatsRow{
-      width:100%!important;
-      display:grid!important;
-      grid-template-columns:repeat(4,minmax(0,1fr))!important;
-      gap:14px!important;
-      margin:18px 0 0!important;
-      padding:0!important;
-    }
-    #kHomeStatsRow .k-home-stat-card{
-      min-height:118px!important;
-      padding:21px 22px!important;
-      border-radius:12px!important;
-      border:1px solid #303446!important;
-      background:#171925!important;
-      box-shadow:0 12px 28px rgba(0,0,0,.18)!important;
-      display:flex!important;
-      align-items:center!important;
-      gap:16px!important;
-      box-sizing:border-box!important;
-      text-decoration:none!important;
-      color:#fff!important;
-    }
-    #kHomeStatsRow .k-home-stat-card:hover{border-color:#484d64!important;transform:translateY(-1px)!important}
-    #kHomeStatsRow .k-home-stat-icon{
-      width:52px!important;
-      height:52px!important;
-      flex:0 0 52px!important;
-      border-radius:13px!important;
-      display:grid!important;
-      place-items:center!important;
-      background:#222536!important;
-      font-size:25px!important;
-    }
+    #kHomeTopArea.kp-promo-grid{display:block!important;min-height:0!important;height:auto!important;padding:32px 0 12px!important}
+    #kHomeTopArea>.kp-promo-main{display:flex!important;width:100%!important;min-height:382px!important;margin:0 0 14px!important;box-sizing:border-box!important}
+    body.k-home-simplified #kHomeTopArea>.kp-promo-stack.k-home-promo-stack-final,#kHomeTopArea>.kp-promo-stack.k-home-promo-stack-final{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-template-rows:none!important;gap:14px!important;width:100%!important;min-height:0!important;margin:0!important}
+    #kHomeTopArea>.kp-promo-stack.k-home-promo-stack-final>.kp-promo-side{display:flex!important;min-height:176px!important;height:auto!important;margin:0!important}
+    body.k-home-simplified #kHomeTopArea>#kHomeStatsRow,#kHomeTopArea>#kHomeStatsRow{width:100%!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:14px!important;margin:18px 0 8px!important;padding:0!important}
+    #kHomeStatsRow .k-home-stat-card{min-height:120px!important;padding:22px 24px!important;border-radius:12px!important;border:1px solid #34384a!important;background:#171925!important;box-shadow:0 12px 28px rgba(0,0,0,.20)!important;display:flex!important;align-items:center!important;gap:16px!important;box-sizing:border-box!important;text-decoration:none!important;color:#fff!important}
+    #kHomeStatsRow .k-home-stat-icon{width:52px!important;height:52px!important;flex:0 0 52px!important;border-radius:13px!important;display:grid!important;place-items:center!important;background:#222536!important;font-size:25px!important}
     #kHomeStatsRow .k-home-stat-copy{display:flex!important;flex-direction:column!important;gap:6px!important;min-width:0!important}
     #kHomeStatsRow .k-home-stat-copy strong{font-size:20px!important;line-height:1.05!important;color:#fff!important}
     #kHomeStatsRow .k-home-stat-copy span{font-size:11px!important;line-height:1.35!important;color:#a0a6b7!important}
     .kp-home .kp-section.k-home-latest-items{padding-top:14px!important;margin-top:0!important}
-    @media(max-width:980px){
-      .kp-promo-stack.k-home-promo-stack-final{grid-template-columns:1fr!important}
-      #kHomeStatsRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-    }
-    @media(max-width:620px){
-      .kp-promo-main{min-height:330px!important;padding:32px 28px!important}
-      .kp-promo-main h1{font-size:48px!important}
-      #kHomeStatsRow{grid-template-columns:1fr!important}
-    }
+    @media(max-width:980px){body.k-home-simplified #kHomeTopArea>.kp-promo-stack.k-home-promo-stack-final,#kHomeTopArea>.kp-promo-stack.k-home-promo-stack-final{grid-template-columns:1fr!important}body.k-home-simplified #kHomeTopArea>#kHomeStatsRow,#kHomeTopArea>#kHomeStatsRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+    @media(max-width:620px){#kHomeTopArea>.kp-promo-main{min-height:330px!important;padding:32px 28px!important}#kHomeTopArea>.kp-promo-main h1{font-size:48px!important}body.k-home-simplified #kHomeTopArea>#kHomeStatsRow,#kHomeTopArea>#kHomeStatsRow{grid-template-columns:1fr!important}}
   </style>
 </head>
 <body>
@@ -125,22 +64,10 @@
       </div>
 
       <section id="kHomeStatsRow" data-k-home-stats="1" aria-label="KOTAKAS istatistikleri">
-        <div class="k-home-stat-card" data-home-stat="completed">
-          <div class="k-home-stat-icon">🤝</div>
-          <div class="k-home-stat-copy"><strong id="kpCompletedDeals">0</strong><span>Tamamlanan işlem</span></div>
-        </div>
-        <div class="k-home-stat-card" data-home-stat="users">
-          <div class="k-home-stat-icon">👥</div>
-          <div class="k-home-stat-copy"><strong id="kpUsers">1+</strong><span>Kayıtlı kullanıcı</span></div>
-        </div>
-        <div class="k-home-stat-card" data-home-stat="traders">
-          <div class="k-home-stat-icon">🏪</div>
-          <div class="k-home-stat-copy"><strong id="kpTraders">0+</strong><span>Doğrulanmış pazarcı</span></div>
-        </div>
-        <a class="k-home-stat-card" data-home-stat="support" href="/support.html">
-          <div class="k-home-stat-icon">🎧</div>
-          <div class="k-home-stat-copy"><strong>Destek Merkezi</strong><span>İşlem sorunlarında KOTAKAS yanında</span></div>
-        </a>
+        <div class="k-home-stat-card" data-home-stat="completed"><div class="k-home-stat-icon">🤝</div><div class="k-home-stat-copy"><strong id="kpCompletedDeals">0</strong><span>Tamamlanan işlem</span></div></div>
+        <div class="k-home-stat-card" data-home-stat="users"><div class="k-home-stat-icon">👥</div><div class="k-home-stat-copy"><strong id="kpUsers">1+</strong><span>Kayıtlı kullanıcı</span></div></div>
+        <div class="k-home-stat-card" data-home-stat="traders"><div class="k-home-stat-icon">🏪</div><div class="k-home-stat-copy"><strong id="kpTraders">0+</strong><span>Doğrulanmış pazarcı</span></div></div>
+        <a class="k-home-stat-card" data-home-stat="support" href="/support.html"><div class="k-home-stat-icon">🎧</div><div class="k-home-stat-copy"><strong>Destek Merkezi</strong><span>İşlem sorunlarında KOTAKAS yanında</span></div></a>
       </section>
     </section>
 
@@ -153,72 +80,13 @@
 
 <footer class="kp-footer">
   <div class="container kp-footer-main k-footer-four-cols">
-    <div>
-      <a class="k-shell-logo" href="/"><span class="ko">KO</span><span class="tak">TAKAS</span></a>
-      <p>Oyun dünyasının güvenli item, karakter ve oyun parası pazaryeri. Emanet ödeme ve kayıtlı işlem akışı KOTAKAS içinde kalır.</p>
-    </div>
-    <div>
-      <h4>Hukuki</h4>
-      <a href="/terms.html">Kullanım Koşulları</a>
-      <a href="/rules.html">İşlem Kuralları</a>
-      <a href="/privacy.html">Gizlilik / KVKK</a>
-      <a href="/cookies.html">Çerez Politikası</a>
-    </div>
-    <div>
-      <h4>Destek</h4>
-      <a href="/support.html">Destek Sistemi</a>
-      <a href="/contact.html">İletişim</a>
-      <a href="/trader-apply.html">Pazarcı Başvurusu</a>
-      <a href="/support.html">Sorun Bildir</a>
-    </div>
-    <div>
-      <h4>Knight Online</h4>
-      <a href="/market.html?game=knight-online">Knight Online GB</a>
-      <a href="/buy.html?game=knight-online">Knight Online Item</a>
-      <a href="/ring-sell.html">Knight Online Karakter</a>
-      <a href="/urgent-sell.html">Bize Sat</a>
-    </div>
+    <div><a class="k-shell-logo" href="/"><span class="ko">KO</span><span class="tak">TAKAS</span></a><p>Oyun dünyasının güvenli item, karakter ve oyun parası pazaryeri. Emanet ödeme ve kayıtlı işlem akışı KOTAKAS içinde kalır.</p></div>
+    <div><h4>Hukuki</h4><a href="/terms.html">Kullanım Koşulları</a><a href="/rules.html">İşlem Kuralları</a><a href="/privacy.html">Gizlilik / KVKK</a><a href="/cookies.html">Çerez Politikası</a></div>
+    <div><h4>Destek</h4><a href="/support.html">Destek Sistemi</a><a href="/contact.html">İletişim</a><a href="/trader-apply.html">Pazarcı Başvurusu</a><a href="/support.html">Sorun Bildir</a></div>
+    <div><h4>Knight Online</h4><a href="/market.html?game=knight-online">Knight Online GB</a><a href="/buy.html?game=knight-online">Knight Online Item</a><a href="/ring-sell.html">Knight Online Karakter</a><a href="/urgent-sell.html">Bize Sat</a></div>
   </div>
   <div class="container kp-footer-bottom"><span>© 2026 KOTAKAS</span><span>• Bağımsız oyun pazaryeri</span><span class="spacer"></span><span class="kp-security-pill">🔒 Güvenli Emanet</span><span class="kp-security-pill">🛡️ Hesap Güvenliği</span></div>
 </footer>
-
-<script>
-(()=>{
-  const host=document.querySelector('.kp-home>.container');
-  const initial=document.getElementById('kHomeTopArea');
-  if(!host||!initial)return;
-  const snapshot=initial.cloneNode(true);
-  let repairing=false;
-
-  function repair(){
-    if(repairing)return;
-    repairing=true;
-    requestAnimationFrame(()=>{
-      repairing=false;
-      let top=document.getElementById('kHomeTopArea');
-      if(!top){
-        top=snapshot.cloneNode(true);
-        host.insertBefore(top,host.firstElementChild||null);
-      }
-      top.style.setProperty('display','block','important');
-      top.style.setProperty('min-height','0','important');
-      top.querySelector('.kp-promo-main')?.style.setProperty('display','flex','important');
-      top.querySelector('.kp-promo-stack')?.style.setProperty('display','grid','important');
-      top.querySelector('#kHomeStatsRow')?.style.setProperty('display','grid','important');
-
-      const latest=host.querySelector('.k-home-latest-items');
-      if(latest&&top.nextElementSibling!==latest)host.insertBefore(top,latest);
-
-      [...document.querySelectorAll('#kHomeStatsRow')].slice(1).forEach(x=>x.remove());
-    });
-  }
-
-  new MutationObserver(repair).observe(host,{childList:true,subtree:true});
-  [0,150,400,800,1400,2500,4500,8000,12000].forEach(ms=>setTimeout(repair,ms));
-})();
-</script>
-<script src="/js/app.js?v=20260903-1735-home-static-final"></script>
-<script src="/js/chunks/footer-hard-cleanup.js?v=20260903-1735-home-static-final"></script>
-<script src="/js/chunks/header-no-search.js?v=20260903-1735-home-static-final"></script>
+<script src="/js/app.js?v=20260903-1740-home-final-last"></script>
 </body>
 </html>
