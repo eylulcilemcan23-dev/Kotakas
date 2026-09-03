@@ -21,7 +21,7 @@ public sealed class TraderPackageGateMiddleware(RequestDelegate next)
             return;
         }
 
-        if (!principal.Identity?.IsAuthenticated == true || !principal.IsInRole("trader"))
+        if (principal.Identity?.IsAuthenticated != true || !principal.IsInRole("trader"))
         {
             await next(context);
             return;
