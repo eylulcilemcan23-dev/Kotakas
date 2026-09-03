@@ -95,8 +95,6 @@ public static class KotakasStockEndpoints
 
             var now = DateTimeOffset.UtcNow;
             await ExecuteAsync(db, "UPDATE \"KotakasItemOrders\" SET \"Status\"='gb_received',\"GbReceivedAt\"=@now WHERE \"Id\"=@id", ("@now", now), ("@id", id));
-            await ExecuteAsync(db, "UPDATE \"KotakasInventory\" SET \"Stock\"=\"Stock\"-@qty,\"Reserved\"=\"Reserved\"-@qty,\"Status\"=CASE WHEN (\"Stock\"-@qty)<=0 THEN 'sold_out' ELSE \"Status\" END,\"UpdatedAt\"=@now WHERE \"Id\"=@iid",
-                ("@qty", order.Quantity), ("@now", now), ("@iid", order.InventoryId));
             await UpsertGbStockAsync(db, item.ServerCode, order.TotalGb, now);
             db.Notifications.Add(new AppNotification { UserId = order.BuyerUserId, Title = "GB teslimin onaylandı", Body = $"{item.ItemName} için {order.TotalGb:0.##} GB teslim alındı. Item teslimi hazırlanıyor." });
             await db.SaveChangesAsync();
@@ -107,13 +105,19 @@ public static class KotakasStockEndpoints
         app.MapPost("/api/admin/kotakas-stock/orders/{id:long}/complete", async (long id, ClaimsPrincipal p, AppDbContext db) =>
         {
             if (!ApiHelpers.IsFullAdmin(p)) return Results.Forbid();
+            await using var tx = await db.Database.BeginTransactionAsync();
             var order = await GetOrderAsync(db, id);
             if (order is null) return Results.NotFound();
             if (order.Status != "gb_received") return Results.BadRequest(new { error = "gb_not_received" });
             var item = await GetInventoryAsync(db, order.InventoryId);
-            await ExecuteAsync(db, "UPDATE \"KotakasItemOrders\" SET \"Status\"='completed',\"CompletedAt\"=@now WHERE \"Id\"=@id", ("@now", DateTimeOffset.UtcNow), ("@id", id));
-            db.Notifications.Add(new AppNotification { UserId = order.BuyerUserId, Title = "KOTAKAS item teslimi tamamlandı", Body = $"{item?.ItemName ?? "Item"} teslim edildi. İşlem tamamlandı." });
+            if (item is null || item.Stock < order.Quantity || item.Reserved < order.Quantity) return Results.BadRequest(new { error = "inventory_state_invalid" });
+            var now = DateTimeOffset.UtcNow;
+            await ExecuteAsync(db, "UPDATE \"KotakasInventory\" SET \"Stock\"=\"Stock\"-@qty,\"Reserved\"=\"Reserved\"-@qty,\"Status\"=CASE WHEN (\"Stock\"-@qty)<=0 THEN 'sold_out' ELSE \"Status\" END,\"UpdatedAt\"=@now WHERE \"Id\"=@iid",
+                ("@qty", order.Quantity), ("@now", now), ("@iid", order.InventoryId));
+            await ExecuteAsync(db, "UPDATE \"KotakasItemOrders\" SET \"Status\"='completed',\"CompletedAt\"=@now WHERE \"Id\"=@id", ("@now", now), ("@id", id));
+            db.Notifications.Add(new AppNotification { UserId = order.BuyerUserId, Title = "KOTAKAS item teslimi tamamlandı", Body = $"{item.ItemName} teslim edildi. İşlem tamamlandı." });
             await db.SaveChangesAsync();
+            await tx.CommitAsync();
             return Results.Ok(new { ok = true });
         }).RequireAuthorization();
 
@@ -131,6 +135,7 @@ public static class KotakasStockEndpoints
             return Results.Ok(new { ok = true });
         }).RequireAuthorization();
 
+        app.MapKotakasGbSaleEndpoints();
         return app;
     }
 
