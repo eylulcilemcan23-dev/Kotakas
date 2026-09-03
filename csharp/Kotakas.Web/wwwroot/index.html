@@ -6,14 +6,91 @@
   <meta name="theme-color" content="#11121f">
   <title>KOTAKAS • Oyun Pazaryeri</title>
   <meta name="description" content="Oyun parası, item, karakter ve dijital ürünler için güvenli KOTAKAS pazaryeri.">
-  <link rel="stylesheet" href="/assets/styles.css?v=20260831-1315">
+  <link rel="stylesheet" href="/assets/styles.css?v=20260903-1735-home-static-final">
+  <style id="kHomeStaticLayoutCss">
+    .kp-home>.container{display:block!important}
+    .kp-promo-grid{
+      display:block!important;
+      grid-template-columns:none!important;
+      min-height:0!important;
+      height:auto!important;
+      padding:32px 0 18px!important;
+    }
+    .kp-promo-main{
+      display:flex!important;
+      width:100%!important;
+      min-height:382px!important;
+      margin:0 0 14px!important;
+      box-sizing:border-box!important;
+    }
+    .kp-promo-stack.k-home-promo-stack-final{
+      display:grid!important;
+      grid-template-columns:repeat(3,minmax(0,1fr))!important;
+      grid-template-rows:none!important;
+      gap:14px!important;
+      width:100%!important;
+      min-height:0!important;
+      margin:0!important;
+    }
+    .kp-promo-stack.k-home-promo-stack-final>.kp-promo-side{
+      min-height:176px!important;
+      height:auto!important;
+      margin:0!important;
+    }
+    #kHomeStatsRow{
+      width:100%!important;
+      display:grid!important;
+      grid-template-columns:repeat(4,minmax(0,1fr))!important;
+      gap:14px!important;
+      margin:18px 0 0!important;
+      padding:0!important;
+    }
+    #kHomeStatsRow .k-home-stat-card{
+      min-height:118px!important;
+      padding:21px 22px!important;
+      border-radius:12px!important;
+      border:1px solid #303446!important;
+      background:#171925!important;
+      box-shadow:0 12px 28px rgba(0,0,0,.18)!important;
+      display:flex!important;
+      align-items:center!important;
+      gap:16px!important;
+      box-sizing:border-box!important;
+      text-decoration:none!important;
+      color:#fff!important;
+    }
+    #kHomeStatsRow .k-home-stat-card:hover{border-color:#484d64!important;transform:translateY(-1px)!important}
+    #kHomeStatsRow .k-home-stat-icon{
+      width:52px!important;
+      height:52px!important;
+      flex:0 0 52px!important;
+      border-radius:13px!important;
+      display:grid!important;
+      place-items:center!important;
+      background:#222536!important;
+      font-size:25px!important;
+    }
+    #kHomeStatsRow .k-home-stat-copy{display:flex!important;flex-direction:column!important;gap:6px!important;min-width:0!important}
+    #kHomeStatsRow .k-home-stat-copy strong{font-size:20px!important;line-height:1.05!important;color:#fff!important}
+    #kHomeStatsRow .k-home-stat-copy span{font-size:11px!important;line-height:1.35!important;color:#a0a6b7!important}
+    .kp-home .kp-section.k-home-latest-items{padding-top:14px!important;margin-top:0!important}
+    @media(max-width:980px){
+      .kp-promo-stack.k-home-promo-stack-final{grid-template-columns:1fr!important}
+      #kHomeStatsRow{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+    }
+    @media(max-width:620px){
+      .kp-promo-main{min-height:330px!important;padding:32px 28px!important}
+      .kp-promo-main h1{font-size:48px!important}
+      #kHomeStatsRow{grid-template-columns:1fr!important}
+    }
+  </style>
 </head>
 <body>
 <header class="site-header"></header>
 <main class="kp-home">
   <div class="container">
-    <section class="kp-promo-grid" aria-label="KOTAKAS fırsatları">
-      <article class="kp-promo-main">
+    <section class="kp-promo-grid" id="kHomeTopArea" aria-label="KOTAKAS fırsatları">
+      <article class="kp-promo-main" data-k-home-hero="1">
         <div class="kp-promo-copy">
           <span class="kp-eyebrow">KOTAKAS • OYUN PAZARYERİ</span>
           <h1>BİZE SAT <span>HIZLI & GÜVENLİ</span></h1>
@@ -25,62 +102,51 @@
           </div>
         </div>
       </article>
-      <div class="kp-promo-stack k-home-promo-stack-final">
-        <article class="kp-promo-side gold">
+
+      <div class="kp-promo-stack k-home-promo-stack-final" data-k-home-promos="1">
+        <article class="kp-promo-side gold" data-k-promo="goldbar">
           <small>KNIGHT ONLINE</small>
           <h3>Gold Bar & Item</h3>
           <p>ZERO ve diğer sunuculardaki güncel item ve GB pazarını incele.</p>
           <a class="btn" href="/buy.html?game=knight-online">GB Al</a>
         </article>
-        <article class="kp-promo-side red">
+        <article class="kp-promo-side red" data-k-promo="urgent">
           <small>ANINDA TEKLİF</small>
           <h3>Bize Sat — Hızlı İşlem</h3>
           <p>KO ve desteklenen oyunlardaki varlıkların için hızlı fiyat talebi oluştur.</p>
           <a class="btn" href="/urgent-sell.html">Hızlı Sat</a>
         </article>
-        <article class="kp-promo-side purple">
+        <article class="kp-promo-side purple" data-k-promo="trader">
           <small>KOTAKAS PAZARCI PROGRAMI</small>
           <h3>Pazarcı Başvurusu</h3>
           <p>Mağazanı aç, item ve GB ilanlarını yayınla, KOTAKAS üzerinden satış yap.</p>
           <a class="btn" href="/trader-apply.html">Başvuru Yap</a>
         </article>
       </div>
-      <section id="kHomeStatsRow" aria-label="KOTAKAS istatistikleri">
-        <div class="k-home-stat-card" data-home-stat="completed"><div class="k-home-stat-icon">🤝</div><div class="k-home-stat-copy"><strong id="kpCompletedDeals">0</strong><span>Tamamlanan işlem</span></div></div>
-        <div class="k-home-stat-card" data-home-stat="users"><div class="k-home-stat-icon">👥</div><div class="k-home-stat-copy"><strong id="kpUsers">1+</strong><span>Kayıtlı kullanıcı</span></div></div>
-        <div class="k-home-stat-card" data-home-stat="traders"><div class="k-home-stat-icon">🏪</div><div class="k-home-stat-copy"><strong id="kpTraders">0+</strong><span>Doğrulanmış pazarcı</span></div></div>
-        <a class="k-home-stat-card" data-home-stat="support" href="/support.html"><div class="k-home-stat-icon">🎧</div><div class="k-home-stat-copy"><strong>Destek Merkezi</strong><span>İşlem sorunlarında KOTAKAS yanında</span></div></a>
+
+      <section id="kHomeStatsRow" data-k-home-stats="1" aria-label="KOTAKAS istatistikleri">
+        <div class="k-home-stat-card" data-home-stat="completed">
+          <div class="k-home-stat-icon">🤝</div>
+          <div class="k-home-stat-copy"><strong id="kpCompletedDeals">0</strong><span>Tamamlanan işlem</span></div>
+        </div>
+        <div class="k-home-stat-card" data-home-stat="users">
+          <div class="k-home-stat-icon">👥</div>
+          <div class="k-home-stat-copy"><strong id="kpUsers">1+</strong><span>Kayıtlı kullanıcı</span></div>
+        </div>
+        <div class="k-home-stat-card" data-home-stat="traders">
+          <div class="k-home-stat-icon">🏪</div>
+          <div class="k-home-stat-copy"><strong id="kpTraders">0+</strong><span>Doğrulanmış pazarcı</span></div>
+        </div>
+        <a class="k-home-stat-card" data-home-stat="support" href="/support.html">
+          <div class="k-home-stat-icon">🎧</div>
+          <div class="k-home-stat-copy"><strong>Destek Merkezi</strong><span>İşlem sorunlarında KOTAKAS yanında</span></div>
+        </a>
       </section>
     </section>
 
-    <section class="kp-section">
-      <div class="kp-section-head"><div><h2>Popüler Oyunlar</h2><p>En çok işlem gören oyun pazarlarına hızlı erişim.</p></div><a href="/games.html">Tümünü Gör →</a></div>
-      <div id="kpPopularGames" class="kp-game-row"><div class="kp-empty-card">Oyunlar yükleniyor...</div></div>
-    </section>
-
-    <section class="kp-section">
+    <section class="kp-section k-home-latest-items">
       <div class="kp-section-head"><div><h2>Son Eklenen Item İlanları</h2><p>Doğrulanmış pazarcıların güncel SELL ilanları.</p></div><a href="/buy.html">Tüm item ilanları →</a></div>
       <div id="kpLatestItems" class="kp-product-grid"><div class="kp-empty-card">İlanlar yükleniyor...</div></div>
-    </section>
-
-    <section class="kp-section">
-      <div class="kp-dual-grid">
-        <article class="kp-list-panel">
-          <div class="kp-section-head"><div><h2>Son Satış Talepleri</h2><p>Kullanıcıların pazarcılardan teklif beklediği talepler.</p></div><a href="/market.html">Tümü →</a></div>
-          <div id="kpLatestRequests" class="kp-mini-list"><div class="kp-empty-card">Talepler yükleniyor...</div></div>
-        </article>
-        <article class="kp-list-panel">
-          <div class="kp-section-head"><div><h2>Doğrulanmış Pazarcılar</h2><p>İşlem geçmişi bulunan aktif mağazalar.</p></div><a href="/trader.html">Pazarcı paneli →</a></div>
-          <div id="kpTopTraders" class="kp-mini-list"><div class="kp-empty-card">Pazarcılar yükleniyor...</div></div>
-        </article>
-      </div>
-    </section>
-
-    <section class="kp-trust-band" aria-label="Güven özellikleri">
-      <div class="kp-trust-item"><span class="i">🔐</span><span><strong>Emanet Ödeme</strong><span>İşlem tamamlanana kadar para korunur.</span></span></div>
-      <div class="kp-trust-item"><span class="i">✅</span><span><strong>Doğrulanmış Pazarcılar</strong><span>Mağaza ve işlem geçmişi görünür.</span></span></div>
-      <div class="kp-trust-item"><span class="i">🔔</span><span><strong>Anlık Bildirim</strong><span>Teklif ve işlem adımlarını kaçırma.</span></span></div>
-      <div class="kp-trust-item"><span class="i">💬</span><span><strong>Güvenli İletişim</strong><span>Hazır mesajlarla site dışına çıkmadan ilerle.</span></span></div>
     </section>
   </div>
 </main>
@@ -115,9 +181,44 @@
   </div>
   <div class="container kp-footer-bottom"><span>© 2026 KOTAKAS</span><span>• Bağımsız oyun pazaryeri</span><span class="spacer"></span><span class="kp-security-pill">🔒 Güvenli Emanet</span><span class="kp-security-pill">🛡️ Hesap Güvenliği</span></div>
 </footer>
-<script src="/js/app.js?v=20260903-1725-home-final"></script>
-<script src="/js/chunks/footer-hard-cleanup.js?v=20260903-1725-home-final"></script>
-<script src="/js/chunks/header-no-search.js?v=20260903-1725-home-final"></script>
-<script src="/js/chunks/home-final-layout.js?v=20260903-1725-home-final"></script>
+
+<script>
+(()=>{
+  const host=document.querySelector('.kp-home>.container');
+  const initial=document.getElementById('kHomeTopArea');
+  if(!host||!initial)return;
+  const snapshot=initial.cloneNode(true);
+  let repairing=false;
+
+  function repair(){
+    if(repairing)return;
+    repairing=true;
+    requestAnimationFrame(()=>{
+      repairing=false;
+      let top=document.getElementById('kHomeTopArea');
+      if(!top){
+        top=snapshot.cloneNode(true);
+        host.insertBefore(top,host.firstElementChild||null);
+      }
+      top.style.setProperty('display','block','important');
+      top.style.setProperty('min-height','0','important');
+      top.querySelector('.kp-promo-main')?.style.setProperty('display','flex','important');
+      top.querySelector('.kp-promo-stack')?.style.setProperty('display','grid','important');
+      top.querySelector('#kHomeStatsRow')?.style.setProperty('display','grid','important');
+
+      const latest=host.querySelector('.k-home-latest-items');
+      if(latest&&top.nextElementSibling!==latest)host.insertBefore(top,latest);
+
+      [...document.querySelectorAll('#kHomeStatsRow')].slice(1).forEach(x=>x.remove());
+    });
+  }
+
+  new MutationObserver(repair).observe(host,{childList:true,subtree:true});
+  [0,150,400,800,1400,2500,4500,8000,12000].forEach(ms=>setTimeout(repair,ms));
+})();
+</script>
+<script src="/js/app.js?v=20260903-1735-home-static-final"></script>
+<script src="/js/chunks/footer-hard-cleanup.js?v=20260903-1735-home-static-final"></script>
+<script src="/js/chunks/header-no-search.js?v=20260903-1735-home-static-final"></script>
 </body>
 </html>
