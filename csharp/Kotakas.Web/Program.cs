@@ -100,6 +100,7 @@ else
 }
 await MultiGameSchemaSeeder.InitializeAsync(app);
 await TraderPackageSchemaSeeder.InitializeAsync(app);
+await KotakasStockSchemaSeeder.InitializeAsync(app);
 await SchemaVersionSeeder.InitializeAsync(app);
 await SiteRuntimeState.InitializeAsync(app);
 
@@ -181,6 +182,7 @@ app.MapItemCatalogEndpoints();
 app.MapMarketplaceEndpoints();
 app.MapGbTradeEndpoints();
 app.MapTraderPackageEndpoints();
+app.MapKotakasStockEndpoints();
 app.MapRequestManagementEndpoints();
 app.MapListingManagementEndpoints();
 app.MapListingEnhancementEndpoints();
