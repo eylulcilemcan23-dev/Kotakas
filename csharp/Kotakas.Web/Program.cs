@@ -11,6 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads", "requests"));
 Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads", "avatars"));
+LocalPreviewDataRecovery.TryRecover(builder);
 
 var databaseProvider = (builder.Configuration["Database:Provider"] ?? "sqlite").Trim().ToLowerInvariant();
 builder.Services.AddDbContext<AppDbContext>(options =>
