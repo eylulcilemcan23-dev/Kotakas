@@ -168,7 +168,7 @@ public static class KotakasGbSaleEndpoints
         Add(cmd, "@server", server); using var r = await cmd.ExecuteReaderAsync(); return await r.ReadAsync() ? ReadOffer(r) : null;
     });
 
-    private static async Task<decimal?> GetGbBalanceAsync(AppDbContext db, string server) => await WithConnectionAsync(db, async conn =>
+    private static async Task<decimal?> GetGbBalanceAsync(AppDbContext db, string server) => await WithConnectionAsync<decimal?>(db, async conn =>
     {
         using var cmd = conn.CreateCommand(); cmd.CommandText = "SELECT \"BalanceGb\" FROM \"KotakasGbStock\" WHERE \"ServerCode\"=@server LIMIT 1"; Add(cmd, "@server", server);
         var v = await cmd.ExecuteScalarAsync(); return v is null or DBNull ? null : Convert.ToDecimal(v, CultureInfo.InvariantCulture);
